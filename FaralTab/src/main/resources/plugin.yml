@@ -3,7 +3,7 @@ version: '${project.version}'
 main: ru.FaralMC.FaralTab.FaralTab
 api-version: '26.2'
 author: FaralMC
-description: Компактный скорборд с кастомными иконками для Geyser/Floodgate (монеты, осколки PlayerPoints, привилегия, У/С, время в игре).
+description: Bedrock-only скорборд с кастомными иконками для Geyser/Floodgate (монеты, осколки PlayerPoints, привилегия, У/С, время в игре). Java-игроки кикаются.
 softdepend: [Vault, LuckPerms, PlayerPoints, PlaceholderAPI, Geyser-Spigot, floodgate]
 commands:
   faraltab:
@@ -17,3 +17,6 @@ permissions:
   faraltab.toggle:
     description: Включать/выключать свой скорборд
     default: true
+  faraltab.bedrock-bypass:
+    description: Обход bedrock-only (заход с Java, например для тестов админа). По умолчанию нет ни у кого, даже у опов — выдаётся вручную.
+    default: false

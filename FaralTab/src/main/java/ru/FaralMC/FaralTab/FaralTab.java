@@ -1,5 +1,6 @@
 package ru.FaralMC.FaralTab;
 
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -24,6 +25,7 @@ public final class FaralTab extends JavaPlugin implements Listener, CommandExecu
     private Hooks hooks;
     private SidebarManager sidebar;
     private BukkitTask task;
+    private boolean warnedNoFloodgate;
 
     @Override
     public void onEnable() {
@@ -40,7 +42,7 @@ public final class FaralTab extends JavaPlugin implements Listener, CommandExecu
         startTask();
         // игроки, уже онлайн при /reload
         Bukkit.getOnlinePlayers().forEach(p -> sidebar.update(p, true));
-        getLogger().info("FaralTab включён. Иконки Bedrock: " + (hooks.hasFloodgate() ? "Floodgate найден" : "Floodgate не найден (см. icons.* в config.yml)"));
+        getLogger().info("FaralTab включён (Bedrock-only). Floodgate: " + (hooks.hasFloodgate() ? "найден, Java-игроки будут кикаться" : "НЕ найден — bedrock-only не сможет отличать Java, поставьте Floodgate!"));
     }
 
     @Override
@@ -69,8 +71,37 @@ public final class FaralTab extends JavaPlugin implements Listener, CommandExecu
     // ------------------------------------------------------------- события
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
+        Player player = event.getPlayer();
+        if (isJavaPlayer(player)) {
+            getLogger().info("Bedrock-only: кикнут Java-игрок " + player.getName() + " (" + player.getUniqueId() + ")");
+            player.kick(LegacyComponentSerializer.legacySection().deserialize(
+                    TextUtil.color(getConfig().getString("bedrock-only.kick-message",
+                            "&cFaralMC — сервер только для Bedrock!"))));
+            return;
+        }
         long delay = Math.max(0L, getConfig().getLong("join-delay-ticks", 20L));
-        Bukkit.getScheduler().runTaskLater(this, () -> sidebar.update(event.getPlayer(), true), delay);
+        Bukkit.getScheduler().runTaskLater(this, () -> sidebar.update(player, true), delay);
+    }
+
+    /**
+     * Сервер только для Bedrock. Java-игрок = зашёл напрямую на Purpur, мимо Geyser/Floodgate.
+     * Если Floodgate на сервере не стоит, отличить Java от Bedrock нельзя — никого не кикаем.
+     */
+    private boolean isJavaPlayer(Player player) {
+        if (!getConfig().getBoolean("bedrock-only.enabled", true)) {
+            return false;
+        }
+        if (player.hasPermission("faraltab.bedrock-bypass")) {
+            return false;
+        }
+        if (!hooks.hasFloodgate()) {
+            if (!warnedNoFloodgate) {
+                warnedNoFloodgate = true;
+                getLogger().warning("bedrock-only включён, но Floodgate не найден: Java-игроки НЕ кикаются. Поставьте Floodgate на этот сервер.");
+            }
+            return false;
+        }
+        return !hooks.isBedrock(player.getUniqueId());
     }
 
     @EventHandler

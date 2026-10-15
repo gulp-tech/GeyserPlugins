@@ -13,6 +13,18 @@
 #  Плюс любые %плейсхолдеры% PlaceholderAPI (если включён ниже).
 # ============================================================
 
+# СЕРВЕР ТОЛЬКО ДЛЯ BEDROCK (Geyser + Floodgate). Java-игроков плагин кикает — см. bedrock-only ниже.
+# Никаких Java-заглушек вместо иконок нет и не нужно: у всех игроков Bedrock и ресурспак.
+
+# Только Bedrock: игрок без Floodgate (т.е. зашёл с Java напрямую мимо Geyser) будет кикнут.
+bedrock-only:
+  enabled: true
+  # Кикать, только если плагин Floodgate реально стоит на сервере (иначе Bedrock от Java не отличить).
+  # Если Floodgate нет — никто не кикается, в консоль один раз пишется предупреждение.
+  kick-message: |
+    &cFaralMC — сервер только для Bedrock!
+    &7Заходи с телефона/планшета/Windows через Geyser.
+
 # Как часто обновлять скорборд, в тиках (20 тиков = 1 сек). 40 = раз в 2 сек.
 update-interval-ticks: 40
 
@@ -38,16 +50,6 @@ scoreboard:
     - "&fУ/С: &#C86BFF{kills}&f/&#FF6B6B{deaths}"
     - "&fВ игре: &#FFD93D{playtime_hours}ч {icon:coin}"
 
-# Настоящий TAB (список игроков по Tab) — шапка и подвал.
-tablist:
-  enabled: true
-  header:
-    - "<gradient:#FF6A00:#FFFFFF>FaralMC</gradient>"
-    - "&7Онлайн: &#FFD93D{online}&7/&f{max}"
-  footer:
-    - "&fМонеты: &#FFD93D{coins} {icon:spark} &8| &fОсколки: &#54C8FF{shards} {icon:shard}"
-    - "&7У/С: &#C86BFF{kills}&f/&#FF6B6B{deaths} &8| &7В игре: &#FFD93D{playtime}"
-
 # ------------------------------------------------------------
 # Иконки Bedrock-ресурспака (FaralResourcePack.mcpack, font/glyph_E0.png)
 # Значение — код символа Unicode (hex) в приватной области.
@@ -61,24 +63,8 @@ icons:
   sword: "E006"     # меч (убийства)
   skull: "E007"     # череп (смерти)
   clock: "E008"     # часы (время в игре)
-
-  # AUTO   — Bedrock (Floodgate) видит иконки пака, Java-игрок видит icons-java-fallback
-  # ALWAYS — иконки всем (у Java без своего пака будут пустые квадраты!)
-  # NEVER  — никому, всем показывается icons-java-fallback
-  mode: "AUTO"
-  # Если плагина Floodgate на ЭТОМ сервере нет (стоит только на прокси) — считать всех Bedrock.
-  assume-bedrock-without-floodgate: true
-
-# Что видит Java-игрок вместо иконок пака (обычный текст/символы).
-icons-java-fallback:
-  coin: "&#FFD93D●"
-  spark: "&#FFD93D✦"
-  sapphire: "&#54C8FF◆"
-  shard: "&#54C8FF◆"
-  crown: "&#FFD93D♛"
-  sword: "&#D7E6F5⚔"
-  skull: "&#EBF0F8☠"
-  clock: "&#FFD93D◷"
+  # Иконки берутся из FaralResourcePack.mcpack (plugins/Geyser-Spigot/packs/),
+  # поставьте в конфиге Geyser force-resource-packs: true — без пака вместо иконок будет пусто.
 
 # ------------------------------------------------------------
 # Привилегия ({group}). Сначала ищется здесь по имени группы LuckPerms/Vault,

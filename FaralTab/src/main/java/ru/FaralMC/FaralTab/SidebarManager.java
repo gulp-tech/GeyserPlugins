@@ -14,7 +14,6 @@ import org.bukkit.scoreboard.Team;
 
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.Method;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.util.ArrayList;
@@ -27,7 +26,8 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * Компактный скорборд + шапка/подвал настоящего TAB-листа.
+ * Компактный Bedrock-скорборд (сервер FaralMC — только Bedrock: Geyser + Floodgate).
+ * Иконки — всегда глифы из FaralResourcePack, никаких Java-заглушек.
  * Строки скорборда — это префиксы команд (entries невидимы), поэтому:
  *  - нет мерцания при обновлении (меняем только изменившиеся строки);
  *  - иконка из ресурспака занимает ровно 1 символ и не раздувает таб.
@@ -42,13 +42,10 @@ public final class SidebarManager {
     private final Map<UUID, List<String>> cache = new HashMap<>();
     private final Set<UUID> hidden = new HashSet<>();
     private File hiddenFile;
-    private Method blankNumberFormat; // Paper: скрыть красные цифры справа (Java)
-    private Object blankFormat;
 
     public SidebarManager(FaralTab plugin) {
         this.plugin = plugin;
         loadHidden();
-        tryHideNumbersInit();
     }
 
     // ------------------------------------------------------------ жизненный цикл
@@ -97,10 +94,9 @@ public final class SidebarManager {
             return;
         }
 
-        boolean bedrock = resolveBedrock(player);
         List<String> lines = new ArrayList<>();
         for (String raw : plugin.getConfig().getStringList("scoreboard.lines")) {
-            lines.add(render(player, raw, bedrock));
+            lines.add(render(player, raw));
             if (lines.size() >= MAX_LINES) {
                 break;
             }
@@ -108,7 +104,6 @@ public final class SidebarManager {
 
         UUID uuid = player.getUniqueId();
         if (!force && lines.equals(cache.get(uuid))) {
-            updateTabList(player, bedrock);
             return; // ничего не изменилось — не трогаем скорборд (нет мерцания)
         }
         cache.put(uuid, lines);
@@ -120,11 +115,10 @@ public final class SidebarManager {
         }
         Objective objective = board.getObjective(OBJECTIVE);
         if (objective == null) {
-            objective = board.registerNewObjective(OBJECTIVE, Criteria.DUMMY, component(renderTitle(player, bedrock)));
+            objective = board.registerNewObjective(OBJECTIVE, Criteria.DUMMY, component(renderTitle(player)));
             objective.setDisplaySlot(DisplaySlot.SIDEBAR);
-            tryHideNumbers(objective);
         } else {
-            objective.displayName(component(renderTitle(player, bedrock)));
+            objective.displayName(component(renderTitle(player)));
         }
 
         int total = lines.size();
@@ -143,26 +137,14 @@ public final class SidebarManager {
                 board.resetScores(entry);
             }
         }
-        updateTabList(player, bedrock);
     }
 
-    private void updateTabList(Player player, boolean bedrock) {
-        if (!plugin.getConfig().getBoolean("tablist.enabled", true)) {
-            return;
-        }
-        String header = String.join("\n", plugin.getConfig().getStringList("tablist.header"));
-        String footer = String.join("\n", plugin.getConfig().getStringList("tablist.footer"));
-        player.sendPlayerListHeaderAndFooter(
-                component(render(player, header, bedrock)),
-                component(render(player, footer, bedrock)));
-    }
-
-    private String renderTitle(Player player, boolean bedrock) {
-        return render(player, plugin.getConfig().getString("scoreboard.title", "FaralMC"), bedrock);
+    private String renderTitle(Player player) {
+        return render(player, plugin.getConfig().getString("scoreboard.title", "FaralMC"));
     }
 
     // ------------------------------------------------------------ рендер строки
-    String render(Player player, String raw, boolean bedrock) {
+    String render(Player player, String raw) {
         Hooks hooks = plugin.hooks();
         String text = raw;
 
@@ -171,7 +153,7 @@ public final class SidebarManager {
                 ? Set.<String>of() : plugin.getConfig().getConfigurationSection("icons").getKeys(false)) {
             String token = "{icon:" + name + "}";
             if (text.contains(token)) {
-                text = text.replace(token, iconChar(name, bedrock));
+                text = text.replace(token, iconChar(name));
             }
         }
 
@@ -255,28 +237,8 @@ public final class SidebarManager {
         return TextUtil.color(text);
     }
 
-    private boolean resolveBedrock(Player player) {
-        String mode = plugin.getConfig().getString("icons.mode", "AUTO").toUpperCase(Locale.ROOT);
-        switch (mode) {
-            case "ALWAYS":
-                return true;
-            case "NEVER":
-                return false;
-            default: // AUTO: Bedrock через Floodgate -> иконки пака, Java -> текстовые заглушки
-                Hooks hooks = plugin.hooks();
-                if (hooks.hasFloodgate()) {
-                    return hooks.isBedrock(player.getUniqueId());
-                }
-                // Floodgate плагина на этом сервере нет (например, стоит на прокси) —
-                // считаем всех Bedrock-игроками, поведение меняется в конфиге.
-                return plugin.getConfig().getBoolean("icons.assume-bedrock-without-floodgate", true);
-        }
-    }
-
-    private String iconChar(String name, boolean bedrock) {
-        if (!bedrock) {
-            return TextUtil.color(plugin.getConfig().getString("icons-java-fallback." + name, ""));
-        }
+    /** Иконка — всегда глиф из Bedrock-ресурспака: сервер только для Bedrock. */
+    private String iconChar(String name) {
         String code = plugin.getConfig().getString("icons." + name, "");
         if (code == null || code.isBlank()) {
             return "";
@@ -315,28 +277,6 @@ public final class SidebarManager {
     private Component component(String legacySectionText) {
         return LegacyComponentSerializer.legacySection().deserialize(
                 legacySectionText == null ? "" : legacySectionText);
-    }
-
-    private void tryHideNumbersInit() {
-        try {
-            Class<?> nf = Class.forName("io.papermc.paper.scoreboard.numbers.NumberFormat");
-            blankNumberFormat = nf.getMethod("blank");
-            blankFormat = blankNumberFormat.invoke(null);
-        } catch (Throwable ignored) {
-            blankFormat = null; // не Paper/Purpur — просто останутся цифры у Java-игроков
-        }
-    }
-
-    private void tryHideNumbers(Objective objective) {
-        if (blankFormat == null) {
-            return;
-        }
-        try {
-            Method m = objective.getClass().getMethod("setNumberFormat",
-                    Class.forName("io.papermc.paper.scoreboard.numbers.NumberFormat"));
-            m.invoke(objective, blankFormat);
-        } catch (Throwable ignored) {
-        }
     }
 
     // ------------------------------------------------------------ скрытые игроки

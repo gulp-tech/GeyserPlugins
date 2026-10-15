@@ -1,8 +1,9 @@
 # GeyserPlugins — плагины FaralMC под Geyser/Floodgate
 
-Плагины пишутся **исключительно для связки Purpur 26.2 (Java 25) + Geyser + Floodgate**:
-Bedrock-игроки получают максимум (кастомные текстуры/иконки), Java-игроки — аккуратные
-текстовые фолбэки без «квадратов».
+Плагины пишутся **исключительно для Bedrock-игроков**: связка Purpur 26.2 (ядро на Java 25) +
+Geyser + Floodgate. **С Java заходить нельзя** — FaralTab кикает любого игрока без Floodgate
+(`bedrock-only` в конфиге), поэтому никаких Java-заглушек вместо иконок в проекте нет:
+у всех игроков Bedrock, у всех стоит ресурспак.
 
 ## FaralTab — таб / скорборд с кастомными иконками
 
@@ -25,16 +26,15 @@ Bedrock-игроки получают максимум (кастомные те�
 | У/С | статистика: убийства / смерти (+ `{kd}`) |
 | В игре | статистика времени, часы (`{playtime_hours}`, `{playtime}`) |
 
-Плюс настоящий TAB-лист: шапка/подвал с онлайн, монетами и осколками (`tablist:` в конфиге).
-
 ### Установка
 
-1. **Плагин:** скачайте `FaralTab-1.0.0.jar` из [артефактов GitHub Actions](../../actions)
+1. **Плагин:** скачайте `FaralTab-1.1.0.jar` из [артефактов GitHub Actions](../../actions)
    (вкладка Actions → последний запуск → `FaralMC-release`) → в `plugins/` Purpur 26.2.
    Для всех функций поставьте рядом: **Vault** + экономика, **PlayerPoints**, **LuckPerms**
    (всё это softdepend — без них плагин стартует, строки покажут `defaults:` из конфига).
 2. **Ресурспак:** `FaralResourcePack.mcpack` → в `plugins/Geyser-Spigot/packs/`, рестарт.
-   Подробнее: [FaralResourcePack/README.md](FaralResourcePack/README.md).
+   В конфиге Geyser поставьте **`force-resource-packs: true`** — без пака игрок не зайдёт,
+   а иконки не превратятся в пустоту. Подробнее: [FaralResourcePack/README.md](FaralResourcePack/README.md).
 3. Перезагрузка конфига на лету: `/faraltab reload`. Скрыть/показать таб: `/faraltab toggle`.
 
 ### Команды и права
@@ -44,6 +44,9 @@ Bedrock-игроки получают максимум (кастомные те�
 | `/faraltab reload` | `faraltab.admin` (op) | перезагрузить config.yml |
 | `/faraltab toggle [игрок]` | `faraltab.toggle` (всем) / `faraltab.admin` для чужих | вкл/выкл скорборд |
 | `/faraltab on / off` | то же | явно включить/выключить |
+
+Обход bedrock-only для тестов админа — право `faraltab.bedrock-bypass`
+(по умолчанию нет ни у кого, даже у опов; выдаётся вручную в LuckPerms).
 
 ### Сборка вручную
 
