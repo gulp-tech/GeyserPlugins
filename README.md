@@ -55,7 +55,7 @@ python3 tools/make_icons.py       # перегенерация иконок и �
 
 > Если в Maven-репозитории Purpur ещё нет `purpur-api 26.2-R0.1-SNAPSHOT`,
 > в `FaralTab/pom.xml` замените зависимость на
-> `io.papermc.paper:paper-api:26.2-R0.1-SNAPSHOT` — плагин использует только
+> `io.papermc.paper:paper-api:26.2-R0.1-SNAPSHOT (у Purpur схема версий своя: 26.2.build.<номер>-stable, CI подбирает номер сам)` — плагин использует только
 > стандартный Bukkit/Paper API и на Purpur работает так же.
 
 ## Структура репозитория
