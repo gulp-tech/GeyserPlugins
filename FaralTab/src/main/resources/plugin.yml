@@ -1,0 +1,19 @@
+name: FaralTab
+version: '${project.version}'
+main: ru.FaralMC.FaralTab.FaralTab
+api-version: '26.2'
+author: FaralMC
+description: Компактный скорборд с кастомными иконками для Geyser/Floodgate (монеты, осколки PlayerPoints, привилегия, У/С, время в игре).
+softdepend: [Vault, LuckPerms, PlayerPoints, PlaceholderAPI, Geyser-Spigot, floodgate]
+commands:
+  faraltab:
+    description: Управление скорбордом FaralTab
+    usage: /faraltab <reload|toggle [игрок]|on|off>
+    aliases: [ftab, FaralTab]
+permissions:
+  faraltab.admin:
+    description: Перезагрузка конфига и управление скорбордом других игроков
+    default: op
+  faraltab.toggle:
+    description: Включать/выключать свой скорборд
+    default: true

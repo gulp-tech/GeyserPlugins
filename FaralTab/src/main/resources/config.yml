@@ -1,0 +1,128 @@
+# ============================================================
+#  FaralTab — скорборд (таб) сервера FaralMC
+#  Purpur 26.2 + Geyser + Floodgate
+#
+#  Цвета: &a, &#FFB340 (hex), <gradient:#FF7A00:#FFFFFF>Текст</gradient>
+#  Плейсхолдеры плагина:
+#    {player} {group} {group_raw} {coins} {coins_raw} {shards}
+#    {kills} {deaths} {kd} {online} {max} {ping}
+#    {playtime_hours} {playtime_minutes} {playtime} {world}
+#  Иконки (из FaralResourcePack, только для Bedrock-игроков):
+#    {icon:coin} {icon:spark} {icon:sapphire} {icon:shard}
+#    {icon:crown} {icon:sword} {icon:skull} {icon:clock}
+#  Плюс любые %плейсхолдеры% PlaceholderAPI (если включён ниже).
+# ============================================================
+
+# Как часто обновлять скорборд, в тиках (20 тиков = 1 сек). 40 = раз в 2 сек.
+update-interval-ticks: 40
+
+# Задержка перед первым показом после захода, в тиках (дать Floodgate/Geyser прогрузиться).
+join-delay-ticks: 20
+
+scoreboard:
+  enabled: true
+  # Запоминать игроков, скрывших скорборд командой /faraltab toggle (файл hidden.yml).
+  remember-hidden: true
+
+  # Заголовок. Градиент оранжевый -> белый, как на референсе, только FaralMC.
+  title: "<gradient:#FF6A00:#FFFFFF>FaralMC</gradient>"
+
+  # Строки скорборда (макс. 15). Пустая строка "" — отступ, как на фото.
+  # Иконка в конце строки занимает ровно 1 символ — таб не раздувается.
+  lines:
+    - "&fИмя: &#FFA63D{player}"
+    - "&fДонат: {group}"
+    - "&fМонеты: &#FFD93D{coins} {icon:spark}"
+    - "&fОсколки: &#54C8FF{shards} {icon:shard}"
+    - ""
+    - "&fУ/С: &#C86BFF{kills}&f/&#FF6B6B{deaths}"
+    - "&fВ игре: &#FFD93D{playtime_hours}ч {icon:coin}"
+
+# Настоящий TAB (список игроков по Tab) — шапка и подвал.
+tablist:
+  enabled: true
+  header:
+    - "<gradient:#FF6A00:#FFFFFF>FaralMC</gradient>"
+    - "&7Онлайн: &#FFD93D{online}&7/&f{max}"
+  footer:
+    - "&fМонеты: &#FFD93D{coins} {icon:spark} &8| &fОсколки: &#54C8FF{shards} {icon:shard}"
+    - "&7У/С: &#C86BFF{kills}&f/&#FF6B6B{deaths} &8| &7В игре: &#FFD93D{playtime}"
+
+# ------------------------------------------------------------
+# Иконки Bedrock-ресурспака (FaralResourcePack.mcpack, font/glyph_E0.png)
+# Значение — код символа Unicode (hex) в приватной области.
+# Свои иконки: положите глиф в glyph-лист и пропишите код сюда.
+icons:
+  coin: "E001"      # золотая монета
+  spark: "E002"     # жёлтая искра (как у «Монеты» на фото)
+  sapphire: "E003"  # синий сапфир (как у «Сапфиры» на фото)
+  shard: "E004"     # голубой осколок (валюта PlayerPoints)
+  crown: "E005"     # корона привилегии
+  sword: "E006"     # меч (убийства)
+  skull: "E007"     # череп (смерти)
+  clock: "E008"     # часы (время в игре)
+
+  # AUTO   — Bedrock (Floodgate) видит иконки пака, Java-игрок видит icons-java-fallback
+  # ALWAYS — иконки всем (у Java без своего пака будут пустые квадраты!)
+  # NEVER  — никому, всем показывается icons-java-fallback
+  mode: "AUTO"
+  # Если плагина Floodgate на ЭТОМ сервере нет (стоит только на прокси) — считать всех Bedrock.
+  assume-bedrock-without-floodgate: true
+
+# Что видит Java-игрок вместо иконок пака (обычный текст/символы).
+icons-java-fallback:
+  coin: "&#FFD93D●"
+  spark: "&#FFD93D✦"
+  sapphire: "&#54C8FF◆"
+  shard: "&#54C8FF◆"
+  crown: "&#FFD93D♛"
+  sword: "&#D7E6F5⚔"
+  skull: "&#EBF0F8☠"
+  clock: "&#FFD93D◷"
+
+# ------------------------------------------------------------
+# Привилегия ({group}). Сначала ищется здесь по имени группы LuckPerms/Vault,
+# иначе — display-name группы LuckPerms (если включено ниже), иначе имя группы с большой буквы.
+groups:
+  use-luckperms-display-name: false
+  default:
+    display: "&#7AE582Игрок"
+  vip:
+    display: "&#55FF55VIP"
+  premium:
+    display: "&#FFD93DПремиум"
+  admin:
+    display: "&#FF5555Администратор"
+  owner:
+    display: "<gradient:#FF6A00:#FFD93D>Владелец</gradient>"
+
+# ------------------------------------------------------------
+# Монеты — баланс Vault Economy. Осколки — PlayerPoints (look).
+coins:
+  decimals: 0          # знаков после запятой
+  grouping: true       # 1 000 000 вместо 1000000
+  use-vault-format: false # true — формат самого Vault (с названием валюты, обычно длиннее)
+shards:
+  grouping: true
+numbers:
+  grouping-separator: " "
+
+# Значения, если Vault/PlayerPoints не установлены.
+defaults:
+  coins: "0"
+  shards: "0"
+
+# Время в игре: {playtime} собирается из шаблона, {h} — часы, {m} — минуты.
+playtime:
+  format: "{h}ч {m}м"
+
+hooks:
+  placeholderapi: true # обрабатывать %...% плейсхолдеры в строках
+
+messages:
+  prefix: "&#FFB340FaralMC &8» &f"
+  reloaded: "&aКонфиг перезагружен."
+  no-permission: "&cУ вас нет прав на эту команду."
+  player-not-found: "&cИгрок не найден."
+  shown: "&aСкорборд включён."
+  hidden: "&eСкорборд скрыт. Включить: &f/faraltab on"
