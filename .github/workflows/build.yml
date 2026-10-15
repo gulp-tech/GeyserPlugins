@@ -18,9 +18,28 @@ jobs:
           java-version: '25'
           cache: maven
 
+      - name: Подобрать актуальный билд Purpur API 26.2
+        run: |
+          python3 - <<'PY' >> "$GITHUB_ENV"
+          import re, urllib.request
+          url = "https://repo.purpurmc.org/snapshots/org/purpurmc/purpur/purpur-api/maven-metadata.xml"
+          try:
+              xml = urllib.request.urlopen(url, timeout=30).read().decode()
+              versions = re.findall(r"<version>(26\.2\.build\.(\d+)-stable)</version>", xml)
+              if versions:
+                  best = max(versions, key=lambda v: int(v[1]))[0]
+                  print(f"PURPUR_VERSION={best}")
+              else:
+                  print("PURPUR_VERSION=26.2.build.2632-stable")
+          except Exception as e:
+              print(f"# metadata недоступна ({e}), используем значение по умолчанию", file=__import__("sys").stderr)
+              print("PURPUR_VERSION=26.2.build.2632-stable")
+          PY
+          echo "Purpur API: $PURPUR_VERSION"
+
       - name: Собрать плагин FaralTab
         working-directory: FaralTab
-        run: mvn -B -DskipTests package
+        run: mvn -B -DskipTests -Dpurpur.version="$PURPUR_VERSION" package
 
       - name: Собрать Bedrock ресурспак (.mcpack)
         run: python3 tools/build_mcpack.py

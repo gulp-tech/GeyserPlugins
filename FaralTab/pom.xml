@@ -14,8 +14,9 @@
     <properties>
         <java.version>25</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <!-- Purpur 26.2. Если артефакта нет в репозитории — CI соберёт с Paper API (см. README). -->
-        <purpur.version>26.2-R0.1-SNAPSHOT</purpur.version>
+        <!-- Purpur 26.2 публикуется как 26.2.build.<номер>-stable (номер растёт с каждым билдом).
+             CI сам подставляет актуальный номер из maven-metadata, локально можно: mvn package -Dpurpur.version=... -->
+        <purpur.version>26.2.build.2632-stable</purpur.version>
     </properties>
 
     <repositories>
