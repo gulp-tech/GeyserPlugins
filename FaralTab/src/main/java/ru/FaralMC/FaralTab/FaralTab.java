@@ -1,6 +1,8 @@
 package ru.FaralMC.FaralTab;
 
+import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import net.kyori.adventure.title.Title;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -14,6 +16,7 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitTask;
 
+import java.time.Duration;
 import java.util.List;
 
 /**
@@ -80,7 +83,30 @@ public final class FaralTab extends JavaPlugin implements Listener, CommandExecu
             return;
         }
         long delay = Math.max(0L, getConfig().getLong("join-delay-ticks", 20L));
-        Bukkit.getScheduler().runTaskLater(this, () -> sidebar.update(player, true), delay);
+        Bukkit.getScheduler().runTaskLater(this, () -> {
+            sidebar.update(player, true);
+            showJoinTitle(player);
+        }, delay);
+    }
+
+    /** Большой синий FaralMC при входе (как логотип на экране загрузки у референса). */
+    private void showJoinTitle(Player player) {
+        if (!getConfig().getBoolean("join-title.enabled", true)) {
+            return;
+        }
+        Component title = component(sidebar.render(player,
+                getConfig().getString("join-title.title", "<gradient:#55C8FF:#1B6FFF>FaralMC</gradient>")));
+        Component subtitle = component(sidebar.render(player,
+                getConfig().getString("join-title.subtitle", "&fДобро пожаловать!")));
+        long fadeIn = getConfig().getLong("join-title.fade-in-ticks", 10L);
+        long stay = getConfig().getLong("join-title.stay-ticks", 70L);
+        long fadeOut = getConfig().getLong("join-title.fade-out-ticks", 20L);
+        player.showTitle(Title.title(title, subtitle, Title.Times.times(
+                Duration.ofMillis(fadeIn * 50L), Duration.ofMillis(stay * 50L), Duration.ofMillis(fadeOut * 50L))));
+    }
+
+    private Component component(String legacySectionText) {
+        return LegacyComponentSerializer.legacySection().deserialize(legacySectionText == null ? "" : legacySectionText);
     }
 
     /**
