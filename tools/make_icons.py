@@ -3,15 +3,15 @@
 """
 Генератор графики FaralMC (v3).
 
-Иконки: чёткий пиксель-арт 16x16 в майнкрафт-стиле (как иконки на референсе).
-На листе glyph_E0.png (512x512, ячейка 32x32) иконка ставится в ЦЕНТР ячейки
-без масштабирования — занимает 16/32 = половину высоты строки. В игре она
-заметно меньше текста и не раздувает скорборд.
+Иконки: чёткий пиксель-арт в майнкрафт-стиле (как иконки на референсе).
+Лист glyph_E0.png — стандартного ванильного размера 256x256 (ячейка 16x16),
+иконка ужата до 13x13 по центру ячейки: в игре она меньше высоты строки
+и не раздувает скорборд. (Лист 512 Bedrock рендерит крупнее ванили — не использовать.)
 
-Логотип: textures/ui/title.png — текст FaralMC настоящим шрифтом
-Minecraft Ten (tools/fonts/MinecraftTen.ttf, фан-шрифт с GitHub:
-ransombiyato/Minecraft-Ten-Font-For-MCCRAFT), синий градиент, чёрная
-обводка и тёмно-синяя тень — как логотип на экране загрузки у референса.
+Логотип: textures/ui/title.png — текст FaralMC игровым шрифтом Minecraft
+(Minecraftia, tools/fonts/Minecraftia.ttf): объёмная экструзия вниз,
+синий градиент, блик сверху, чёрная обводка и тень — как логотип NEVERTIME
+на референсе, только синий и читаемым FaralMC (с маленькими буквами).
 
 Запуск: python3 tools/make_icons.py
 """
@@ -21,7 +21,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 PACK = ROOT / "FaralResourcePack"
 PREVIEW = ROOT / "preview"
-FONT_LOGO = ROOT / "tools" / "fonts" / "MinecraftTen.ttf"
+FONT_LOGO = ROOT / "tools" / "fonts" / "Minecraftia.ttf"
 
 PALETTES = {
     "coin": {"D": (146, 96, 0, 255), "G": (255, 201, 60, 255), "L": (255, 231, 138, 255),
@@ -194,8 +194,8 @@ LABELS_RU = {
     "coin": "Монета", "spark": "Молния", "sapphire": "Сапфир", "shard": "Осколок",
     "crown": "Привилегия", "sword": "Убийства", "skull": "Смерти", "clock": "Время в игре",
 }
-CELL = 32   # ячейка на листе 512x512
-OFF = 8     # иконка 16x16 в центре ячейки: половина высоты строки
+CELL = 16   # ячейка на листе 256x256 (как ванильный шрифт Bedrock)
+OFF = 1     # иконка ужата до 13x13 по центру ячейки — меньше высоты строки
 
 
 def render(rows, pal_name):
@@ -225,37 +225,52 @@ def lerp(a, b, t):
 
 
 def make_logo():
-    """FaralMC шрифтом Minecraft Ten: синий градиент, чёрная обводка, тёмная тень."""
+    """FaralMC игровым шрифтом: объём, синий градиент, блик, обводка, тень."""
     text = "FaralMC"
-    f = ImageFont.truetype(str(FONT_LOGO), 320)
-    stroke = 18
+    f = ImageFont.truetype(str(FONT_LOGO), 300)
+    stroke = 12
     tmp = Image.new("RGBA", (10, 10))
     d = ImageDraw.Draw(tmp)
     bbox = d.textbbox((0, 0), text, font=f, stroke_width=stroke)
-    w, h = bbox[2] - bbox[0] + 48, bbox[3] - bbox[1] + 72
-    ox, oy = 24 - bbox[0], 24 - bbox[1]
+    w, h = bbox[2] - bbox[0] + 64, bbox[3] - bbox[1] + 96
+    ox, oy = 32 - bbox[0], 28 - bbox[1]
 
-    shadow = Image.new("RGBA", (w, h), (0, 0, 0, 0))
-    ImageDraw.Draw(shadow).text((ox, oy + 14), text, font=f, fill=(6, 26, 92, 255),
-                                stroke_width=stroke, stroke_fill=(6, 26, 92, 255))
-    outline = Image.new("RGBA", (w, h), (0, 0, 0, 0))
-    ImageDraw.Draw(outline).text((ox, oy), text, font=f, fill=(0, 0, 0, 255),
-                                 stroke_width=stroke, stroke_fill=(0, 0, 0, 255))
+    def text_layer(fill, dx=0, dy=0, stroke_fill=None):
+        lay = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+        ImageDraw.Draw(lay).text((ox + dx, oy + dy), text, font=f, fill=fill,
+                                 stroke_width=stroke, stroke_fill=stroke_fill or fill)
+        return lay
+
+    logo = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    logo.alpha_composite(text_layer((0, 0, 0, 160), 10, 26))                    # мягкая тень
+    for dy in range(18, 0, -2):                                                  # объём вниз
+        logo.alpha_composite(text_layer((7, 32, 110, 255), 0, dy))
+    logo.alpha_composite(text_layer((0, 0, 0, 255)))                             # чёрная обводка
+
     mask = Image.new("L", (w, h), 0)
     ImageDraw.Draw(mask).text((ox, oy), text, font=f, fill=255)
     grad = Image.new("RGBA", (w, h))
     px = grad.load()
     for y in range(h):
-        c = lerp((150, 226, 255), (22, 92, 235), y / max(1, h - 1))
         for x in range(w):
-            px[x, y] = c + (255,)
+            t = min(1.0, max(0.0, (x / w) * 0.35 + (y / h) * 0.65))
+            px[x, y] = lerp((165, 228, 255), (24, 96, 238), t) + (255,)
+    shine = Image.new("L", (w, h), 0)                                            # блик сверху букв
+    spx = shine.load()
+    for y in range(h):
+        a = max(0, int(120 * (1 - y / (h * 0.55)))) if y < h * 0.55 else 0
+        for x in range(w):
+            spx[x, y] = a
+    white = Image.new("RGBA", (w, h), (255, 255, 255, 255))
+    grad.paste(white, (0, 0), Image.composite(shine, Image.new("L", (w, h), 0), mask))
     letters = Image.new("RGBA", (w, h), (0, 0, 0, 0))
     letters.paste(grad, (0, 0), mask)
-
-    logo = Image.new("RGBA", (w, h), (0, 0, 0, 0))
-    logo.alpha_composite(shadow, (0, 10))
-    logo.alpha_composite(outline)
     logo.alpha_composite(letters)
+    box = logo.getbbox()  # обрезать прозрачные поля — иначе Bedrock ужимает логотип
+    if box:
+        pad = 6
+        logo = logo.crop((max(0, box[0] - pad), max(0, box[1] - pad),
+                          min(w, box[2] + pad), min(h, box[3] + pad)))
     return logo
 
 
@@ -264,13 +279,14 @@ def main():
     (PACK / "textures" / "ui").mkdir(parents=True, exist_ok=True)
     (PREVIEW / "icons").mkdir(parents=True, exist_ok=True)
 
-    sheet = Image.new("RGBA", (512, 512), (0, 0, 0, 0))
+    sheet = Image.new("RGBA", (256, 256), (0, 0, 0, 0))
     rendered = {}
     for code, (name, rows) in sorted(ICONS.items()):
         img = render(rows, name)
         rendered[code] = (name, img)
         idx = int(code[1:], 16)
-        sheet.paste(img, ((idx % 16) * CELL + OFF, (idx // 16) * CELL + OFF), img)
+        small = img.resize((13, 13), Image.NEAREST)
+        sheet.paste(small, ((idx % 16) * CELL + OFF, (idx // 16) * CELL + OFF), small)
         img.save(PREVIEW / "icons" / f"{code[1:]}_{name}.png")
         img.resize((256, 256), Image.NEAREST).save(PREVIEW / "icons" / f"{code[1:]}_{name}_x16.png")
     sheet.save(PACK / "font" / "glyph_E0.png")
@@ -290,7 +306,7 @@ def main():
     H = rows_n * (cell + label_h) + (rows_n + 1) * pad + 70
     prev = Image.new("RGBA", (W, H), (24, 24, 32, 255))
     d = ImageDraw.Draw(prev)
-    d.text((pad, 22), "FaralMC — иконки (\\uE001-\\uE008), размер в игре = 1/2 строки", font=font(24), fill=(255, 210, 90))
+    d.text((pad, 22), "FaralMC — иконки (\\uE001-\\uE008), в игре меньше строки", font=font(24), fill=(255, 210, 90))
     for i, (code, (name, img)) in enumerate(sorted(rendered.items())):
         cx = pad + (i % cols) * (cell + pad)
         cy = 70 + pad + (i // cols) * (cell + label_h + pad)
