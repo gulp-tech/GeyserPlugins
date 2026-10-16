@@ -1,0 +1,202 @@
+# ============================================================
+#  FaralTalismans — талисманы как на FunTime (FaralMC, Bedrock-only)
+#
+#  Как работает: талисман лежит в нужном слоте — игрок получает его
+#  эффекты и атрибуты. Убрал — через пару секунд всё пропало.
+#  Талисман опознаётся по скрытой метке в предмете (PDC), а не по
+#  названию, поэтому переименовать/подделать его нельзя.
+#
+#  ВСЁ ниже настраивается: хоть все 6 талисманов перепиши под себя,
+#  можно менять названия, материалы, лор, эффекты, силу, рецепты.
+#  Цвета как везде у нас: &a, &#FFB340, <gradient:#..:#..>текст</gradient>
+#
+#  Эффекты (type): STRENGTH, SPEED, HASTE, REGENERATION, RESISTANCE,
+#    FIRE_RESISTANCE, HEALTH_BOOST, JUMP_BOOST, NIGHT_VISION, SATURATION и т.д.
+#    amplifier: 0 = уровень I, 1 = уровень II...
+#  Атрибуты (type): max_health, movement_speed, attack_damage,
+#    armor, knockback_resistance... operation: ADD_NUMBER | ADD_SCALAR | MULTIPLY_SCALAR_1
+# ============================================================
+
+settings:
+  # Как часто проверять инвентари, в тиках (20 = 1 сек). Эффект живёт ещё ~5 сек после проверки.
+  refresh-interval-ticks: 40
+  # Частицы эффектов талисманов (на Bedrock их почти не видно, по умолчанию выкл).
+  effect-particles: false
+  # Показывать активные талисманы в экшенбаре над хотбаром.
+  show-actionbar: false
+  # Максимум одновременно активных талисманов (0 = без лимита).
+  max-active-talismans: 0
+
+menu:
+  title: "&#C86BFFТалисманы FaralMC"
+  rows: 3
+  status-active: "&aАктивен"
+  status-inactive: "&7Не активен (талисмана нет в нужном слоте)"
+
+messages:
+  prefix: "&#C86BFFFaralMC &8» &f"
+  reloaded: "&aКонфиг перезагружен."
+  no-permission: "&cУ вас нет прав на эту команду."
+  player-not-found: "&cИгрок не найден."
+  not-found: "&cТакого талисмана нет. Список: &f/talisman list"
+  given: "&aТалисман выдан игроку {player}"
+  received: "&aВы получили талисман! Откройте &f/talismans"
+
+# ------------------------------------------------------------
+#  САМИ ТАЛИСМАНЫ. Ключ (strength, speed...) — это id для /talisman give.
+#  where: INVENTORY — anywhere в инвентаре | HOTBAR — только хотбар | OFFHAND — только вторая рука
+#  permission: "" — всем | "faraltalismans.vip" — только с этим правом (выдаётся в LuckPerms)
+#  recipe: крафт на верстаке. shape — 3 строки по 3 символа, ingredients — что значит каждый символ.
+# ------------------------------------------------------------
+talismans:
+
+  strength:
+    display-name: "&#FF5555Талисман силы"
+    material: AMETHYST_SHARD
+    glow: true
+    lore:
+      - "&7Носите в инвентаре:"
+      - "&#FF5555Сила I"
+      - ""
+      - "&8Талисман FaralMC"
+    where: INVENTORY
+    permission: ""
+    effects:
+      - {type: STRENGTH, amplifier: 0}
+    attributes: []
+    recipe:
+      enabled: true
+      shape:
+        - "RAR"
+        - "ABA"
+        - "RAR"
+      ingredients:
+        R: REDSTONE_BLOCK
+        A: AMETHYST_SHARD
+        B: BLAZE_POWDER
+
+  speed:
+    display-name: "&#55E6FFТалисман скорости"
+    material: QUARTZ
+    glow: true
+    lore:
+      - "&7Носите в инвентаре:"
+      - "&#55E6FFСкорость I"
+      - ""
+      - "&8Талисман FaralMC"
+    where: INVENTORY
+    permission: ""
+    effects:
+      - {type: SPEED, amplifier: 0}
+    attributes: []
+    recipe:
+      enabled: true
+      shape:
+        - "QSQ"
+        - "SFS"
+        - "QSQ"
+      ingredients:
+        Q: QUARTZ
+        S: SUGAR
+        F: FEATHER
+
+  haste:
+    display-name: "&#FFD93DТалисман спешки"
+    material: GOLD_INGOT
+    glow: true
+    lore:
+      - "&7Носите в инвентаре:"
+      - "&#FFD93DСпешка II"
+      - ""
+      - "&8Талисман FaralMC"
+    where: INVENTORY
+    permission: ""
+    effects:
+      - {type: HASTE, amplifier: 1}
+    attributes: []
+    recipe:
+      enabled: true
+      shape:
+        - "GPG"
+        - "PGP"
+        - "GPG"
+      ingredients:
+        G: GOLD_INGOT
+        P: GOLDEN_PICKAXE
+
+  regeneration:
+    display-name: "&#FF8FE3Талисман регенерации"
+    material: EMERALD
+    glow: true
+    lore:
+      - "&7Носите в инвентаре:"
+      - "&#FF8FE3Регенерация I"
+      - ""
+      - "&8Талисман FaralMC"
+    where: INVENTORY
+    permission: ""
+    effects:
+      - {type: REGENERATION, amplifier: 0}
+    attributes: []
+    recipe:
+      enabled: true
+      shape:
+        - "EHE"
+        - "HGH"
+        - "EHE"
+      ingredients:
+        E: EMERALD
+        H: GOLDEN_APPLE
+        G: GHAST_TEAR
+
+  protection:
+    display-name: "&#8FB8FFТалисман защиты"
+    material: DIAMOND
+    glow: true
+    lore:
+      - "&7Носите в инвентаре:"
+      - "&#8FB8FFСопротивление I"
+      - "&7+2 к максимальному здоровью"
+      - ""
+      - "&8Талисман FaralMC"
+    where: INVENTORY
+    permission: ""
+    effects:
+      - {type: RESISTANCE, amplifier: 0}
+    attributes:
+      - {type: max_health, amount: 2.0, operation: ADD_NUMBER}
+    recipe:
+      enabled: true
+      shape:
+        - "DOD"
+        - "OCO"
+        - "DOD"
+      ingredients:
+        D: DIAMOND
+        O: OBSIDIAN
+        C: DIAMOND_CHESTPLATE
+
+  fire:
+    display-name: "&#FF9A3DТалисман огня"
+    material: MAGMA_CREAM
+    glow: true
+    lore:
+      - "&7Носите в инвентаре:"
+      - "&#FF9A3DОгнестойкость"
+      - ""
+      - "&8Талисман FaralMC"
+    where: INVENTORY
+    permission: ""
+    effects:
+      - {type: FIRE_RESISTANCE, amplifier: 0}
+    attributes: []
+    recipe:
+      enabled: true
+      shape:
+        - "MNM"
+        - "NLN"
+        - "MNM"
+      ingredients:
+        M: MAGMA_CREAM
+        N: NETHERITE_SCRAP
+        L: LAVA_BUCKET

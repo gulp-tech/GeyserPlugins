@@ -1,0 +1,22 @@
+name: FaralTalismans
+version: '${project.version}'
+main: ru.FaralMC.talismans.FaralTalismans
+api-version: '26.2'
+author: FaralMC
+description: Талисманы как на FunTime — пассивные эффекты за ношение в инвентаре. Всё настраивается в config.yml.
+commands:
+  talisman:
+    description: Управление талисманами
+    usage: /talisman <give <игрок> <id> [кол-во]|list|reload>
+    aliases: [tal, талисман]
+  talismans:
+    description: Меню талисманов
+    usage: /talismans
+    aliases: [талисманы]
+permissions:
+  faraltalismans.admin:
+    description: Выдача талисманов и перезагрузка конфига
+    default: op
+  faraltalismans.menu:
+    description: Открывать меню талисманов
+    default: true
