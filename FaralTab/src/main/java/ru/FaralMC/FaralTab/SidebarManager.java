@@ -140,6 +140,23 @@ public final class SidebarManager {
     }
 
     private String renderTitle(Player player) {
+        // Заголовок — маленькая картинка FaralMC из ресурспака: полоса глифов \uE010..\uE017,
+        // высота ровно одна строка, как обычный текст, только текстурой.
+        if (plugin.getConfig().getBoolean("scoreboard.title-logo.enabled", true)) {
+            try {
+                int start = Integer.parseInt(
+                        plugin.getConfig().getString("scoreboard.title-logo.start-code", "E010").trim(), 16);
+                int count = Math.max(1, Math.min(12,
+                        plugin.getConfig().getInt("scoreboard.title-logo.glyphs", 8)));
+                StringBuilder logo = new StringBuilder();
+                for (int i = 0; i < count; i++) {
+                    logo.append(new String(Character.toChars(start + i)));
+                }
+                return logo.toString();
+            } catch (IllegalArgumentException ignored) {
+                // битый конфиг — упадём на текстовый заголовок ниже
+            }
+        }
         return render(player, plugin.getConfig().getString("scoreboard.title", "FaralMC"));
     }
 

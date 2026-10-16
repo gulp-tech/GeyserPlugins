@@ -33,7 +33,7 @@ Geyser + Floodgate. **С Java заходить нельзя** — FaralTab ки�
 
 ### Установка
 
-1. **Плагин:** скачайте `FaralTab-1.7.0.jar` из [артефактов GitHub Actions](../../actions)
+1. **Плагин:** скачайте `FaralTab-1.8.0.jar` из [артефактов GitHub Actions](../../actions)
    (вкладка Actions → последний запуск → `FaralMC-release`) → в `plugins/` Purpur 26.2.
    Для всех функций поставьте рядом: **Vault** + экономика, **PlayerPoints**, **LuckPerms**
    (всё это softdepend — без них плагин стартует, строки покажут `defaults:` из конфига).

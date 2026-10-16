@@ -22,6 +22,9 @@ ROOT = Path(__file__).resolve().parent.parent
 PACK = ROOT / "FaralResourcePack"
 PREVIEW = ROOT / "preview"
 FONT_LOGO = ROOT / "tools" / "fonts" / "MinecraftTen.ttf"
+FONT_GAME = ROOT / "tools" / "fonts" / "Minecraftia.ttf"
+TITLE_START = 0x10   # глифы E010.. — полоса логотипа в заголовок скорборда
+TITLE_GLYPHS = 8
 
 PALETTES = {
     "coin": {"D": (146, 96, 0, 255), "G": (255, 201, 60, 255), "L": (255, 231, 138, 255),
@@ -364,6 +367,40 @@ def make_logo():
     return canvas
 
 
+def make_title_strip():
+    """Маленький логотип FaralMC одной строкой: полоса 128x16 для глифов E010-E017."""
+    strip = Image.new("RGBA", (TITLE_GLYPHS * 16, 16), (0, 0, 0, 0))
+    text = "FaralMC"
+    size = 18
+    while size > 8:
+        f = ImageFont.truetype(str(FONT_GAME), size)
+        d = ImageDraw.Draw(strip)
+        if d.textlength(text, font=f) <= TITLE_GLYPHS * 16 - 6:
+            break
+        size -= 1
+    f = ImageFont.truetype(str(FONT_GAME), size)
+    d = ImageDraw.Draw(strip)
+    tw = d.textlength(text, font=f)
+    bb = d.textbbox((0, 0), text, font=f)
+    x = int((TITLE_GLYPHS * 16 - tw) // 2) - bb[0]
+    y = int((16 - (bb[3] - bb[1])) // 2) - bb[1]
+    mask = Image.new("L", strip.size, 0)
+    ImageDraw.Draw(mask).text((x, y), text, font=f, fill=255)
+    grad = Image.new("RGBA", strip.size)
+    px = grad.load()
+    for yy in range(16):
+        for xx in range(strip.width):
+            t = min(1.0, max(0.0, (xx / strip.width) * 0.3 + (yy / 16) * 0.7))
+            px[xx, yy] = lerp((165, 228, 255), (24, 96, 238), t) + (255,)
+    shadow = Image.new("RGBA", strip.size, (0, 0, 0, 0))
+    ImageDraw.Draw(shadow).text((x + 1, y + 1), text, font=f, fill=(8, 26, 84, 255))
+    strip.alpha_composite(shadow)
+    letters = Image.new("RGBA", strip.size, (0, 0, 0, 0))
+    letters.paste(grad, (0, 0), mask)
+    strip.alpha_composite(letters)
+    return strip
+
+
 def main():
     (PACK / "font").mkdir(parents=True, exist_ok=True)
     (PACK / "textures" / "ui").mkdir(parents=True, exist_ok=True)
@@ -379,6 +416,13 @@ def main():
         sheet.paste(small, ((idx % 16) * CELL + OFF, (idx // 16) * CELL + OFF), small)
         img.save(PREVIEW / "icons" / f"{code[1:]}_{name}.png")
         img.resize((256, 256), Image.NEAREST).save(PREVIEW / "icons" / f"{code[1:]}_{name}_x16.png")
+    strip = make_title_strip()
+    for i in range(TITLE_GLYPHS):
+        idx = TITLE_START + i
+        cell_img = strip.crop((i * 16, 0, i * 16 + 16, 16))
+        sheet.paste(cell_img, ((idx % 16) * CELL, (idx // 16) * CELL), cell_img)
+    strip.save(PREVIEW / "title-logo-strip.png")
+    strip.resize((512, 64), Image.NEAREST).save(PREVIEW / "title-logo-strip_x4.png")
     sheet.save(PACK / "font" / "glyph_E0.png")
     rendered["E001"][1].resize((64, 64), Image.NEAREST).save(PACK / "pack_icon.png")
 
@@ -413,12 +457,8 @@ def main():
     panel = Image.new("RGBA", (350, 380), (0, 0, 0, 165))
     mock.paste(panel, (24, 24), panel)
     d = ImageDraw.Draw(mock)
-    title, grad = "FaralMC", [(255, 120, 40), (255, 150, 40), (255, 180, 60), (255, 210, 90),
-                              (255, 235, 160), (240, 240, 240), (200, 210, 255)]
-    x, f_title = 40, font(40)
-    for i, ch in enumerate(title):
-        d.text((x, 34), ch, font=f_title, fill=grad[i % len(grad)])
-        x += d.textlength(ch, font=f_title)
+    strip_img = make_title_strip().resize((176, 22), Image.NEAREST)
+    mock.paste(strip_img, (40, 40), strip_img)  # заголовок картинкой из пака, не текстом
     lines = [
         ("Имя: ", "MUSD38", (255, 170, 60), None),
         ("Донат: ", "Игрок", (90, 230, 90), None),
