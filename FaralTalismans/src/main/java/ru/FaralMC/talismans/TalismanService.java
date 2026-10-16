@@ -34,6 +34,7 @@ public final class TalismanService {
     private final FaralTalismans plugin;
     private final NamespacedKey idKey;
     private final Map<String, Talisman> talismans = new LinkedHashMap<>();
+    private final Map<java.util.UUID, java.util.Set<String>> previousActive = new HashMap<>();
 
     public TalismanService(FaralTalismans plugin) {
         this.plugin = plugin;
@@ -104,12 +105,14 @@ public final class TalismanService {
                     ingredients);
             talismans.put(id, new Talisman(
                     id,
+                    plugin.getConfig().getBoolean(path + ".enabled", true),
                     plugin.getConfig().getString(path + ".display-name", id),
                     material,
                     plugin.getConfig().getStringList(path + ".lore"),
                     plugin.getConfig().getBoolean(path + ".glow", true),
                     where,
                     plugin.getConfig().getString(path + ".permission", ""),
+                    plugin.getConfig().getDouble(path + ".price", 0),
                     effects, attributes, recipe));
         }
         plugin.getLogger().info("Загружено талисманов: " + talismans.size());
@@ -145,8 +148,23 @@ public final class TalismanService {
         ItemMeta meta = item.getItemMeta();
         meta.displayName(component(TextUtil.color(talisman.displayName())));
         List<Component> lore = new ArrayList<>();
+        boolean statsInserted = false;
         for (String line : talisman.lore()) {
-            lore.add(component(TextUtil.color(line)));
+            if (line.contains("{stats}")) {
+                for (String stat : statLines(talisman)) {
+                    lore.add(component(TextUtil.color(stat)));
+                }
+                statsInserted = true;
+            } else if (line.contains("{price}")) {
+                lore.add(component(TextUtil.color(line.replace("{price}", formatPrice(talisman.price())))));
+            } else {
+                lore.add(component(TextUtil.color(line)));
+            }
+        }
+        if (!statsInserted && plugin.getConfig().getBoolean("settings.auto-stats-lore", true)) {
+            for (String stat : statLines(talisman)) {
+                lore.add(component(TextUtil.color(stat)));
+            }
         }
         meta.lore(lore);
         if (talisman.glow()) {
@@ -158,6 +176,42 @@ public final class TalismanService {
         return item;
     }
 
+    /** Строки характеристик как на FunTime: "&a+3 к урону", "&c-10% к скорости" (тексты — в config.yml). */
+    public List<String> statLines(Talisman t) {
+        List<String> lines = new ArrayList<>();
+        String plus = plugin.getConfig().getString("settings.stat-plus-color", "&a");
+        String minus = plugin.getConfig().getString("settings.stat-minus-color", "&c");
+        for (Talisman.AttributeDef a : t.attributes()) {
+            String name = plugin.getConfig().getString("stat-names." + a.attributeKey(), a.attributeKey());
+            boolean percent = a.operation() != AttributeModifier.Operation.ADD_NUMBER;
+            double value = percent ? a.amount() * 100.0 : a.amount();
+            String num = formatNumber(value) + (percent ? "%" : "");
+            lines.add((a.amount() >= 0 ? plus + "+" : minus + "-") + num.replace("-", "") + " " + name);
+        }
+        for (Talisman.EffectDef e : t.effects()) {
+            String key = e.type().getKey().getKey();
+            String name = plugin.getConfig().getString("effect-names." + key, key);
+            lines.add(plus + name + " " + roman(e.amplifier() + 1));
+        }
+        return lines;
+    }
+
+    public String formatPrice(double price) {
+        return formatNumber(price) + " " + plugin.getConfig().getString("settings.currency-name", "монет");
+    }
+
+    static String formatNumber(double v) {
+        if (v == Math.rint(v)) {
+            return String.valueOf((long) v);
+        }
+        return String.valueOf(Math.round(v * 100.0) / 100.0);
+    }
+
+    static String roman(int n) {
+        String[] table = {"I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"};
+        return n >= 1 && n <= table.length ? table[n - 1] : String.valueOf(n);
+    }
+
     public String identify(ItemStack item) {
         if (item == null || item.getType() == Material.AIR || !item.hasItemMeta()) {
             return null;
@@ -166,52 +220,54 @@ public final class TalismanService {
     }
 
     public Talisman byId(String id) {
-        return talismans.get(id);
+        Talisman t = talismans.get(id);
+        return t != null && t.enabled() ? t : null;
     }
 
+    /** Все включённые талисманы (enabled: true) в порядке конфига. */
     public Collection<Talisman> all() {
-        return talismans.values();
+        List<Talisman> result = new ArrayList<>();
+        for (Talisman t : talismans.values()) {
+            if (t.enabled()) {
+                result.add(t);
+            }
+        }
+        return result;
+    }
+
+    public void forget(Player player) {
+        previousActive.remove(player.getUniqueId());
     }
 
     // ------------------------------------------------------------------ активность
-    /** Талисманы, которые прямо сейчас работают у игрока (с учётом слота и прав). */
+    /** Талисманы, которые прямо сейчас работают у игрока (каждый — только в своём месте, как на FunTime). */
     public List<Talisman> activeTalismans(Player player) {
-        Map<String, Talisman> active = new LinkedHashMap<>();
-        List<ItemStack> toScan = new ArrayList<>();
-        for (Talisman t : talismans.values()) {
-            if (t.where() == Talisman.Where.OFFHAND) {
-                String id = identify(player.getInventory().getItemInOffHand());
-                if (t.id().equals(id) && t.hasPermission(player)) {
-                    active.put(t.id(), t);
-                }
-            } else if (t.where() == Talisman.Where.HOTBAR) {
-                for (int i = 0; i < 9; i++) {
-                    toScan.add(player.getInventory().getItem(i));
-                }
-            } else {
-                for (ItemStack item : player.getInventory().getContents()) {
-                    toScan.add(item);
-                }
-            }
-        }
-        // HOTBAR/INVENTORY талисманы ищем по отсканированным предметам (без дублей по слотам)
-        java.util.Set<String> seenSlots = new java.util.HashSet<>();
-        for (ItemStack item : toScan) {
-            String id = identify(item);
-            if (id == null || !seenSlots.add(id)) {
+        List<Talisman> result = new ArrayList<>();
+        for (Talisman t : all()) {
+            if (!t.hasPermission(player) || !carriedInPlace(player, t)) {
                 continue;
             }
-            Talisman t = talismans.get(id);
-            if (t != null && t.where() != Talisman.Where.OFFHAND && t.hasPermission(player)) {
-                active.putIfAbsent(t.id(), t);
-            }
+            result.add(t);
         }
         int max = plugin.getConfig().getInt("settings.max-active-talismans", 0);
-        List<Talisman> result = new ArrayList<>(active.values());
         if (max > 0 && result.size() > max) {
-            result = result.subList(0, max);
+            result = new ArrayList<>(result.subList(0, max));
         }
         return result;
+    }
+
+    private boolean carriedInPlace(Player player, Talisman t) {
+        if (t.where() == Talisman.Where.OFFHAND) {
+            return t.id().equals(identify(player.getInventory().getItemInOffHand()));
+        }
+        int from = 0;
+        int to = t.where() == Talisman.Where.HOTBAR ? 9 : 36;
+        for (int slot = from; slot < to; slot++) {
+            if (t.id().equals(identify(player.getInventory().getItem(slot)))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /** Применить эффекты и атрибуты активных талисманов. Вызывается по таймеру. */
@@ -231,7 +287,9 @@ public final class TalismanService {
         // атрибуты: модификатор должен висеть ровно пока талисман активен
         for (Talisman t : talismans.values()) {
             boolean isActive = active.contains(t);
-            for (Talisman.AttributeDef a : t.attributes()) {
+            List<Talisman.AttributeDef> defs = t.attributes();
+            for (int ai = 0; ai < defs.size(); ai++) {
+                Talisman.AttributeDef a = defs.get(ai);
                 Attribute attribute = Registry.ATTRIBUTE.get(NamespacedKey.minecraft(a.attributeKey()));
                 if (attribute == null) {
                     continue;
@@ -240,7 +298,7 @@ public final class TalismanService {
                 if (instance == null) {
                     continue;
                 }
-                NamespacedKey key = new NamespacedKey(plugin, "talisman_" + t.id() + "_" + a.attributeKey());
+                NamespacedKey key = new NamespacedKey(plugin, "talisman_" + t.id() + "_" + ai + "_" + a.attributeKey());
                 AttributeModifier existing = null;
                 for (AttributeModifier m : instance.getModifiers()) {
                     if (m.getKey().equals(key)) {
@@ -255,6 +313,7 @@ public final class TalismanService {
                 }
             }
         }
+        notifyChanges(player, active);
         if (plugin.getConfig().getBoolean("settings.show-actionbar", false) && !active.isEmpty()) {
             StringBuilder sb = new StringBuilder();
             for (Talisman t : active) {
@@ -267,10 +326,63 @@ public final class TalismanService {
         }
     }
 
+    /** Сообщить игроку, что талисман включился/выключился (тексты и звук — в config.yml). */
+    private void notifyChanges(Player player, List<Talisman> active) {
+        if (!plugin.getConfig().getBoolean("settings.notify-on-change", true)) {
+            previousActive.put(player.getUniqueId(), idsOf(active));
+            return;
+        }
+        java.util.Set<String> now = idsOf(active);
+        java.util.Set<String> before = previousActive.put(player.getUniqueId(), now);
+        if (before == null) {
+            return; // первый скан после входа — без спама
+        }
+        for (Talisman t : active) {
+            if (!before.contains(t.id())) {
+                send(player, "messages.activated", t);
+                playSound(player, "settings.sound-activated");
+            }
+        }
+        for (Talisman t : all()) {
+            if (before.contains(t.id()) && !now.contains(t.id())) {
+                send(player, "messages.deactivated", t);
+                playSound(player, "settings.sound-deactivated");
+            }
+        }
+    }
+
+    private java.util.Set<String> idsOf(List<Talisman> list) {
+        java.util.Set<String> ids = new java.util.HashSet<>();
+        for (Talisman t : list) {
+            ids.add(t.id());
+        }
+        return ids;
+    }
+
+    private void send(Player player, String path, Talisman t) {
+        String text = plugin.getConfig().getString(path, "");
+        if (text != null && !text.isEmpty()) {
+            player.sendMessage(component(TextUtil.color(text.replace("{talisman}", t.displayName()))));
+        }
+    }
+
+    private void playSound(Player player, String path) {
+        String sound = plugin.getConfig().getString(path, "");
+        if (sound == null || sound.isEmpty()) {
+            return;
+        }
+        try {
+            player.playSound(player.getLocation(), sound.toLowerCase(Locale.ROOT), 0.7f, 1.2f);
+        } catch (Throwable ignored) {
+        }
+    }
+
     /** Игрок вышел: снять все атрибут-модификаторы талисманов. */
     public void clearAttributes(Player player) {
         for (Talisman t : talismans.values()) {
-            for (Talisman.AttributeDef a : t.attributes()) {
+            List<Talisman.AttributeDef> defs = t.attributes();
+            for (int ai = 0; ai < defs.size(); ai++) {
+                Talisman.AttributeDef a = defs.get(ai);
                 Attribute attribute = Registry.ATTRIBUTE.get(NamespacedKey.minecraft(a.attributeKey()));
                 if (attribute == null) {
                     continue;
@@ -279,7 +391,7 @@ public final class TalismanService {
                 if (instance == null) {
                     continue;
                 }
-                NamespacedKey key = new NamespacedKey(plugin, "talisman_" + t.id() + "_" + a.attributeKey());
+                NamespacedKey key = new NamespacedKey(plugin, "talisman_" + t.id() + "_" + ai + "_" + a.attributeKey());
                 for (AttributeModifier m : new ArrayList<>(instance.getModifiers())) {
                     if (m.getKey().equals(key)) {
                         instance.removeModifier(m);

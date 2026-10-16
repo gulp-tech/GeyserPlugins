@@ -27,6 +27,7 @@ import java.util.List;
 public final class FaralTalismans extends JavaPlugin implements Listener, CommandExecutor, TabCompleter {
 
     private TalismanService service;
+    private final VaultHook vault = new VaultHook();
     private BukkitTask task;
 
     /** Маркер нашего меню, чтобы отличать его от обычных инвентарей. */
@@ -102,14 +103,70 @@ public final class FaralTalismans extends JavaPlugin implements Listener, Comman
 
     @EventHandler
     public void onMenuClick(InventoryClickEvent event) {
-        if (event.getInventory().getHolder() instanceof MenuHolder) {
-            event.setCancelled(true); // меню только для просмотра
+        if (!(event.getInventory().getHolder() instanceof MenuHolder)) {
+            return;
         }
+        event.setCancelled(true); // из меню предметы не забирают
+        if (!getConfig().getBoolean("menu.click-to-buy", true)) {
+            return;
+        }
+        if (!(event.getWhoClicked() instanceof Player)) {
+            return;
+        }
+        Player player = (Player) event.getWhoClicked();
+        String id = service.identify(event.getCurrentItem());
+        Talisman t = id == null ? null : service.byId(id);
+        if (t != null) {
+            buy(player, t);
+        }
+    }
+
+    /** Покупка талисмана за монеты Vault (на FunTime так покупают за ТК). */
+    public void buy(Player player, Talisman t) {
+        String prefix = TextUtil.color(getConfig().getString("messages.prefix", "&#C86BFFFaralMC &8» &f"));
+        if (t.price() <= 0) {
+            player.sendMessage(TalismanService.component(prefix + TextUtil.color(
+                    getConfig().getString("messages.not-for-sale", "&7Этот талисман не продаётся."))));
+            return;
+        }
+        if (!player.hasPermission("faraltalismans.buy")) {
+            player.sendMessage(TalismanService.component(prefix + TextUtil.color(
+                    getConfig().getString("messages.no-permission", "&cНет прав."))));
+            return;
+        }
+        if (!vault.available()) {
+            player.sendMessage(TalismanService.component(prefix + TextUtil.color(
+                    getConfig().getString("messages.no-economy", "&cЭкономика недоступна (нужен Vault)."))));
+            return;
+        }
+        double balance = vault.balance(player);
+        if (balance < t.price()) {
+            player.sendMessage(TalismanService.component(prefix + TextUtil.color(
+                    getConfig().getString("messages.not-enough-money", "&cНе хватает монет: нужно &f{price}&c, у вас &f{balance}")
+                            .replace("{price}", service.formatPrice(t.price()))
+                            .replace("{balance}", service.formatPrice(balance))
+                            .replace("{talisman}", t.displayName()))));
+            return;
+        }
+        if (!vault.withdraw(player, t.price())) {
+            player.sendMessage(TalismanService.component(prefix + TextUtil.color(
+                    getConfig().getString("messages.no-economy", "&cЭкономика недоступна (нужен Vault)."))));
+            return;
+        }
+        java.util.Map<Integer, ItemStack> rest = player.getInventory().addItem(service.createItem(t, 1));
+        for (ItemStack drop : rest.values()) {
+            player.getWorld().dropItemNaturally(player.getLocation(), drop);
+        }
+        player.sendMessage(TalismanService.component(prefix + TextUtil.color(
+                getConfig().getString("messages.bought", "&aВы купили {talisman} &aза &f{price}"))
+                        .replace("{price}", service.formatPrice(t.price()))
+                        .replace("{talisman}", t.displayName()))));
     }
 
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
         service.clearAttributes(event.getPlayer());
+        service.forget(event.getPlayer());
     }
 
     // ------------------------------------------------------------------ команды
@@ -156,10 +213,29 @@ public final class FaralTalismans extends JavaPlugin implements Listener, Comman
             target.sendMessage(prefix + TextUtil.color(getConfig().getString("messages.received", "&aВы получили талисман!")));
             return true;
         }
+        if (args.length >= 1 && args[0].equalsIgnoreCase("buy")) {
+            if (!(sender instanceof Player)) {
+                sender.sendMessage(prefix + "Команда только для игроков.");
+                return true;
+            }
+            if (args.length < 2) {
+                sender.sendMessage(prefix + "Использование: /talisman buy <id> (список: /talisman list)");
+                return true;
+            }
+            Talisman toBuy = service.byId(args[1]);
+            if (toBuy == null) {
+                sender.sendMessage(prefix + TextUtil.color(getConfig().getString("messages.not-found", "&cТакого талисмана нет. Список: /talisman list")));
+                return true;
+            }
+            buy((Player) sender, toBuy);
+            return true;
+        }
         if (args.length >= 1 && args[0].equalsIgnoreCase("list")) {
             sender.sendMessage(prefix + "Талисманы (" + service.all().size() + "):");
             for (Talisman t : service.all()) {
-                sender.sendMessage(TextUtil.color("&7- &f" + t.id() + " &8| ") + TalismanService.component(TextUtil.color(t.displayName())));
+                String price = t.price() > 0 ? " &8| &e" + service.formatPrice(t.price()) : "";
+                sender.sendMessage(TextUtil.color("&7- &f" + t.id() + " &8| ") + TalismanService.component(TextUtil.color(t.displayName()))
+                        + TalismanService.component(TextUtil.color(price)));
             }
             return true;
         }
@@ -189,7 +265,12 @@ public final class FaralTalismans extends JavaPlugin implements Listener, Comman
             return List.of();
         }
         if (args.length == 1) {
-            return List.of("give", "list", "reload");
+            return List.of("give", "buy", "list", "reload");
+        }
+        if (args.length == 2 && args[0].equalsIgnoreCase("buy")) {
+            List<String> ids = new ArrayList<>();
+            service.all().forEach(t -> ids.add(t.id()));
+            return ids;
         }
         if (args.length == 3 && args[0].equalsIgnoreCase("give")) {
             List<String> ids = new ArrayList<>();

@@ -6,7 +6,7 @@
 
     <groupId>ru.FaralMC</groupId>
     <artifactId>FaralTalismans</artifactId>
-    <version>1.0.0</version>
+    <version>1.1.0</version>
     <packaging>jar</packaging>
     <name>FaralTalismans</name>
     <description>Талисманы как на FunTime для Bedrock-сервера FaralMC (Geyser/Floodgate, Purpur 26.2): пассивные эффекты и атрибуты за ношение в инвентаре. Всё настраивается в config.yml.</description>
