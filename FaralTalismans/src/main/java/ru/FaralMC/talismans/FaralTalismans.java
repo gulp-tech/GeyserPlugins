@@ -158,7 +158,7 @@ public final class FaralTalismans extends JavaPlugin implements Listener, Comman
             player.getWorld().dropItemNaturally(player.getLocation(), drop);
         }
         player.sendMessage(TalismanService.component(prefix + TextUtil.color(
-                getConfig().getString("messages.bought", "&aВы купили {talisman} &aза &f{price}"))
+                getConfig().getString("messages.bought", "&aВы купили {talisman} &aза &f{price}")
                         .replace("{price}", service.formatPrice(t.price()))
                         .replace("{talisman}", t.displayName()))));
     }
