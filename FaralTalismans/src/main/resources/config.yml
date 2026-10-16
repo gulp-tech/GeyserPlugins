@@ -1,7 +1,8 @@
 # ============================================================
 #  FaralTalismans — талисманы для Bedrock (FaralMC)
 #
-#  КАК РАБОТАЕТ: талисман лежит в инвентаре — игрок получает его
+#  КАК РАБОТАЕТ: талисман работает ТОЛЬКО в левой руке (вторая рука).
+#  Лежит в инвентаре или хотбаре — ничего не даёт, ноль эффектов.
 #  плюсы и минусы. Убрал — всё пропало. Магазина нет: талисманы
 #  выдаёт админ (/talisman give) или крафтятся, если включишь рецепт.
 #
@@ -71,7 +72,7 @@ menu:
   title: "&#C86BFFТалисманы"
   rows: 4
   status-active: "&aРаботает"
-  status-inactive: "&7Не работает (нет в инвентаре)"
+  status-inactive: "&7Не работает (нужен в левой руке)"
 
 messages:
   prefix: "&#C86BFFFaralMC &8» &f"
@@ -92,7 +93,8 @@ messages:
 #
 #  attributes: amount у ADD_NUMBER — просто число (здоровье в HP:
 #  +2 = одно сердце), у ADD_SCALAR — доля (0.10 = +10%).
-#  where: INVENTORY — в инвентаре | HOTBAR — в хотбаре | OFFHAND — в левой руке.
+#  where: OFFHAND — только в левой руке (так сейчас у всех) |
+#         INVENTORY — в инвентаре | HOTBAR — в хотбаре.
 #  recipe — крафт на верстаке (enabled: true + shape + ingredients).
 # ------------------------------------------------------------
 talismans:
@@ -104,7 +106,7 @@ talismans:
     glow: true
     lore:
       - "{stats}"
-    where: INVENTORY
+    where: OFFHAND
     permission: ""
     effects: []
     attributes:
@@ -120,7 +122,7 @@ talismans:
     glow: true
     lore:
       - "{stats}"
-    where: INVENTORY
+    where: OFFHAND
     permission: ""
     effects: []
     attributes:
@@ -135,7 +137,7 @@ talismans:
     glow: true
     lore:
       - "{stats}"
-    where: INVENTORY
+    where: OFFHAND
     permission: ""
     effects: []
     attributes:
@@ -152,7 +154,7 @@ talismans:
     glow: true
     lore:
       - "{stats}"
-    where: INVENTORY
+    where: OFFHAND
     permission: ""
     effects: []
     attributes:
@@ -168,7 +170,7 @@ talismans:
     glow: true
     lore:
       - "{stats}"
-    where: INVENTORY
+    where: OFFHAND
     permission: ""
     effects: []
     attributes:
@@ -184,7 +186,7 @@ talismans:
     glow: true
     lore:
       - "{stats}"
-    where: INVENTORY
+    where: OFFHAND
     permission: ""
     effects: []
     attributes:
@@ -200,7 +202,7 @@ talismans:
     glow: true
     lore:
       - "{stats}"
-    where: INVENTORY
+    where: OFFHAND
     permission: ""
     effects: []
     attributes:
@@ -216,7 +218,7 @@ talismans:
     glow: true
     lore:
       - "{stats}"
-    where: INVENTORY
+    where: OFFHAND
     permission: ""
     effects: []
     attributes:
@@ -232,7 +234,7 @@ talismans:
     glow: true
     lore:
       - "{stats}"
-    where: INVENTORY
+    where: OFFHAND
     permission: ""
     effects: []
     attributes:
@@ -248,7 +250,7 @@ talismans:
     glow: true
     lore:
       - "{stats}"
-    where: INVENTORY
+    where: OFFHAND
     permission: ""
     effects: []
     attributes:
@@ -262,7 +264,7 @@ talismans:
     glow: true
     lore:
       - "{stats}"
-    where: INVENTORY
+    where: OFFHAND
     permission: ""
     effects: []
     attributes:
@@ -278,7 +280,7 @@ talismans:
     glow: true
     lore:
       - "{stats}"
-    where: INVENTORY
+    where: OFFHAND
     permission: ""
     effects: []
     attributes:

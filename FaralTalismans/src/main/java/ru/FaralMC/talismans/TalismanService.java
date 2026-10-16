@@ -84,7 +84,7 @@ public final class TalismanService {
                 }
                 attributes.add(new Talisman.AttributeDef(key, amount, op));
             }
-            Talisman.Where where = Talisman.Where.INVENTORY;
+            Talisman.Where where = Talisman.Where.OFFHAND;
             try {
                 where = Talisman.Where.valueOf(plugin.getConfig().getString(path + ".where", "INVENTORY").toUpperCase(Locale.ROOT));
             } catch (IllegalArgumentException ignored) {
