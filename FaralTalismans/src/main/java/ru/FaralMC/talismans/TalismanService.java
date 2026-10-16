@@ -75,8 +75,10 @@ public final class TalismanService {
                 Object amountRaw = raw.get("amount");
                 double amount = amountRaw instanceof Number ? ((Number) amountRaw).doubleValue() : 0;
                 AttributeModifier.Operation op = AttributeModifier.Operation.ADD_NUMBER;
+                Object opRaw = raw.get("operation");
                 try {
-                    op = AttributeModifier.Operation.valueOf(String.valueOf(raw.getOrDefault("operation", "ADD_NUMBER")).toUpperCase(Locale.ROOT));
+                    op = AttributeModifier.Operation.valueOf(
+                            String.valueOf(opRaw == null ? "ADD_NUMBER" : opRaw).toUpperCase(Locale.ROOT));
                 } catch (IllegalArgumentException ignored) {
                 }
                 attributes.add(new Talisman.AttributeDef(key, amount, op));
