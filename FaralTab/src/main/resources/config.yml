@@ -12,6 +12,7 @@
 #    {icon:crown} {icon:sword} {icon:skull} {icon:clock}
 #    {icon:windows} {icon:android} {icon:apple} {icon:device} {icon:coins}
 #  Устройство игрока (Floodgate): {device_icon} — значок его платформы, {device} — её название.
+#  Платформа = DeviceOs + InputMode: телефон с клавиатурой/мышью — отдельная иконка kbmouse.
 #  Плюс любые %плейсхолдеры% PlaceholderAPI (если включён ниже).
 # ============================================================
 
@@ -87,6 +88,7 @@ icons:
   apple: "E00B"     # iPhone / iOS
   device: "E00C"    # остальные устройства (консоли и т.п.)
   coins: "E00D"     # стопка монет (для строки Монеты)
+  kbmouse: "E00E"   # телефон/планшет + клавиатура и мышь (InputMode из Floodgate)
   # Иконки берутся из FaralResourcePack.mcpack (plugins/Geyser-Spigot/packs/),
   # поставьте в конфиге Geyser force-resource-packs: true — без пака вместо иконок будет пусто.
 
@@ -110,6 +112,7 @@ nametag:
     windows: "Windows"
     android: "Android"
     apple: "iOS"
+    kbmouse: "Клавиатура+мышь"
     device: "Устройство"
 
 # ------------------------------------------------------------

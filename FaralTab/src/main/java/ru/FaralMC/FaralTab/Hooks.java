@@ -256,19 +256,60 @@ public final class Hooks {
      * FloodgatePlayer.getDeviceOs() возвращает enum org.geysermc.geyser.configuration.DeviceOs.
      */
     public String deviceOs(UUID uuid) {
+        Object os = floodgateEnum(uuid, "getDeviceOs");
+        return os == null ? "UNKNOWN" : os;
+    }
+
+    /** Режим ввода Bedrock-клиента: KEYBOARD_MOUSE, TOUCH, CONTROLLER, VR, UNKNOWN. */
+    public String inputMode(UUID uuid) {
+        Object mode = floodgateEnum(uuid, "getInputMode");
+        return mode == null ? "UNKNOWN" : mode;
+    }
+
+    /** Модель устройства из Floodgate (для диагностики), может быть пустой. */
+    public String deviceModel(UUID uuid) {
         if (floodgateApi == null || fgGetPlayer == null) {
-            return "UNKNOWN";
+            return "";
         }
         try {
             Object floodgatePlayer = fgGetPlayer.invoke(floodgateApi, uuid);
             if (floodgatePlayer == null) {
-                return "UNKNOWN";
+                return "";
             }
-            Method getDeviceOs = findMethod(floodgatePlayer.getClass(), "getDeviceOs");
-            Object os = getDeviceOs == null ? null : getDeviceOs.invoke(floodgatePlayer);
-            return os == null ? "UNKNOWN" : os.toString().toUpperCase(java.util.Locale.ROOT);
+            Method m = findMethod(floodgatePlayer.getClass(), "getDeviceModel");
+            Object v = m == null ? null : m.invoke(floodgatePlayer);
+            return v == null ? "" : String.valueOf(v);
         } catch (Throwable t) {
-            return "UNKNOWN";
+            return "";
+        }
+    }
+
+    /**
+     * ВАЖНО: DeviceOs.toString() у Floodgate возвращает подпись ("Android", "Windows"),
+     * а не имя enum — поэтому берём именно Enum.name() ("GOOGLE", "UWP", ...).
+     */
+    private String floodgateEnum(UUID uuid, String getter) {
+        if (floodgateApi == null || fgGetPlayer == null) {
+            return null;
+        }
+        try {
+            Object floodgatePlayer = fgGetPlayer.invoke(floodgateApi, uuid);
+            if (floodgatePlayer == null) {
+                return null;
+            }
+            Method m = findMethod(floodgatePlayer.getClass(), getter);
+            Object v = m == null ? null : m.invoke(floodgatePlayer);
+            if (v == null) {
+                return null;
+            }
+            try {
+                Method nameMethod = v.getClass().getMethod("name");
+                return String.valueOf(nameMethod.invoke(v)).toUpperCase(java.util.Locale.ROOT);
+            } catch (Throwable ignored) {
+                return v.toString().toUpperCase(java.util.Locale.ROOT);
+            }
+        } catch (Throwable t) {
+            return null;
         }
     }
 

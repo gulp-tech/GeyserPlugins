@@ -257,17 +257,28 @@ public final class SidebarManager {
         return TextUtil.color(text);
     }
 
-    /** Имя иконки устройства по Floodgate DeviceOs. */
+    /**
+     * Имя иконки устройства: Floodgate DeviceOs (Enum.name) + InputMode.
+     * Телефон/планшет с подключённой клавиатурой и мышью — отдельное устройство kbmouse.
+     */
     public String deviceIconName(Player player) {
         String os = plugin.hooks().deviceOs(player.getUniqueId());
-        if (os.contains("WINDOW") || os.equals("UWP") || os.equals("WIN32")) {
+        String input = plugin.hooks().inputMode(player.getUniqueId());
+        boolean mobileOs = os.equals("GOOGLE") || os.equals("IOS") || os.equals("AMAZON");
+        if (input.equals("KEYBOARD_MOUSE") && (mobileOs || os.equals("UNKNOWN"))) {
+            return os.equals("UNKNOWN") ? "windows" : "kbmouse";
+        }
+        if (os.equals("UWP") || os.equals("WIN32") || os.contains("WINDOWS")) {
             return "windows";
         }
-        if (os.contains("GOOGLE") || os.contains("ANDROID") || os.contains("AMAZON")) {
+        if (os.equals("GOOGLE") || os.equals("AMAZON")) {
             return "android";
         }
-        if (os.contains("IOS") || os.contains("OSX") || os.contains("MAC") || os.contains("TVOS")) {
+        if (os.equals("IOS") || os.equals("OSX") || os.equals("TVOS")) {
             return "apple";
+        }
+        if (input.equals("KEYBOARD_MOUSE")) {
+            return "windows";
         }
         return "device";
     }
@@ -283,6 +294,9 @@ public final class SidebarManager {
         }
         if (icon.equals("apple")) {
             return plugin.getConfig().getString("nametag.device-names.apple", "iOS");
+        }
+        if (icon.equals("kbmouse")) {
+            return plugin.getConfig().getString("nametag.device-names.kbmouse", "Клавиатура+мышь");
         }
         return plugin.getConfig().getString("nametag.device-names.device", "Устройство");
     }

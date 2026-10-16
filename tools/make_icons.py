@@ -49,10 +49,11 @@ PALETTES = {
                 "K": (25, 25, 35, 255)},
     "apple": {"D": (90, 95, 110, 255), "W": (240, 242, 245, 255), "S": (190, 196, 205, 255),
               "G": (96, 200, 90, 255)},
-    "device": {"D": (50, 55, 70, 255), "C": (90, 200, 235, 255), "L": (200, 240, 255, 255),
+    "device": {"D": (50, 55, 70, 255), "C": (90, 200, 235, 255), "F": (120, 128, 145, 255), "K": (30, 32, 40, 255), "L": (200, 240, 255, 255),
                "W": (230, 230, 235, 255)},
     "coins": {"D": (146, 96, 0, 255), "G": (255, 201, 60, 255), "L": (255, 231, 138, 255),
               "S": (240, 165, 0, 255), "W": (255, 255, 255, 255)},
+    "kbmouse": {"D": (45, 50, 65, 255), "W": (235, 238, 245, 255), "B": (64, 170, 255, 255)},
 }
 
 ICONS = {
@@ -220,17 +221,17 @@ ICONS = {
     ]),
     "E00A": ("android", [
         "................",
-        "................",
         "....D......D....",
         ".....D....D.....",
         "....DDDDDDDD....",
-        "..DDGGGGGGGGDD..",
-        ".DGGGGGGGGGGGGD.",
-        ".DGKKGGGGGGKKGD.",
-        ".DGGGGGGGGGGGGD.",
+        "...DGGGGGGGGD...",
+        "..DGKGGGGGGKGD..",
         "..DGGGGGGGGGGD..",
-        "...DDDDDDDDDD...",
-        "................",
+        ".DDDGGGGGGDDD...",
+        ".D.DGGGGGGD.D...",
+        "...DGGGGGGD.....",
+        "...DGGGGGGD.....",
+        "...DDD..DDD.....",
         "................",
         "................",
         "................",
@@ -257,16 +258,16 @@ ICONS = {
     "E00C": ("device", [
         "................",
         "................",
-        ".....DDDDDD.....",
-        "....DCCCCCCD....",
-        "....DCLCCCCD....",
-        "....DCCCCCCD....",
-        "....DCCCCCCD....",
-        "....DCCCCCCD....",
-        "....DCCCCCCD....",
-        "....DCCCCCCD....",
-        "....DDDWWDDD....",
-        ".....DDDDDD.....",
+        "...DDDDDDDDDD...",
+        "..DFFFFFFFFFFD..",
+        ".DFFKFFFFCCFCD..",
+        ".DFKKKFFFFCCCFD.",
+        ".DFFKFFFFFFFFFF.",
+        "..DFFFFFFFFFFD..",
+        "...DDDDDDDDDD...",
+        "................",
+        "................",
+        "................",
         "................",
         "................",
         "................",
@@ -290,13 +291,31 @@ ICONS = {
         "................",
         "................",
     ]),
+    "E00E": ("kbmouse", [
+        "................",
+        ".........DDD....",
+        "........DWBBD...",
+        "........DWWBD...",
+        ".........DDD....",
+        "................",
+        ".DDDDDDDDDDDDD..",
+        ".DWDWDWDWDWDWD..",
+        ".DWWWWWWWWWWWD..",
+        ".DDDDDDDDDDDDD..",
+        "................",
+        "................",
+        "................",
+        "................",
+        "................",
+        "................",
+    ]),
 }
 
 LABELS_RU = {
     "coin": "Монета", "spark": "Молния", "sapphire": "Сапфир", "shard": "Осколок",
     "crown": "Привилегия", "sword": "Убийства", "skull": "Смерти", "clock": "Время в игре",
     "windows": "ПК (Windows)", "android": "Android", "apple": "iPhone (iOS)", "device": "Другое устройство",
-    "coins": "Стопка монет",
+    "coins": "Стопка монет", "kbmouse": "Клавиатура+мышь",
 }
 CELL = 16   # ячейка на листе 256x256 (как ванильный шрифт Bedrock)
 OFF = 1     # иконка ужата до 13x13 по центру ячейки — меньше высоты строки
@@ -381,7 +400,7 @@ def make_logo():
                           min(w, box[2] + pad), min(h, box[3] + pad)))
     # небольшой логотип: текст ~62% ширины холста, остальное прозрачные поля
     canvas = Image.new("RGBA", (1456, 360), (0, 0, 0, 0))
-    target_w = 1040
+    target_w = 900
     scale = target_w / logo.width
     logo_small = logo.resize((target_w, int(logo.height * scale)), Image.LANCZOS)
     canvas.alpha_composite(logo_small, ((1456 - target_w) // 2, (360 - logo_small.height) // 2))
@@ -438,9 +457,9 @@ def main():
         img.save(PREVIEW / "icons" / f"{code[1:]}_{name}.png")
         img.resize((256, 256), Image.NEAREST).save(PREVIEW / "icons" / f"{code[1:]}_{name}_x16.png")
     strip = make_title_strip()
-    strip_small = strip.resize((104, 13), Image.NEAREST)
+    strip_small = strip.resize((72, 9), Image.NEAREST)
     strip_canvas = Image.new("RGBA", (TITLE_GLYPHS * 16, 16), (0, 0, 0, 0))
-    strip_canvas.alpha_composite(strip_small, (12, 2))
+    strip_canvas.alpha_composite(strip_small, (28, 4))
     strip = strip_canvas
     for i in range(TITLE_GLYPHS):
         idx = TITLE_START + i
