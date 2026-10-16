@@ -3,19 +3,15 @@ version: '${project.version}'
 main: ru.FaralMC.talismans.FaralTalismans
 api-version: '26.2'
 author: FaralMC
-description: Талисманы как на FunTime — плюсы и минусы к характеристикам, пока предмет в инвентаре. Всё настраивается в config.yml.
+description: Талисманы — плюсы и минусы к характеристикам, пока предмет в левой руке. Всё настраивается в config.yml.
 commands:
   talisman:
-    description: Управление талисманами
-    usage: /talisman <give <игрок> <id> [кол-во]|list|reload>
+    description: "Меню талисманов (только админы): клик по талисману выдаёт его"
+    usage: /talisman
     aliases: [tal, талисман]
-  talismans:
-    description: Меню талисманов
-    usage: /talismans
-    aliases: [талисманы]
 permissions:
   faraltalismans.admin:
-    description: Выдача талисманов и перезагрузка конфига
+    description: Команда /talisman и выдача талисманов из меню
     default: op
   faraltalismans.menu:
     description: Открывать меню талисманов

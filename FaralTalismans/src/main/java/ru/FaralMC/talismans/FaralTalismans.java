@@ -46,10 +46,6 @@ public final class FaralTalismans extends JavaPlugin implements Listener, Comman
             getCommand("talisman").setExecutor(this);
             getCommand("talisman").setTabCompleter(this);
         }
-        if (getCommand("talismans") != null) {
-            getCommand("talismans").setExecutor(this);
-            getCommand("talismans").setTabCompleter(this);
-        }
         startTask();
         getLogger().info("FaralTalismans включён, талисманов: " + service.all().size());
     }
@@ -102,9 +98,30 @@ public final class FaralTalismans extends JavaPlugin implements Listener, Comman
 
     @EventHandler
     public void onMenuClick(InventoryClickEvent event) {
-        if (event.getInventory().getHolder() instanceof MenuHolder) {
-            event.setCancelled(true); // меню только для просмотра, предметы не забирают
+        if (!(event.getInventory().getHolder() instanceof MenuHolder)) {
+            return;
         }
+        event.setCancelled(true); // предмет из меню не забираем — выдаём настоящий
+        if (!(event.getWhoClicked() instanceof Player)) {
+            return;
+        }
+        Player player = (Player) event.getWhoClicked();
+        if (!player.hasPermission("faraltalismans.admin")) {
+            return;
+        }
+        String id = service.identify(event.getCurrentItem());
+        Talisman t = id == null ? null : service.byId(id);
+        if (t == null) {
+            return;
+        }
+        java.util.Map<Integer, ItemStack> rest = player.getInventory().addItem(service.createItem(t, 1));
+        for (ItemStack drop : rest.values()) {
+            player.getWorld().dropItemNaturally(player.getLocation(), drop);
+        }
+        String prefix = TextUtil.color(getConfig().getString("messages.prefix", "&#C86BFFFaralMC &8» &f"));
+        player.sendMessage(TalismanService.component(prefix + TextUtil.color(
+                getConfig().getString("messages.received", "&aВы получили талисман!")
+                        .replace("{talisman}", t.displayName()))));
     }
 
     @EventHandler
@@ -117,86 +134,22 @@ public final class FaralTalismans extends JavaPlugin implements Listener, Comman
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         String prefix = TextUtil.color(getConfig().getString("messages.prefix", "&#C86BFFFaralMC &8» &f"));
-        if (command.getName().equalsIgnoreCase("talismans")) {
-            if (sender instanceof Player) {
-                openMenu((Player) sender);
-            } else {
-                sender.sendMessage(prefix + "Команда только для игроков.");
-            }
+        if (!(sender instanceof Player)) {
+            sender.sendMessage(prefix + "Команда только для игроков.");
             return true;
         }
-        if (args.length >= 1 && args[0].equalsIgnoreCase("give")) {
-            if (!sender.hasPermission("faraltalismans.admin")) {
-                sender.sendMessage(prefix + TextUtil.color(getConfig().getString("messages.no-permission", "&cНет прав.")));
-                return true;
-            }
-            if (args.length < 3) {
-                sender.sendMessage(prefix + "Использование: /talisman give <игрок> <id> [кол-во]");
-                return true;
-            }
-            Player target = Bukkit.getPlayerExact(args[1]);
-            Talisman talisman = service.byId(args[2]);
-            if (target == null) {
-                sender.sendMessage(prefix + TextUtil.color(getConfig().getString("messages.player-not-found", "&cИгрок не найден.")));
-                return true;
-            }
-            if (talisman == null) {
-                sender.sendMessage(prefix + TextUtil.color(getConfig().getString("messages.not-found", "&cТакого талисмана нет. Список: /talisman list")));
-                return true;
-            }
-            int amount = 1;
-            if (args.length >= 4) {
-                try {
-                    amount = Math.max(1, Integer.parseInt(args[3]));
-                } catch (NumberFormatException ignored) {
-                }
-            }
-            target.getInventory().addItem(service.createItem(talisman, amount));
-            sender.sendMessage(prefix + TextUtil.color(getConfig().getString("messages.given", "&aТалисман выдан игроку {player}")
-                    .replace("{player}", target.getName())));
-            target.sendMessage(prefix + TextUtil.color(getConfig().getString("messages.received", "&aВы получили талисман!")));
+        Player player = (Player) sender;
+        if (!player.hasPermission("faraltalismans.admin")) {
+            player.sendMessage(TalismanService.component(prefix + TextUtil.color(
+                    getConfig().getString("messages.no-permission", "&cНет прав."))));
             return true;
         }
-        if (args.length >= 1 && args[0].equalsIgnoreCase("list")) {
-            sender.sendMessage(prefix + "Талисманы (" + service.all().size() + "):");
-            for (Talisman t : service.all()) {
-                sender.sendMessage(TextUtil.color("&7- &f" + t.id() + " &8| ") + TalismanService.component(TextUtil.color(t.displayName())));
-            }
-            return true;
-        }
-        if (args.length >= 1 && args[0].equalsIgnoreCase("reload")) {
-            if (!sender.hasPermission("faraltalismans.admin")) {
-                sender.sendMessage(prefix + TextUtil.color(getConfig().getString("messages.no-permission", "&cНет прав.")));
-                return true;
-            }
-            reloadConfig();
-            service.load();
-            service.registerRecipes();
-            startTask();
-            sender.sendMessage(prefix + TextUtil.color(getConfig().getString("messages.reloaded", "&aКонфиг перезагружен.")));
-            return true;
-        }
-        if (sender instanceof Player) {
-            openMenu((Player) sender);
-        } else {
-            sender.sendMessage(prefix + "Использование: /talisman <give|list|reload>");
-        }
+        openMenu(player);
         return true;
     }
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
-        if (command.getName().equalsIgnoreCase("talismans")) {
-            return List.of();
-        }
-        if (args.length == 1) {
-            return List.of("give", "list", "reload");
-        }
-        if (args.length == 3 && args[0].equalsIgnoreCase("give")) {
-            List<String> ids = new ArrayList<>();
-            service.all().forEach(t -> ids.add(t.id()));
-            return ids;
-        }
         return List.of();
     }
 }

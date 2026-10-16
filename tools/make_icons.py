@@ -5,7 +5,7 @@
 
 Иконки: чёткий пиксель-арт в майнкрафт-стиле (как иконки на референсе).
 Лист glyph_E0.png — стандартного ванильного размера 256x256 (ячейка 16x16),
-иконка ужата до 13x13 по центру ячейки: в игре она меньше высоты строки
+иконка ужата до 8x8 по центру ячейки: в Bedrock глиф крупнее букв текста
 и не раздувает скорборд. (Лист 512 Bedrock рендерит крупнее ванили — не использовать.)
 
 Логотип: textures/ui/title.png — в стиле NEVERTIME: жирный блочный шрифт
@@ -318,7 +318,7 @@ LABELS_RU = {
     "coins": "Стопка монет", "kbmouse": "Клавиатура+мышь",
 }
 CELL = 16   # ячейка на листе 256x256 (как ванильный шрифт Bedrock)
-OFF = 1     # иконка ужата до 13x13 по центру ячейки — меньше высоты строки
+OFF = 4     # иконка 8x8 по центру ячейки 16x16: в Bedrock глиф крупнее букв, 13x13 было слишком много
 
 
 def render(rows, pal_name):
@@ -452,14 +452,14 @@ def main():
         img = render(rows, name)
         rendered[code] = (name, img)
         idx = int(code[1:], 16)
-        small = img.resize((13, 13), Image.NEAREST)
+        small = img.resize((8, 8), Image.NEAREST)
         sheet.paste(small, ((idx % 16) * CELL + OFF, (idx // 16) * CELL + OFF), small)
         img.save(PREVIEW / "icons" / f"{code[1:]}_{name}.png")
         img.resize((256, 256), Image.NEAREST).save(PREVIEW / "icons" / f"{code[1:]}_{name}_x16.png")
     strip = make_title_strip()
-    strip_small = strip.resize((64, 8), Image.NEAREST)
+    strip_small = strip.resize((40, 5), Image.NEAREST)
     strip_canvas = Image.new("RGBA", (TITLE_GLYPHS * 16, 16), (0, 0, 0, 0))
-    strip_canvas.alpha_composite(strip_small, (32, 4))
+    strip_canvas.alpha_composite(strip_small, (44, 5))
     strip = strip_canvas
     for i in range(TITLE_GLYPHS):
         idx = TITLE_START + i
