@@ -8,10 +8,10 @@
 иконка ужата до 13x13 по центру ячейки: в игре она меньше высоты строки
 и не раздувает скорборд. (Лист 512 Bedrock рендерит крупнее ванили — не использовать.)
 
-Логотип: textures/ui/title.png — текст FaralMC игровым шрифтом Minecraft
-(Minecraftia, tools/fonts/Minecraftia.ttf): объёмная экструзия вниз,
-синий градиент, блик сверху, чёрная обводка и тень — как логотип NEVERTIME
-на референсе, только синий и читаемым FaralMC (с маленькими буквами).
+Логотип: textures/ui/title.png — в стиле NEVERTIME: жирный блочный шрифт
+Minecraft Ten (все буквы одной высоты), градиент голубой->белый слева направо,
+тёмная объёмная экструзия и тень снизу, чёрная обводка. Сам логотип занимает
+~62% ширины холста (прозрачные поля), чтобы на экране загрузки не был огромным.
 
 Запуск: python3 tools/make_icons.py
 """
@@ -21,7 +21,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 PACK = ROOT / "FaralResourcePack"
 PREVIEW = ROOT / "preview"
-FONT_LOGO = ROOT / "tools" / "fonts" / "Minecraftia.ttf"
+FONT_LOGO = ROOT / "tools" / "fonts" / "MinecraftTen.ttf"
 
 PALETTES = {
     "coin": {"D": (146, 96, 0, 255), "G": (255, 201, 60, 255), "L": (255, 231, 138, 255),
@@ -225,27 +225,27 @@ def lerp(a, b, t):
 
 
 def make_logo():
-    """FaralMC игровым шрифтом: объём, синий градиент, блик, обводка, тень."""
+    """FaralMC в стиле NEVERTIME: жирный Minecraft Ten, градиент, объём, тень. Небольшой."""
     text = "FaralMC"
     f = ImageFont.truetype(str(FONT_LOGO), 300)
-    stroke = 12
+    stroke = 16
     tmp = Image.new("RGBA", (10, 10))
     d = ImageDraw.Draw(tmp)
     bbox = d.textbbox((0, 0), text, font=f, stroke_width=stroke)
-    w, h = bbox[2] - bbox[0] + 64, bbox[3] - bbox[1] + 96
+    w, h = bbox[2] - bbox[0] + 64, bbox[3] - bbox[1] + 110
     ox, oy = 32 - bbox[0], 28 - bbox[1]
 
-    def text_layer(fill, dx=0, dy=0, stroke_fill=None):
+    def text_layer(fill, dx=0, dy=0):
         lay = Image.new("RGBA", (w, h), (0, 0, 0, 0))
         ImageDraw.Draw(lay).text((ox + dx, oy + dy), text, font=f, fill=fill,
-                                 stroke_width=stroke, stroke_fill=stroke_fill or fill)
+                                 stroke_width=stroke, stroke_fill=fill)
         return lay
 
     logo = Image.new("RGBA", (w, h), (0, 0, 0, 0))
-    logo.alpha_composite(text_layer((0, 0, 0, 160), 10, 26))                    # мягкая тень
-    for dy in range(18, 0, -2):                                                  # объём вниз
-        logo.alpha_composite(text_layer((7, 32, 110, 255), 0, dy))
-    logo.alpha_composite(text_layer((0, 0, 0, 255)))                             # чёрная обводка
+    logo.alpha_composite(text_layer((0, 0, 0, 150), 8, 30))                       # тень
+    for dy in range(20, 0, -2):                                                    # объём вниз (у NEVERTIME он красный, у нас тёмно-синий)
+        logo.alpha_composite(text_layer((8, 30, 105, 255), 0, dy))
+    logo.alpha_composite(text_layer((0, 0, 0, 255)))                               # чёрная обводка
 
     mask = Image.new("L", (w, h), 0)
     ImageDraw.Draw(mask).text((ox, oy), text, font=f, fill=255)
@@ -253,25 +253,35 @@ def make_logo():
     px = grad.load()
     for y in range(h):
         for x in range(w):
-            t = min(1.0, max(0.0, (x / w) * 0.35 + (y / h) * 0.65))
-            px[x, y] = lerp((165, 228, 255), (24, 96, 238), t) + (255,)
-    shine = Image.new("L", (w, h), 0)                                            # блик сверху букв
+            base = lerp((96, 200, 255), (238, 248, 255), x / max(1, w - 1))        # голубой -> белый слева направо
+            shade = 1.0 - 0.45 * (y / max(1, h - 1))                               # низ букв темнее
+            deep = (26, 96, 235)
+            c = tuple(int(round(base[i] * shade + deep[i] * (1 - shade) * 0.55)) for i in range(3))
+            px[x, y] = c + (255,)
+    shine = Image.new("L", (w, h), 0)
     spx = shine.load()
     for y in range(h):
-        a = max(0, int(120 * (1 - y / (h * 0.55)))) if y < h * 0.55 else 0
+        a = max(0, int(110 * (1 - y / (h * 0.5)))) if y < h * 0.5 else 0
         for x in range(w):
             spx[x, y] = a
-    white = Image.new("RGBA", (w, h), (255, 255, 255, 255))
-    grad.paste(white, (0, 0), Image.composite(shine, Image.new("L", (w, h), 0), mask))
+    grad.paste(Image.new("RGBA", (w, h), (255, 255, 255, 255)), (0, 0),
+               Image.composite(shine, Image.new("L", (w, h), 0), mask))
     letters = Image.new("RGBA", (w, h), (0, 0, 0, 0))
     letters.paste(grad, (0, 0), mask)
     logo.alpha_composite(letters)
-    box = logo.getbbox()  # обрезать прозрачные поля — иначе Bedrock ужимает логотип
+
+    box = logo.getbbox()
     if box:
         pad = 6
         logo = logo.crop((max(0, box[0] - pad), max(0, box[1] - pad),
                           min(w, box[2] + pad), min(h, box[3] + pad)))
-    return logo
+    # небольшой логотип: текст ~62% ширины холста, остальное прозрачные поля
+    canvas = Image.new("RGBA", (2048, 512), (0, 0, 0, 0))
+    target_w = 1270
+    scale = target_w / logo.width
+    logo_small = logo.resize((target_w, int(logo.height * scale)), Image.LANCZOS)
+    canvas.alpha_composite(logo_small, ((2048 - target_w) // 2, (512 - logo_small.height) // 2))
+    return canvas
 
 
 def main():
