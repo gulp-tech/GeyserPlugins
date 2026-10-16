@@ -42,7 +42,7 @@ PALETTES = {
               "G": (255, 201, 60, 255), "B": (120, 70, 30, 255), "C": (40, 210, 255, 255)},
     "skull": {"D": (90, 95, 110, 255), "W": (235, 240, 248, 255), "L": (255, 255, 255, 255),
               "K": (25, 25, 35, 255), "P": (200, 107, 255, 255)},
-    "clock": {"D": (110, 72, 16, 255), "G": (255, 201, 60, 255), "F": (255, 250, 230, 255),
+    "clock": {"D": (110, 72, 16, 255), "G": (255, 201, 60, 255), "F": (255, 250, 230, 255), "K": (35, 30, 25, 255),
               "H": (120, 70, 10, 255), "S": (240, 165, 0, 255), "W": (255, 255, 255, 255)},
     "windows": {"D": (0, 90, 140, 255), "B": (0, 173, 239, 255), "L": (140, 220, 255, 255)},
     "android": {"D": (60, 90, 20, 255), "G": (164, 198, 57, 255), "L": (210, 235, 150, 255),
@@ -183,17 +183,17 @@ ICONS = {
         "................",
     ]),
     "E008": ("clock", [
-        "................",
+        "......DDDD......",
         ".....DDDDDD.....",
         "...DDFFFFFFDD...",
         "..DFFFFFFFFFD...",
-        ".DFFFFFDDFFFFFD.",
-        ".DFFFFFDDFFFFFD.",
-        "DFFFFFFDDFFFFFFD",
-        "DFFFDDDDDDDDFFFD",
+        ".DFFFFFKKFFFFFD.",
+        ".DFFFFFKKFFFFFD.",
+        "DFFFFFFKKFFFFFFD",
+        "DFFFKFFKKKKKKFFD",
         "DFFFFFFFFFFFFFFD",
         ".DFFFFFFFFFFFFD.",
-        ".DFFFFFDDFFFFFD.",
+        ".DFFFFFKKFFFFFD.",
         "..DFFFFFFFFFD...",
         "...DDFFFFFFDD...",
         ".....DDDDDD.....",
@@ -438,6 +438,10 @@ def main():
         img.save(PREVIEW / "icons" / f"{code[1:]}_{name}.png")
         img.resize((256, 256), Image.NEAREST).save(PREVIEW / "icons" / f"{code[1:]}_{name}_x16.png")
     strip = make_title_strip()
+    strip_small = strip.resize((104, 13), Image.NEAREST)
+    strip_canvas = Image.new("RGBA", (TITLE_GLYPHS * 16, 16), (0, 0, 0, 0))
+    strip_canvas.alpha_composite(strip_small, (12, 2))
+    strip = strip_canvas
     for i in range(TITLE_GLYPHS):
         idx = TITLE_START + i
         cell_img = strip.crop((i * 16, 0, i * 16 + 16, 16))

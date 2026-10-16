@@ -66,8 +66,12 @@ public final class FaralTab extends JavaPlugin implements Listener, CommandExecu
         java.util.List<String> lines = getConfig().getStringList("scoreboard.lines");
         boolean changed = false;
         java.util.List<String> cleaned = new java.util.ArrayList<>();
+        java.util.Map<String, String> oldDefaults = java.util.Map.of(
+                "&fМонеты: &#FFD93D{coins} {icon:spark}", "&fМонеты: &#FFD93D{coins} {icon:coin}",
+                "&fВ игре: &#FFD93D{playtime_hours}ч {icon:coin}", "&fВ игре: &#FFD93D{playtime_hours}ч {icon:clock}");
         for (String line : lines) {
-            String c = line.replace("{device_icon} ", "").replace("{device_icon}", "");
+            String c = oldDefaults.getOrDefault(line, line)
+                    .replace("{device_icon} ", "").replace("{device_icon}", "");
             if (!c.equals(line)) {
                 changed = true;
             }
