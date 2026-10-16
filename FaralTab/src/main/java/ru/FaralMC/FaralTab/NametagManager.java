@@ -103,8 +103,12 @@ public final class NametagManager {
         if (changed && plugin.getConfig().getBoolean("nametag.use-display-name", true)) {
             Component name = Component.text(prefix).append(Component.text(player.getName()));
             player.displayName(name);
-            player.setPlayerListName(TextUtil.color(
-                    plugin.getConfig().getString("nametag.prefix-color", "&f")) + prefix + player.getName());
+            String tabName = TextUtil.color(
+                    plugin.getConfig().getString("nametag.prefix-color", "&f")) + prefix + player.getName();
+            if (plugin.getConfig().getBoolean("nametag.device-name-in-tab", true)) {
+                tabName += TextUtil.color(" &7(" + plugin.sidebar().deviceName(player) + ")");
+            }
+            player.setPlayerListName(tabName);
         }
     }
 

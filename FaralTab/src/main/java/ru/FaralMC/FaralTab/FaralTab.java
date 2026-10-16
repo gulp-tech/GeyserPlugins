@@ -82,6 +82,13 @@ public final class FaralTab extends JavaPlugin implements Listener, CommandExecu
             saveConfig();
             getLogger().info("Миграция: {device_icon} убран из строк скорборда (значок остался только в нике).");
         }
+        // Заголовок скорборда: пиксельная полоса -> обычный читаемый текст FaralMC (один раз).
+        if (!getConfig().getBoolean("scoreboard.title-text-migrated", false)) {
+            getConfig().set("scoreboard.title-logo.enabled", false);
+            getConfig().set("scoreboard.title-text-migrated", true);
+            saveConfig();
+            getLogger().info("Миграция: заголовок скорборда — текстовый FaralMC (полоса-картинка выключена).");
+        }
     }
 
     public Hooks hooks() {

@@ -53,11 +53,11 @@ scoreboard:
   # (полоса глифов, высота — одна строка, не большая). Лежит в паке, коды ниже.
   # Выключи enabled — будет обычный текстовый title под этим комментарием.
   title-logo:
-    enabled: true
+    enabled: false
     start-code: "E010"
     glyphs: 8
   # Текстовый заголовок (если title-logo.enabled: false).
-  title: "<gradient:#FF6A00:#FFFFFF>FaralMC</gradient>"
+  title: "<gradient:#55C8FF:#1B6FFF>FaralMC</gradient>"
 
   # Строки скорборда (макс. 15). Пустая строка "" — отступ, как на фото.
   # Иконка в конце строки занимает ровно 1 символ — таб не раздувается.
@@ -105,6 +105,8 @@ nametag:
   # Для Bedrock (Geyser): дублировать значок в display-name игрока — оттуда Geyser
   # берёт неймтег над головой. Не выключай, если значка над головой не видно.
   use-display-name: true
+  # В TAB-списке после ника писать устройство текстом: MUSD38 (Windows) — понятно и без иконок.
+  device-name-in-tab: true
   # Красное сердечко после числа здоровья под ником (само число ставит игра).
   health-below-name: true
   health-suffix: "&c❤"
