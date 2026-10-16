@@ -81,6 +81,7 @@ public final class FaralTalismans extends JavaPlugin implements Listener, Comman
             if (slot >= rows * 9) {
                 break;
             }
+            ItemStack item = service.createItem(t, 1);
             inv.setItem(slot++, item);
         }
         player.openInventory(inv);
