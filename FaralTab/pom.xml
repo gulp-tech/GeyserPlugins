@@ -6,7 +6,7 @@
 
     <groupId>ru.FaralMC</groupId>
     <artifactId>FaralTab</artifactId>
-    <version>1.12.2</version>
+    <version>1.12.3</version>
     <packaging>jar</packaging>
     <name>FaralTab</name>
     <description>Компактный скорборд (таб) для Geyser/Floodgate сервера FaralMC: монеты (Vault), осколки (PlayerPoints), привилегия, У/С, время в игре + кастомные иконки из Bedrock-ресурспака.</description>

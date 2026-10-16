@@ -264,17 +264,28 @@ public final class SidebarManager {
     public String deviceIconName(Player player) {
         String os = plugin.hooks().deviceOs(player.getUniqueId());
         String input = plugin.hooks().inputMode(player.getUniqueId());
-        boolean mobileOs = os.equals("GOOGLE") || os.equals("IOS") || os.equals("AMAZON");
-        if (input.equals("KEYBOARD_MOUSE") && (mobileOs || os.equals("UNKNOWN"))) {
-            return os.equals("UNKNOWN") ? "windows" : "kbmouse";
+        // Нормализация: разные версии Floodgate отдают GOOGLE или ANDROID, UWP или WINDOWS и т.п.
+        String norm;
+        if (os.contains("GOOGLE") || os.equals("ANDROID") || os.contains("AMAZON")) {
+            norm = "ANDROID";
+        } else if (os.contains("UWP") || os.contains("WIN32") || os.contains("WINDOWS")) {
+            norm = "WINDOWS";
+        } else if (os.equals("IOS") || os.contains("OSX") || os.contains("MAC") || os.contains("TVOS")) {
+            norm = "IOS";
+        } else {
+            norm = os;
         }
-        if (os.equals("UWP") || os.equals("WIN32") || os.contains("WINDOWS")) {
+        boolean mobileOs = norm.equals("ANDROID") || norm.equals("IOS");
+        if (input.equals("KEYBOARD_MOUSE") && (mobileOs || norm.equals("UNKNOWN"))) {
+            return norm.equals("UNKNOWN") ? "windows" : "kbmouse";
+        }
+        if (norm.equals("WINDOWS")) {
             return "windows";
         }
-        if (os.equals("GOOGLE") || os.equals("AMAZON")) {
+        if (norm.equals("ANDROID")) {
             return "android";
         }
-        if (os.equals("IOS") || os.equals("OSX") || os.equals("TVOS")) {
+        if (norm.equals("IOS")) {
             return "apple";
         }
         if (input.equals("KEYBOARD_MOUSE")) {

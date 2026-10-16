@@ -457,9 +457,9 @@ def main():
         img.save(PREVIEW / "icons" / f"{code[1:]}_{name}.png")
         img.resize((256, 256), Image.NEAREST).save(PREVIEW / "icons" / f"{code[1:]}_{name}_x16.png")
     strip = make_title_strip()
-    strip_small = strip.resize((72, 9), Image.NEAREST)
+    strip_small = strip.resize((64, 8), Image.NEAREST)
     strip_canvas = Image.new("RGBA", (TITLE_GLYPHS * 16, 16), (0, 0, 0, 0))
-    strip_canvas.alpha_composite(strip_small, (28, 4))
+    strip_canvas.alpha_composite(strip_small, (32, 4))
     strip = strip_canvas
     for i in range(TITLE_GLYPHS):
         idx = TITLE_START + i
