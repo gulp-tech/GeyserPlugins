@@ -56,6 +56,7 @@ public final class ItemsService implements Listener {
     private final List<Trap> traps = new ArrayList<>();
     private final Map<String, Trap> trapBlocks = new HashMap<>(); // "world:x,y,z" -> трапка
     private final Map<UUID, Long> revealed = new HashMap<>(); // подсвеченные явной пылью: uuid -> конец (мс)
+    private final Map<UUID, org.bukkit.entity.ArmorStand> markers = new HashMap<>(); // белая метка над подсвеченным
 
     private static final class Trap {
         UUID owner;
@@ -72,17 +73,28 @@ public final class ItemsService implements Listener {
         this.idKey = new NamespacedKey(plugin, "item_id");
         load();
         registerRecipes();
-        // пока пыль действует: повторно выпитый инвиз не прячет, свечение держится
+        // пока пыль действует: повторно выпитый инвиз не прячет, метка над головой следует за игроком
         Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             long now = System.currentTimeMillis();
             revealed.entrySet().removeIf(e -> e.getValue() <= now);
-            for (UUID uuid : revealed.keySet()) {
-                Player p = Bukkit.getPlayer(uuid);
-                if (p != null && p.isOnline()) {
-                    p.removePotionEffect(PotionEffectType.INVISIBILITY);
+            for (UUID uuid : new ArrayList<>(markers.keySet())) {
+                if (!revealed.containsKey(uuid)) {
+                    removeMarker(uuid);
                 }
             }
-        }, 10L, 10L);
+            for (UUID uuid : revealed.keySet()) {
+                Player p = Bukkit.getPlayer(uuid);
+                if (p == null || !p.isOnline() || p.isDead()) {
+                    removeMarker(uuid);
+                    continue;
+                }
+                p.removePotionEffect(PotionEffectType.INVISIBILITY);
+                org.bukkit.entity.ArmorStand marker = markers.get(uuid);
+                if (marker != null && marker.isValid()) {
+                    marker.teleport(p.getLocation().add(0, 2.45, 0));
+                }
+            }
+        }, 4L, 4L);
     }
 
     // ------------------------------------------------------------------ загрузка
@@ -417,6 +429,9 @@ public final class ItemsService implements Listener {
         for (Trap trap : new ArrayList<>(traps)) {
             endTrap(trap, true);
         }
+        for (UUID uuid : new ArrayList<>(markers.keySet())) {
+            removeMarker(uuid);
+        }
     }
 
     private static String key(Location loc) {
@@ -477,12 +492,35 @@ public final class ItemsService implements Listener {
             other.removePotionEffect(PotionEffectType.INVISIBILITY);
             other.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, glowingSeconds * 20, 0, true, false, true));
             revealed.put(other.getUniqueId(), System.currentTimeMillis() + glowingSeconds * 1000L);
+            spawnMarker(other, item);
             msg(other, "revealed-you", item);
             found++;
         }
         playSound(user, item.str("sound", "entity.firework_rocket.launch"));
-        msg(user, "dust-used", item, "{count}", String.valueOf(found));
+        msg(user, "dust-used", item);
         return true;
+    }
+
+    /** Белая метка над подсвеченным игроком: в Bedrock неймтеги видны сквозь блоки — игрока видно через стены. */
+    private void spawnMarker(Player player, CustomItem item) {
+        removeMarker(player.getUniqueId());
+        org.bukkit.entity.ArmorStand marker = (org.bukkit.entity.ArmorStand) player.getWorld()
+                .spawnEntity(player.getLocation().add(0, 2.45, 0), org.bukkit.entity.EntityType.ARMOR_STAND);
+        marker.setVisible(false);
+        marker.setMarker(true);
+        marker.setGravity(false);
+        marker.setInvulnerable(true);
+        marker.setPersistent(false);
+        marker.customName(component(TextUtil.color(item.str("marker-text", "&f&l▼"))));
+        marker.setCustomNameVisible(true);
+        markers.put(player.getUniqueId(), marker);
+    }
+
+    private void removeMarker(UUID uuid) {
+        org.bukkit.entity.ArmorStand marker = markers.remove(uuid);
+        if (marker != null) {
+            marker.remove();
+        }
     }
 
     // ------------------------------------------------------------------ дезориентация
@@ -517,7 +555,7 @@ public final class ItemsService implements Listener {
             return false;
         }
         playSound(user, item.str("sound", "entity.wither.ambient"));
-        msg(user, "disorient-used", item, "{count}", String.valueOf(hit));
+        msg(user, "disorient-used", item);
         return true;
     }
 
@@ -540,12 +578,25 @@ public final class ItemsService implements Listener {
             event.setCancelled(true); // в запретной зоне лом не работает и спавнер не теряется
             return;
         }
-        // Моба спавнер НЕ сохраняет: выпадает обычный пустой спавнер.
+        // Моб сохраняется: в выпавшем спавнере будет тот же моб.
+        org.bukkit.entity.EntityType mob = null;
+        if (block.getState() instanceof CreatureSpawner) {
+            mob = ((CreatureSpawner) block.getState()).getSpawnedType();
+        }
         event.setDropItems(false);
         event.setExpToDrop(0);
         ItemStack spawnerItem = new ItemStack(Material.SPAWNER);
         ItemMeta spawnerMeta = spawnerItem.getItemMeta();
-        spawnerMeta.displayName(component(TextUtil.color(item.str("spawner-item-name", "&#FFB340Спавнер"))));
+        String mobName = mob == null ? "" : mob.name();
+        spawnerMeta.displayName(component(TextUtil.color(item.str("spawner-item-name", "&#FFB340Спавнер")
+                .replace("{mob}", mobName))));
+        if (spawnerMeta instanceof BlockStateMeta && mob != null) {
+            BlockStateMeta bsm = (BlockStateMeta) spawnerMeta;
+            if (bsm.getBlockState() instanceof CreatureSpawner) {
+                ((CreatureSpawner) bsm.getBlockState()).setSpawnedType(mob);
+                bsm.setBlockState(bsm.getBlockState());
+            }
+        }
         spawnerItem.setItemMeta(spawnerMeta);
         consumeMainHand(player); // лом одноразовый
         Bukkit.getScheduler().runTask(plugin, () -> {
@@ -555,7 +606,7 @@ public final class ItemsService implements Listener {
                 player.getWorld().dropItemNaturally(player.getLocation(), drop);
             }
         });
-        msg(player, "lom-used", item);
+        msg(player, "lom-used", item, "{mob}", mobName);
         event.setCancelled(true);
     }
 

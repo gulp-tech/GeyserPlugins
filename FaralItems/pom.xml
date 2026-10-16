@@ -6,7 +6,7 @@
 
     <groupId>ru.FaralMC</groupId>
     <artifactId>FaralItems</artifactId>
-    <version>1.1.0</version>
+    <version>1.2.0</version>
     <packaging>jar</packaging>
     <name>FaralItems</name>
     <description>Кастомные предметы как на FunTime для Bedrock-сервера FaralMC: трапка, явная пыль, дезориентация, лом спавнеров, особые зелья. Запретные зоны — миры и регионы WorldGuard. Всё настраивается в config.yml.</description>
