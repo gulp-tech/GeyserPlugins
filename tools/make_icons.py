@@ -1,213 +1,215 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Генератор графики FaralMC (v2 — высокое разрешение).
+Генератор графики FaralMC (v3).
 
-1) Иконки скорборда: лист font/glyph_E0.png 512x512 (сетка 16x16, ячейка 32x32).
-   Иконки рисуются векторно на холсте 128x128 и даунскейлятся до 32x32 —
-   получаются гладкие, с градиентами и бликами, а не грубый пиксель-арт 16x16.
-   Иконка занимает ~75% ячейки (остальное прозрачная подложка) — в скорборде
-   она визуально МЕНЬШЕ строки, как на референсе.
+Иконки: чёткий пиксель-арт 16x16 в майнкрафт-стиле (как иконки на референсе).
+На листе glyph_E0.png (512x512, ячейка 32x32) иконка ставится в ЦЕНТР ячейки
+без масштабирования — занимает 16/32 = половину высоты строки. В игре она
+заметно меньше текста и не раздувает скорборд.
 
-2) Логотип экрана загрузки/титульного экрана: textures/ui/title.png
-   (Bedrock рисует его вместо стандартного "MINECRAFT" при загрузке мира).
-   Синий FaralMC с чёрной обводкой и тёмной тенью.
+Логотип: textures/ui/title.png — текст FaralMC настоящим шрифтом
+Minecraft Ten (tools/fonts/MinecraftTen.ttf, фан-шрифт с GitHub:
+ransombiyato/Minecraft-Ten-Font-For-MCCRAFT), синий градиент, чёрная
+обводка и тёмно-синяя тень — как логотип на экране загрузки у референса.
 
 Запуск: python3 tools/make_icons.py
 """
-from PIL import Image, ImageDraw, ImageFont, ImageFilter
+from PIL import Image, ImageDraw, ImageFont
 from pathlib import Path
-import math
 
 ROOT = Path(__file__).resolve().parent.parent
 PACK = ROOT / "FaralResourcePack"
 PREVIEW = ROOT / "preview"
-S = 128  # холст одной иконки до даунскейла
+FONT_LOGO = ROOT / "tools" / "fonts" / "MinecraftTen.ttf"
 
-
-# ------------------------------------------------------------------ утилиты
-def lerp(a, b, t):
-    return tuple(int(round(a[i] + (b[i] - a[i]) * t)) for i in range(3))
-
-
-def vgradient(size, top, bottom):
-    w, h = size
-    img = Image.new("RGB", size)
-    px = img.load()
-    for y in range(h):
-        c = lerp(top, bottom, y / max(1, h - 1))
-        for x in range(w):
-            px[x, y] = c
-    return img
-
-
-def apply_mask(shape_mask, colored):
-    out = Image.new("RGBA", colored.size, (0, 0, 0, 0))
-    out.paste(colored, (0, 0), shape_mask)
-    return out
-
-
-def outlined(draw_fn, top, bottom, outline=(30, 25, 10, 255), grow=7):
-    """Форма с тёмной обводкой: рисуем увеличенную форму цветом обводки под основной."""
-    base = Image.new("RGBA", (S, S), (0, 0, 0, 0))
-    mask_big = Image.new("L", (S, S), 0)
-    d = ImageDraw.Draw(mask_big)
-    draw_fn(d, grow)
-    base = apply_mask(mask_big, Image.new("RGBA", (S, S), outline))
-    mask = Image.new("L", (S, S), 0)
-    d = ImageDraw.Draw(mask)
-    draw_fn(d, 0)
-    grad = vgradient((S, S), top, bottom).convert("RGBA")
-    img = apply_mask(mask, grad)
-    base.alpha_composite(img)
-    return base
-
-
-def glint(img, cx, cy, r=16, color=(255, 255, 255, 235)):
-    """Четырёхконечная блёстка-блик."""
-    d = ImageDraw.Draw(img, "RGBA")
-    pts = [(cx, cy - r), (cx + r * 0.22, cy - r * 0.22), (cx + r, cy), (cx + r * 0.22, cy + r * 0.22),
-           (cx, cy + r), (cx - r * 0.22, cy + r * 0.22), (cx - r, cy), (cx - r * 0.22, cy - r * 0.22)]
-    d.polygon(pts, fill=color)
-
-
-# ------------------------------------------------------------------ иконки
-def icon_coin():
-    def circ(d, g):
-        d.ellipse([18 - g, 14 - g, 110 + g, 118 + g], fill=255)
-    img = outlined(circ, (255, 222, 110), (238, 158, 10), outline=(122, 74, 0, 255))
-    d = ImageDraw.Draw(img, "RGBA")
-    d.ellipse([32, 28, 96, 104], outline=(196, 116, 0, 255), width=6)
-    d.ellipse([40, 36, 88, 96], outline=(255, 236, 160, 200), width=3)
-    d.arc([18, 60, 110, 118], 20, 160, fill=(214, 130, 0, 160), width=7)
-    glint(img, 42, 38, 15)
-    return img
-
-
-def icon_spark():
-    cx, cy = 64, 64
-    def star(d, g):
-        pts = []
-        for ang, rad in [(90, 46), (180, 13), (270, 46), (0, 13)]:
-            pass
-        p = [(cx, cy - 48 - g), (cx + 12, cy - 12), (cx + 48 + g, cy), (cx + 12, cy + 12),
-             (cx, cy + 48 + g), (cx - 12, cy + 12), (cx - 48 - g, cy), (cx - 12, cy - 12)]
-        d.polygon(p, fill=255)
-    img = outlined(star, (255, 226, 84), (255, 138, 10), outline=(150, 84, 0, 255), grow=5)
-    d = ImageDraw.Draw(img, "RGBA")
-    d.ellipse([52, 52, 76, 76], fill=(255, 252, 220, 255))
-    for (x, y, r) in [(24, 26, 9), (104, 30, 8), (100, 100, 9), (26, 102, 8)]:
-        glint(img, x, y, r, (255, 214, 90, 230))
-    return img
-
-
-def icon_sapphire():
-    def gem(d, g):
-        d.polygon([(26 - g, 34), (102 + g, 34), (116 + g, 58), (64, 116 + g), (12 - g, 58)], fill=255)
-    img = outlined(gem, (140, 222, 255), (18, 118, 235), outline=(8, 60, 140, 255), grow=5)
-    d = ImageDraw.Draw(img, "RGBA")
-    d.polygon([(26, 34), (102, 34), (116, 58), (12, 58)], fill=(190, 238, 255, 120))
-    d.line([26, 34, 64, 116], fill=(220, 246, 255, 170), width=4)
-    d.line([102, 34, 64, 116], fill=(10, 84, 190, 170), width=4)
-    d.line([12, 58, 116, 58], fill=(230, 250, 255, 190), width=4)
-    glint(img, 42, 46, 13)
-    return img
-
-
-def icon_shard():
-    img = Image.new("RGBA", (S, S), (0, 0, 0, 0))
-    def main_crystal(d, g):
-        d.polygon([(78, 6 - g), (98 + g, 34), (72, 96 + g), (50 - g, 62), (58, 30)], fill=255)
-    part = outlined(main_crystal, (150, 240, 255), (24, 140, 235), outline=(8, 84, 145, 255), grow=5)
-    img.alpha_composite(part)
-    d = ImageDraw.Draw(img, "RGBA")
-    d.line([78, 8, 66, 88], fill=(235, 252, 255, 200), width=5)
-    def small(d, g):
-        d.polygon([(104, 72 - g), (116 + g, 88), (106, 114 + g), (94 - g, 92)], fill=255)
-    part2 = outlined(small, (226, 178, 255), (140, 70, 235), outline=(84, 30, 150, 255), grow=4)
-    img.alpha_composite(part2)
-    glint(img, 76, 26, 11)
-    return img
-
-
-def icon_crown():
-    def crown(d, g):
-        d.polygon([(16 - g, 96 + g), (16 - g, 44), (40, 66), (64, 32 - g), (88, 66), (112 + g, 44), (112 + g, 96 + g)], fill=255)
-    img = outlined(crown, (255, 224, 110), (240, 158, 10), outline=(122, 74, 0, 255), grow=5)
-    d = ImageDraw.Draw(img, "RGBA")
-    for x in (16, 64, 112):
-        d.ellipse([x - 9, 22 if x == 64 else 34, x + 9, 40 if x == 64 else 52], fill=(255, 236, 150, 255), outline=(122, 74, 0, 255), width=3)
-    d.rectangle([16, 84, 112, 96], fill=(214, 130, 0, 255))
-    d.ellipse([56, 68, 72, 84], fill=(255, 84, 96, 255))
-    d.ellipse([26, 70, 38, 82], fill=(64, 180, 255, 255))
-    d.ellipse([90, 70, 102, 82], fill=(96, 230, 140, 255))
-    return img
-
-
-def icon_sword():
-    img = Image.new("RGBA", (S, S), (0, 0, 0, 0))
-    lay = Image.new("RGBA", (S, S), (0, 0, 0, 0))
-    d = ImageDraw.Draw(lay, "RGBA")
-    d.polygon([(58, 4), (70, 4), (70, 72), (58, 72)], fill=(226, 238, 250, 255))  # клинок
-    d.polygon([(58, 4), (64, 0), (70, 4), (70, 72), (58, 72)], outline=(90, 102, 124, 255))
-    d.line([64, 8, 64, 70], fill=(150, 168, 194, 255), width=3)
-    d.rounded_rectangle([38, 72, 90, 84], 5, fill=(255, 201, 60, 255), outline=(122, 74, 0, 255), width=3)  # гарда
-    d.rectangle([58, 84, 70, 108], fill=(128, 76, 34, 255))  # рукоять
-    d.line([58, 92, 70, 92], fill=(84, 48, 18, 255), width=3)
-    d.line([58, 100, 70, 100], fill=(84, 48, 18, 255), width=3)
-    d.ellipse([56, 106, 72, 122], fill=(64, 190, 255, 255), outline=(8, 84, 145, 255), width=3)  # навершие
-    lay = lay.rotate(38, resample=Image.BICUBIC, center=(64, 64))
-    img.alpha_composite(lay)
-    return img
-
-
-def icon_skull():
-    def skull(d, g):
-        d.ellipse([24 - g, 16 - g, 104 + g, 84 + g], fill=255)
-        d.rounded_rectangle([42 - g, 70, 86 + g, 108 + g], 10, fill=255)
-    img = outlined(skull, (252, 253, 255), (196, 204, 220), outline=(88, 94, 110, 255), grow=5)
-    d = ImageDraw.Draw(img, "RGBA")
-    d.ellipse([36, 48, 56, 68], fill=(28, 26, 40, 255))
-    d.ellipse([72, 48, 92, 68], fill=(28, 26, 40, 255))
-    d.ellipse([43, 55, 50, 62], fill=(205, 130, 255, 255))
-    d.ellipse([79, 55, 86, 62], fill=(205, 130, 255, 255))
-    d.polygon([(64, 68), (58, 80), (70, 80)], fill=(28, 26, 40, 255))
-    for x in (50, 64, 78):
-        d.line([x, 92, x, 104], fill=(120, 128, 146, 255), width=4)
-    return img
-
-
-def icon_clock():
-    def circ(d, g):
-        d.ellipse([16 - g, 16 - g, 112 + g, 112 + g], fill=255)
-    img = outlined(circ, (255, 224, 110), (240, 158, 10), outline=(122, 74, 0, 255), grow=5)
-    d = ImageDraw.Draw(img, "RGBA")
-    d.ellipse([28, 28, 100, 100], fill=(255, 246, 208, 255))
-    for ang in range(0, 360, 90):
-        x = 64 + 30 * math.cos(math.radians(ang))
-        y = 64 + 30 * math.sin(math.radians(ang))
-        d.ellipse([x - 3, y - 3, x + 3, y + 3], fill=(160, 104, 20, 255))
-    d.line([64, 64, 64, 40], fill=(110, 62, 8, 255), width=7)
-    d.line([64, 64, 82, 72], fill=(110, 62, 8, 255), width=7)
-    d.ellipse([58, 58, 70, 70], fill=(110, 62, 8, 255))
-    return img
-
-
-DRAW = {
-    "E001": ("coin", icon_coin), "E002": ("spark", icon_spark),
-    "E003": ("sapphire", icon_sapphire), "E004": ("shard", icon_shard),
-    "E005": ("crown", icon_crown), "E006": ("sword", icon_sword),
-    "E007": ("skull", icon_skull), "E008": ("clock", icon_clock),
+PALETTES = {
+    "coin": {"D": (146, 96, 0, 255), "G": (255, 201, 60, 255), "L": (255, 231, 138, 255),
+             "S": (240, 165, 0, 255), "W": (255, 255, 255, 255)},
+    "spark": {"D": (176, 106, 0, 255), "Y": (255, 205, 32, 255), "L": (255, 240, 160, 255),
+              "O": (255, 150, 20, 255), "W": (255, 255, 255, 255)},
+    "sapphire": {"D": (20, 80, 160, 255), "B": (64, 170, 255, 255), "L": (170, 230, 255, 255),
+                 "C": (30, 200, 255, 255), "W": (255, 255, 255, 255)},
+    "shard": {"D": (10, 110, 150, 255), "C": (40, 210, 255, 255), "L": (180, 245, 255, 255),
+              "B": (90, 160, 255, 255), "W": (255, 255, 255, 255), "P": (190, 120, 255, 255)},
+    "crown": {"D": (146, 96, 0, 255), "G": (255, 201, 60, 255), "L": (255, 231, 138, 255),
+              "S": (240, 165, 0, 255), "R": (255, 80, 90, 255), "B": (64, 170, 255, 255),
+              "W": (255, 255, 255, 255)},
+    "sword": {"D": (70, 80, 100, 255), "S": (215, 230, 245, 255), "L": (255, 255, 255, 255),
+              "G": (255, 201, 60, 255), "B": (120, 70, 30, 255), "C": (40, 210, 255, 255)},
+    "skull": {"D": (90, 95, 110, 255), "W": (235, 240, 248, 255), "L": (255, 255, 255, 255),
+              "K": (25, 25, 35, 255), "P": (200, 107, 255, 255)},
+    "clock": {"D": (146, 96, 0, 255), "G": (255, 201, 60, 255), "F": (255, 244, 200, 255),
+              "H": (120, 70, 10, 255), "S": (240, 165, 0, 255), "W": (255, 255, 255, 255)},
 }
+
+ICONS = {
+    "E001": ("coin", [
+        "................",
+        ".....DDDDDD.....",
+        "...DDGGGGGGDD...",
+        "..DGLLLLGGGGGD..",
+        ".DGLWWLLGGGGSGD.",
+        ".DLWLLGGGGGGSGD.",
+        "DGLLGGGSSGGGGSGD",
+        "DGLLGGSSSSGGGSGD",
+        "DGLLGGSSSSGGGSGD",
+        "DGLLGGGSSGGGGSGD",
+        ".DGLLGGGGGGSSGD.",
+        ".DGGGGGGGGGSSSD.",
+        "..DGGGGGGGSSSD..",
+        "...DDGGGGDDD....",
+        ".....DDDDDD.....",
+        "................",
+    ]),
+    "E002": ("spark", [  # жёлтая молния, как значок монет на референсе
+        "................",
+        "......DDD.......",
+        "......DYYD......",
+        ".....DYYYD......",
+        ".....DYYYD......",
+        "....DYYYYYD.....",
+        "...DYYYYYYDD....",
+        ".....DYYYD......",
+        "....DYYYD.......",
+        "....DYYD........",
+        "...DYYD.........",
+        "...DD...........",
+        "................",
+        "................",
+        "................",
+        "................",
+    ]),
+    "E003": ("sapphire", [
+        "................",
+        "...DDDDDDDDDD...",
+        "..DLWLLLLLLBCD..",
+        ".DLWWLLLBBBBBCD.",
+        ".DLLLLBBBBBBBCD.",
+        "..DDDLLLBDDBCD..",
+        "....DBBBBBBCD...",
+        "....DLBBBBCCD...",
+        ".....DBBCCCD....",
+        ".....DLBBCD.....",
+        "......DBCD......",
+        "......DDD.......",
+        "................",
+        "................",
+        "................",
+        "................",
+    ]),
+    "E004": ("shard", [
+        ".......DD.......",
+        "......DLCD......",
+        ".....DLWCDD.....",
+        ".....DLWCD......",
+        "....DLWCD.......",
+        "....DLCD........",
+        "...DLWCD...DD...",
+        "...DLCD...DLPD..",
+        "..DLWCD...DLPD..",
+        "..DLCD.....DD...",
+        ".DLWCD..........",
+        ".DLCD...........",
+        "..DD............",
+        "................",
+        "................",
+        "................",
+    ]),
+    "E005": ("crown", [
+        "................",
+        "..DD...DD...DD..",
+        "..DGD..DGD..DGD.",
+        "..DGGD.DGD.DGGD.",
+        ".DGGGGDGGGDGGGD.",
+        ".DGGGGGGGGGGGGD.",
+        ".DGLLGGGGGGSSGD.",
+        ".DGGRGGGGGBGSGD.",
+        ".DGGGGGGGGGGSGD.",
+        "..DSSSSSSSSSSD..",
+        "..DDDDDDDDDDDD..",
+        "................",
+        "................",
+        "................",
+        "................",
+        "................",
+    ]),
+    "E006": ("sword", [
+        ".............DD.",
+        "............DLSD",
+        "...........DSSD.",
+        "..........DSSD..",
+        "...C.....DSSD...",
+        "....C...DSSD....",
+        ".....C.DSSD.....",
+        "......DSSD......",
+        ".GGGDSSD........",
+        "..DGGGD.........",
+        ".GD.DGBD........",
+        ".DD..DGBBD......",
+        "......DGBBD.....",
+        ".......DBBD.....",
+        "........DDD.....",
+        "................",
+    ]),
+    "E007": ("skull", [
+        "................",
+        "....DDDDDDDD....",
+        "..DDWWWWWWWWDD..",
+        ".DWWWWWWWWWWWD..",
+        ".DWWKKWWWWKKWWD.",
+        "DWWWKPKWWKPKWWWD",
+        "DWWWWWWKKWWWWWWD",
+        ".DWWWWWWWWWWWD..",
+        ".DWWWDDDDDDWWD..",
+        "..DDWDWDWDWDD...",
+        "....DWDWDWD.....",
+        "....DDDDDDD.....",
+        "................",
+        "................",
+        "................",
+        "................",
+    ]),
+    "E008": ("clock", [
+        "................",
+        ".....DDDDDD.....",
+        "...DDGGGGGGDD...",
+        "..DGFFFFFFFFGD..",
+        ".DGFFFFFFFFFFGD.",
+        ".DFFFFFHHFFFFGD.",
+        "DFFFFFFHHFFFFFFD",
+        "DFFFFFFHHHHHFFFD",
+        "DFFFFFFFFFFFFFFD",
+        "DFFFFFFFFFFFFFSD",
+        ".DGFFFFFFFFFFSD.",
+        ".DGGFFFFFFFFSSD.",
+        "..DGGGGGGGGSSD..",
+        "...DDGGGGDDD....",
+        ".....DDDDDD.....",
+        "................",
+    ]),
+}
+
 LABELS_RU = {
-    "coin": "Монета", "spark": "Искра", "sapphire": "Сапфир", "shard": "Осколок",
+    "coin": "Монета", "spark": "Молния", "sapphire": "Сапфир", "shard": "Осколок",
     "crown": "Привилегия", "sword": "Убийства", "skull": "Смерти", "clock": "Время в игре",
 }
-CELL = 32          # ячейка глифа на листе 512x512
-PAD = 4            # прозрачная подложка: иконка занимает 24/32 ячейки — в игре меньше строки
+CELL = 32   # ячейка на листе 512x512
+OFF = 8     # иконка 16x16 в центре ячейки: половина высоты строки
 
 
-# ------------------------------------------------------------------ логотип
+def render(rows, pal_name):
+    img = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
+    px = img.load()
+    pal = PALETTES[pal_name]
+    for y, row in enumerate(rows):
+        assert len(row) == 16, f"{pal_name} row {y}: {len(row)}"
+        for x, ch in enumerate(row):
+            if ch != ".":
+                px[x, y] = pal[ch]
+    return img
+
+
 def font(size):
     for p in ("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
               "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"):
@@ -218,37 +220,45 @@ def font(size):
     return ImageFont.load_default()
 
 
+def lerp(a, b, t):
+    return tuple(int(round(a[i] + (b[i] - a[i]) * t)) for i in range(3))
+
+
 def make_logo():
-    """textures/ui/title.png — FaralMC вместо MINECRAFT на загрузке и главном экране."""
+    """FaralMC шрифтом Minecraft Ten: синий градиент, чёрная обводка, тёмная тень."""
     text = "FaralMC"
-    f = font(300)
+    f = ImageFont.truetype(str(FONT_LOGO), 320)
+    stroke = 18
     tmp = Image.new("RGBA", (10, 10))
     d = ImageDraw.Draw(tmp)
-    stroke = 16
     bbox = d.textbbox((0, 0), text, font=f, stroke_width=stroke)
-    w, h = bbox[2] - bbox[0] + 40, bbox[3] - bbox[1] + 60
-    # тёмная тень (как красная у NEVERTIME, только тёмно-синяя)
+    w, h = bbox[2] - bbox[0] + 48, bbox[3] - bbox[1] + 72
+    ox, oy = 24 - bbox[0], 24 - bbox[1]
+
     shadow = Image.new("RGBA", (w, h), (0, 0, 0, 0))
-    ImageDraw.Draw(shadow).text((20 - bbox[0], 26 - bbox[1]), text, font=f,
-                                fill=(6, 26, 92, 255), stroke_width=stroke, stroke_fill=(6, 26, 92, 255))
-    # чёрная обводка
+    ImageDraw.Draw(shadow).text((ox, oy + 14), text, font=f, fill=(6, 26, 92, 255),
+                                stroke_width=stroke, stroke_fill=(6, 26, 92, 255))
     outline = Image.new("RGBA", (w, h), (0, 0, 0, 0))
-    ImageDraw.Draw(outline).text((20 - bbox[0], 20 - bbox[1]), text, font=f,
-                                 fill=(0, 0, 0, 255), stroke_width=stroke, stroke_fill=(0, 0, 0, 255))
-    # градиентная заливка букв
+    ImageDraw.Draw(outline).text((ox, oy), text, font=f, fill=(0, 0, 0, 255),
+                                 stroke_width=stroke, stroke_fill=(0, 0, 0, 255))
     mask = Image.new("L", (w, h), 0)
-    ImageDraw.Draw(mask).text((20 - bbox[0], 20 - bbox[1]), text, font=f, fill=255)
-    grad = vgradient((w, h), (140, 224, 255), (22, 92, 235)).convert("RGBA")
-    letters = apply_mask(mask, grad)
+    ImageDraw.Draw(mask).text((ox, oy), text, font=f, fill=255)
+    grad = Image.new("RGBA", (w, h))
+    px = grad.load()
+    for y in range(h):
+        c = lerp((150, 226, 255), (22, 92, 235), y / max(1, h - 1))
+        for x in range(w):
+            px[x, y] = c + (255,)
+    letters = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    letters.paste(grad, (0, 0), mask)
 
     logo = Image.new("RGBA", (w, h), (0, 0, 0, 0))
-    logo.alpha_composite(shadow, (0, 8))
+    logo.alpha_composite(shadow, (0, 10))
     logo.alpha_composite(outline)
     logo.alpha_composite(letters)
     return logo
 
 
-# ------------------------------------------------------------------ main
 def main():
     (PACK / "font").mkdir(parents=True, exist_ok=True)
     (PACK / "textures" / "ui").mkdir(parents=True, exist_ok=True)
@@ -256,41 +266,73 @@ def main():
 
     sheet = Image.new("RGBA", (512, 512), (0, 0, 0, 0))
     rendered = {}
-    for code, (name, fn) in sorted(DRAW.items()):
-        img128 = fn()
-        icon = img128.resize((CELL - 2 * PAD, CELL - 2 * PAD), Image.LANCZOS)
-        cell_img = Image.new("RGBA", (CELL, CELL), (0, 0, 0, 0))
-        cell_img.alpha_composite(icon, (PAD, PAD))
-        rendered[code] = (name, cell_img)
+    for code, (name, rows) in sorted(ICONS.items()):
+        img = render(rows, name)
+        rendered[code] = (name, img)
         idx = int(code[1:], 16)
-        sheet.paste(cell_img, ((idx % 16) * CELL, (idx // 16) * CELL), cell_img)
-        cell_img.resize((256, 256), Image.NEAREST).save(PREVIEW / "icons" / f"{code[1:]}_{name}_x8.png")
-        img128.save(PREVIEW / "icons" / f"{code[1:]}_{name}.png")
+        sheet.paste(img, ((idx % 16) * CELL + OFF, (idx // 16) * CELL + OFF), img)
+        img.save(PREVIEW / "icons" / f"{code[1:]}_{name}.png")
+        img.resize((256, 256), Image.NEAREST).save(PREVIEW / "icons" / f"{code[1:]}_{name}_x16.png")
     sheet.save(PACK / "font" / "glyph_E0.png")
     rendered["E001"][1].resize((64, 64), Image.NEAREST).save(PACK / "pack_icon.png")
 
     logo = make_logo()
     logo.save(PACK / "textures" / "ui" / "title.png")
     logo.save(PREVIEW / "logo-title.png")
+    bg = Image.new("RGBA", (logo.width + 80, logo.height + 140), (40, 90, 40, 255))
+    bg.alpha_composite(logo, (40, 60))
+    bg.convert("RGB").save(PREVIEW / "logo-title-on-bg.jpg", quality=90)
 
-    # ---- превью иконок ----
+    # ---- превью иконок (иконки показаны и в реальном относительном размере) ----
     cell, pad, label_h = 160, 24, 58
     cols, rows_n = 4, 2
     W = cols * cell + (cols + 1) * pad
     H = rows_n * (cell + label_h) + (rows_n + 1) * pad + 70
     prev = Image.new("RGBA", (W, H), (24, 24, 32, 255))
     d = ImageDraw.Draw(prev)
-    d.text((pad, 22), "FaralMC — иконки скорборда (\\uE001-\\uE008)", font=font(25), fill=(255, 210, 90))
+    d.text((pad, 22), "FaralMC — иконки (\\uE001-\\uE008), размер в игре = 1/2 строки", font=font(24), fill=(255, 210, 90))
     for i, (code, (name, img)) in enumerate(sorted(rendered.items())):
         cx = pad + (i % cols) * (cell + pad)
         cy = 70 + pad + (i // cols) * (cell + label_h + pad)
         d.rounded_rectangle([cx, cy, cx + cell, cy + cell], 14, fill=(10, 10, 14, 255))
-        big = img.resize((cell - 24, cell - 24), Image.NEAREST)
-        prev.paste(big, (cx + 12, cy + 12), big)
+        big = img.resize((cell - 32, cell - 32), Image.NEAREST)
+        prev.paste(big, (cx + 16, cy + 16), big)
         d.text((cx + 4, cy + cell + 4), f"\\u{code}", font=font(20), fill=(140, 220, 255))
         d.text((cx + 4, cy + cell + 26), LABELS_RU[name], font=font(18), fill=(235, 235, 245))
     prev.save(PREVIEW / "icons-preview.png")
-    print("OK icons:", PACK / "font" / "glyph_E0.png", "| logo:", PACK / "textures" / "ui" / "title.png", logo.size)
+
+    # ---- мокап скорборда в РЕАЛЬНОМ масштабе (иконка = половина строки) ----
+    mock = Image.new("RGBA", (680, 470), (58, 82, 52, 255))
+    panel = Image.new("RGBA", (350, 380), (0, 0, 0, 165))
+    mock.paste(panel, (24, 24), panel)
+    d = ImageDraw.Draw(mock)
+    title, grad = "FaralMC", [(255, 120, 40), (255, 150, 40), (255, 180, 60), (255, 210, 90),
+                              (255, 235, 160), (240, 240, 240), (200, 210, 255)]
+    x, f_title = 40, font(40)
+    for i, ch in enumerate(title):
+        d.text((x, 34), ch, font=f_title, fill=grad[i % len(grad)])
+        x += d.textlength(ch, font=f_title)
+    lines = [
+        ("Имя: ", "MUSD38", (255, 170, 60), None),
+        ("Донат: ", "Игрок", (90, 230, 90), None),
+        ("Монеты: ", "500", (255, 220, 60), "E002"),
+        ("Осколки: ", "150", (90, 210, 255), "E004"),
+        ("", "", None, None),
+        ("У/С: ", "12/3", (205, 110, 255), None),
+        ("В игре: ", "27ч", (255, 220, 60), "E001"),
+    ]
+    f, y = font(27), 96
+    for label, val, vc, icon in lines:
+        if label:
+            d.text((40, y), label, font=f, fill=(255, 255, 255))
+            vx = 40 + d.textlength(label, font=f)
+            d.text((vx, y), val, font=f, fill=vc)
+            if icon:  # иконка 15px при строке 27px — как в игре
+                ic = rendered[icon][1].resize((15, 15), Image.NEAREST)
+                mock.paste(ic, (int(vx + d.textlength(val, font=f) + 8), y + 7), ic)
+        y += 40
+    mock.save(PREVIEW / "scoreboard-preview.png")
+    print("OK icons + logo", logo.size)
 
 
 if __name__ == "__main__":
