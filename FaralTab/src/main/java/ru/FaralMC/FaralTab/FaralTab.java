@@ -123,6 +123,13 @@ public final class FaralTab extends JavaPlugin implements Listener, CommandExecu
             sidebar.update(player, true);
             nametag.apply(player);
             showJoinTitle(player);
+            // в лог сервера: чем клиент представился и какой значок получил (диагностика устройств)
+            getLogger().info("Устройство " + player.getName() + ": OS=" + hooks.deviceOs(player.getUniqueId())
+                    + " (Floodgate=" + hooks.floodgateDeviceOs(player.getUniqueId())
+                    + ", Geyser=" + hooks.geyserDeviceOs(player.getUniqueId()) + ")"
+                    + ", ввод=" + hooks.inputMode(player.getUniqueId())
+                    + ", модель=" + hooks.deviceModel(player.getUniqueId())
+                    + " -> значок " + sidebar.deviceIconName(player));
         }, delay);
     }
 

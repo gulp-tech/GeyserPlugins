@@ -453,7 +453,17 @@ def main():
         img = render(rows, name)
         rendered[code] = (name, img)
         idx = int(code[1:], 16)
-        if code in DEVICE_CODES:  # значки устройств — в ник над головой, там надо покрупнее
+        asset = ROOT / "tools" / "assets" / f"{name}.png"
+        if asset.exists():
+            # Гладкие иконки высокого разрешения (tools/assets), ужатие LANCZOS —
+            # выглядят лучше пиксель-арта. Нет ассета — старый пиксель-арт ниже.
+            art = Image.open(asset).convert("RGBA")
+            art.putalpha(art.getchannel("A").point(lambda v: 0 if v < 40 else v))
+            size = 13 if code in DEVICE_CODES else 12
+            big = art.resize((size, size), Image.LANCZOS)
+            off = (CELL - size) // 2
+            sheet.paste(big, ((idx % 16) * CELL + off, (idx // 16) * CELL + off), big)
+        elif code in DEVICE_CODES:  # значки устройств — в ник над головой, там надо покрупнее
             big = img.resize((12, 12), Image.NEAREST)
             sheet.paste(big, ((idx % 16) * CELL + 2, (idx // 16) * CELL + 2), big)
         else:

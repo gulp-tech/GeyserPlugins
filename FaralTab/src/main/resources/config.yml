@@ -108,6 +108,10 @@ nametag:
   # Красное сердечко после числа здоровья под ником (само число ставит игра).
   health-below-name: true
   health-suffix: "&c❤"
+  # Если у конкретного игрока устройство определилось неправильно (клиент может
+  # врать), задай вручную: ник: windows | android | apple | device | kbmouse.
+  # Пример:  MUSD38: windows
+  device-overrides: {}
   device-names:
     windows: "Windows"
     android: "Android"

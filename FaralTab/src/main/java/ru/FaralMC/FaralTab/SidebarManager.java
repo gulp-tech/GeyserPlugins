@@ -262,8 +262,23 @@ public final class SidebarManager {
      * Телефон/планшет с подключённой клавиатурой и мышью — отдельное устройство kbmouse.
      */
     public String deviceIconName(Player player) {
+        // Ручное переопределение в config.yml (nametag.device-overrides.<ник>) — выше всего:
+        // если клиент врёт про своё устройство, админ чинит это одной строкой.
+        String forced = plugin.getConfig().getString("nametag.device-overrides." + player.getName(), "");
+        if (forced != null && !forced.isBlank()) {
+            return forced.trim().toLowerCase(java.util.Locale.ROOT);
+        }
         String os = plugin.hooks().deviceOs(player.getUniqueId());
         String input = plugin.hooks().inputMode(player.getUniqueId());
+        // Модель устройства — сильный сигнал: Bedrock на Windows шлёт модель ПК/ОС,
+        // и если там Windows — это ПК, что бы клиент ни сказал про ОС.
+        String model = plugin.hooks().deviceModel(player.getUniqueId()).toUpperCase(java.util.Locale.ROOT);
+        if (model.contains("WINDOWS")) {
+            return "windows";
+        }
+        if (model.contains("IPHONE") || model.contains("IPAD")) {
+            return input.contains("KEYBOARD") ? "kbmouse" : "apple";
+        }
         // Нормализация: разные версии Floodgate отдают GOOGLE или ANDROID, UWP или WINDOWS и т.п.
         String norm;
         if (os.contains("GOOGLE") || os.equals("ANDROID") || os.contains("AMAZON")) {
