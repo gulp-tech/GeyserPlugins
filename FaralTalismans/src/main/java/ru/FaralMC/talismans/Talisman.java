@@ -23,13 +23,12 @@ public final class Talisman {
     private final boolean glow;
     private final Where where;
     private final String permission;
-    private final double price;
     private final List<EffectDef> effects;
     private final List<AttributeDef> attributes;
     private final RecipeDef recipe;
 
     public Talisman(String id, boolean enabled, String displayName, Material material, List<String> lore, boolean glow,
-                    Where where, String permission, double price, List<EffectDef> effects,
+                    Where where, String permission, List<EffectDef> effects,
                     List<AttributeDef> attributes, RecipeDef recipe) {
         this.id = id;
         this.enabled = enabled;
@@ -39,7 +38,6 @@ public final class Talisman {
         this.glow = glow;
         this.where = where;
         this.permission = permission;
-        this.price = price;
         this.effects = effects;
         this.attributes = attributes;
         this.recipe = recipe;
@@ -53,8 +51,6 @@ public final class Talisman {
     public boolean glow() { return glow; }
     public Where where() { return where; }
     public String permission() { return permission; }
-    /** Цена покупки за монеты Vault (0 = не продаётся, как на FunTime цены в ТК). */
-    public double price() { return price; }
     public List<EffectDef> effects() { return effects; }
     public List<AttributeDef> attributes() { return attributes; }
     public RecipeDef recipe() { return recipe; }

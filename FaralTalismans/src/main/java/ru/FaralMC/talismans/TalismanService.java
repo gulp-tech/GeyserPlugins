@@ -112,7 +112,6 @@ public final class TalismanService {
                     plugin.getConfig().getBoolean(path + ".glow", true),
                     where,
                     plugin.getConfig().getString(path + ".permission", ""),
-                    plugin.getConfig().getDouble(path + ".price", 0),
                     effects, attributes, recipe));
         }
         plugin.getLogger().info("Загружено талисманов: " + talismans.size());
@@ -155,8 +154,6 @@ public final class TalismanService {
                     lore.add(component(TextUtil.color(stat)));
                 }
                 statsInserted = true;
-            } else if (line.contains("{price}")) {
-                lore.add(component(TextUtil.color(line.replace("{price}", formatPrice(talisman.price())))));
             } else {
                 lore.add(component(TextUtil.color(line)));
             }
@@ -194,10 +191,6 @@ public final class TalismanService {
             lines.add(plus + name + " " + roman(e.amplifier() + 1));
         }
         return lines;
-    }
-
-    public String formatPrice(double price) {
-        return formatNumber(price) + " " + plugin.getConfig().getString("settings.currency-name", "монет");
     }
 
     static String formatNumber(double v) {

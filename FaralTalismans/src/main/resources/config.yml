@@ -2,8 +2,8 @@
 #  FaralTalismans — талисманы для Bedrock (FaralMC)
 #
 #  КАК РАБОТАЕТ: талисман лежит в инвентаре — игрок получает его
-#  плюсы и минусы. Убрал — всё пропало. Покупка за монеты:
-#  /talisman buy <id> или клик в меню /talismans.
+#  плюсы и минусы. Убрал — всё пропало. Магазина нет: талисманы
+#  выдаёт админ (/talisman give) или крафтятся, если включишь рецепт.
 #
 #  ПОД BEDROCK: тут только характеристики, которые есть в Bedrock —
 #  урон, защита, здоровье и скорость. "Твёрдости брони" и "скорости
@@ -31,8 +31,6 @@ settings:
   # Цвета плюсов и минусов в лоре.
   stat-plus-color: "&a"
   stat-minus-color: "&c"
-  # Валюта в ценах.
-  currency-name: "монет"
   # Писать в чат, что талисман включился/выключился.
   notify-on-change: true
   # Звуки включения/выключения ("" = без звука).
@@ -72,9 +70,6 @@ effect-names:
 menu:
   title: "&#C86BFFТалисманы"
   rows: 4
-  # Купить кликом по талисману в меню.
-  click-to-buy: true
-  price-line: "&eЦена: &f{price}"
   status-active: "&aРаботает"
   status-inactive: "&7Не работает (нет в инвентаре)"
 
@@ -86,23 +81,19 @@ messages:
   not-found: "&cТакого талисмана нет. Список: &f/talisman list"
   given: "&aТалисман выдан игроку {player}"
   received: "&aТы получил талисман! Глянь &f/talismans"
-  bought: "&aКупил {talisman} &aза &f{price}"
-  not-for-sale: "&7Этот не продаётся."
-  no-economy: "&cПокупка не работает: нет экономики Vault."
-  not-enough-money: "&cНе хватает на {talisman}&c: надо &f{price}&c, у тебя &f{balance}"
   activated: "&aТалисман заработал: {talisman}"
   deactivated: "&7Талисман перестал работать: {talisman}"
 
 # ------------------------------------------------------------
 #  ТАЛИСМАНЫ
-#  id (crusher и т.д.) — для команд give/buy. НЕ меняй id, если
+#  id (crusher и т.д.) — для команды /talisman give. НЕ меняй id, если
 #  талисманы уже выданы игрокам: по id плагин узнаёт предметы.
 #  Менять можно всё остальное: название, предмет, цифры, цену.
 #
 #  attributes: amount у ADD_NUMBER — просто число (здоровье в HP:
 #  +2 = одно сердце), у ADD_SCALAR — доля (0.10 = +10%).
 #  where: INVENTORY — в инвентаре | HOTBAR — в хотбаре | OFFHAND — в левой руке.
-#  price: 0 — не продаётся. recipe — крафт (enabled: true + shape + ingredients).
+#  recipe — крафт на верстаке (enabled: true + shape + ingredients).
 # ------------------------------------------------------------
 talismans:
 
@@ -115,7 +106,6 @@ talismans:
       - "{stats}"
     where: INVENTORY
     permission: ""
-    price: 24900
     effects: []
     attributes:
       - {type: attack_damage, amount: 2.0, operation: ADD_NUMBER}
@@ -132,7 +122,6 @@ talismans:
       - "{stats}"
     where: INVENTORY
     permission: ""
-    price: 21900
     effects: []
     attributes:
       - {type: attack_damage, amount: 4.0, operation: ADD_NUMBER}
@@ -148,7 +137,6 @@ talismans:
       - "{stats}"
     where: INVENTORY
     permission: ""
-    price: 34800
     effects: []
     attributes:
       - {type: attack_damage, amount: 2.0, operation: ADD_NUMBER}
@@ -166,7 +154,6 @@ talismans:
       - "{stats}"
     where: INVENTORY
     permission: ""
-    price: 15900
     effects: []
     attributes:
       - {type: attack_damage, amount: 3.0, operation: ADD_NUMBER}
@@ -183,7 +170,6 @@ talismans:
       - "{stats}"
     where: INVENTORY
     permission: ""
-    price: 16900
     effects: []
     attributes:
       - {type: attack_damage, amount: 4.0, operation: ADD_NUMBER}
@@ -200,7 +186,6 @@ talismans:
       - "{stats}"
     where: INVENTORY
     permission: ""
-    price: 13900
     effects: []
     attributes:
       - {type: attack_damage, amount: 1.0, operation: ADD_NUMBER}
@@ -217,7 +202,6 @@ talismans:
       - "{stats}"
     where: INVENTORY
     permission: ""
-    price: 13900
     effects: []
     attributes:
       - {type: attack_damage, amount: 3.0, operation: ADD_NUMBER}
@@ -234,7 +218,6 @@ talismans:
       - "{stats}"
     where: INVENTORY
     permission: ""
-    price: 13900
     effects: []
     attributes:
       - {type: armor, amount: 6.0, operation: ADD_NUMBER}
@@ -251,7 +234,6 @@ talismans:
       - "{stats}"
     where: INVENTORY
     permission: ""
-    price: 12900
     effects: []
     attributes:
       - {type: armor, amount: 5.0, operation: ADD_NUMBER}
@@ -268,7 +250,6 @@ talismans:
       - "{stats}"
     where: INVENTORY
     permission: ""
-    price: 9900
     effects: []
     attributes:
       - {type: max_health, amount: 6.0, operation: ADD_NUMBER}
@@ -283,7 +264,6 @@ talismans:
       - "{stats}"
     where: INVENTORY
     permission: ""
-    price: 9700
     effects: []
     attributes:
       - {type: attack_damage, amount: 2.0, operation: ADD_NUMBER}
@@ -300,7 +280,6 @@ talismans:
       - "{stats}"
     where: INVENTORY
     permission: ""
-    price: 9900
     effects: []
     attributes:
       - {type: attack_damage, amount: 1.0, operation: ADD_NUMBER}
@@ -317,7 +296,6 @@ talismans:
     #   lore: ["{stats}"]
     #   where: INVENTORY
     #   permission: ""
-    #   price: 5000
     #   effects:
     #     - {type: HASTE, amplifier: 1}
     #   attributes:
