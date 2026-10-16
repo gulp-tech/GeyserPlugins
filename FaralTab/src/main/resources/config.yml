@@ -10,6 +10,8 @@
 #  Иконки (из FaralResourcePack, только для Bedrock-игроков):
 #    {icon:coin} {icon:spark} {icon:sapphire} {icon:shard}
 #    {icon:crown} {icon:sword} {icon:skull} {icon:clock}
+#    {icon:windows} {icon:android} {icon:apple} {icon:device}
+#  Устройство игрока (Floodgate): {device_icon} — значок его платформы, {device} — её название.
 #  Плюс любые %плейсхолдеры% PlaceholderAPI (если включён ниже).
 # ============================================================
 
@@ -52,7 +54,7 @@ scoreboard:
   # Строки скорборда (макс. 15). Пустая строка "" — отступ, как на фото.
   # Иконка в конце строки занимает ровно 1 символ — таб не раздувается.
   lines:
-    - "&fИмя: &#FFA63D{player}"
+    - "&fИмя: {device_icon}&#FFA63D{player}"
     - "&fДонат: {group}"
     - "&fМонеты: &#FFD93D{coins} {icon:spark}"
     - "&fОсколки: &#54C8FF{shards} {icon:shard}"
@@ -73,8 +75,31 @@ icons:
   sword: "E006"     # меч (убийства)
   skull: "E007"     # череп (смерти)
   clock: "E008"     # часы (время в игре)
+  windows: "E009"   # ПК (Windows)
+  android: "E00A"   # телефон Android
+  apple: "E00B"     # iPhone / iOS
+  device: "E00C"    # остальные устройства (консоли и т.п.)
   # Иконки берутся из FaralResourcePack.mcpack (plugins/Geyser-Spigot/packs/),
   # поставьте в конфиге Geyser force-resource-packs: true — без пака вместо иконок будет пусто.
+
+# ------------------------------------------------------------
+# Ник над головой: значок устройства + здоровье снизу.
+# Работает через главный скорборд: иконка — в префиксе ника,
+# здоровье — objective below-name. Если игрок в невидимости (invisibility),
+# ник и здоровье не видны — это поведение самой игры.
+nametag:
+  enabled: true
+  # Значок устройства перед ником в неймтеге.
+  device-icon: true
+  prefix-color: "&f" # цвет ника после значка
+  # Красное сердечко после числа здоровья под ником (само число ставит игра).
+  health-below-name: true
+  health-suffix: "&c❤"
+  device-names:
+    windows: "Windows"
+    android: "Android"
+    apple: "iOS"
+    device: "Устройство"
 
 # ------------------------------------------------------------
 # Привилегия ({group}). Сначала ищется здесь по имени группы LuckPerms/Vault,

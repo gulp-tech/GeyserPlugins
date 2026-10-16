@@ -36,6 +36,7 @@ public final class Hooks {
 
     private Object floodgateApi;     // FloodgateApi
     private Method fgIsFloodgatePlayer;
+    private Method fgGetPlayer;
 
     private Method papiSetPlaceholders; // PlaceholderAPI.setPlaceholders (static)
     private boolean papiTried;
@@ -226,6 +227,7 @@ public final class Hooks {
             floodgateApi = getInstance == null ? null : getInstance.invoke(null);
             if (floodgateApi != null) {
                 fgIsFloodgatePlayer = findMethod(floodgateApi.getClass(), "isFloodgatePlayer", UUID.class);
+                fgGetPlayer = findMethod(floodgateApi.getClass(), "getPlayer", UUID.class);
                 log.info("Floodgate подключён (Bedrock-игроки получат иконки пака)");
             }
         } catch (Throwable t) {
@@ -246,6 +248,27 @@ public final class Hooks {
             return Boolean.TRUE.equals(v);
         } catch (Throwable t) {
             return false;
+        }
+    }
+
+    /**
+     * Устройство Bedrock-игрока из Floodgate: WINDOWS, GOOGLE (Android), IOS, XBOX, PS4, NX и т.д.
+     * FloodgatePlayer.getDeviceOs() возвращает enum org.geysermc.geyser.configuration.DeviceOs.
+     */
+    public String deviceOs(UUID uuid) {
+        if (floodgateApi == null || fgGetPlayer == null) {
+            return "UNKNOWN";
+        }
+        try {
+            Object floodgatePlayer = fgGetPlayer.invoke(floodgateApi, uuid);
+            if (floodgatePlayer == null) {
+                return "UNKNOWN";
+            }
+            Method getDeviceOs = findMethod(floodgatePlayer.getClass(), "getDeviceOs");
+            Object os = getDeviceOs == null ? null : getDeviceOs.invoke(floodgatePlayer);
+            return os == null ? "UNKNOWN" : os.toString().toUpperCase(java.util.Locale.ROOT);
+        } catch (Throwable t) {
+            return "UNKNOWN";
         }
     }
 

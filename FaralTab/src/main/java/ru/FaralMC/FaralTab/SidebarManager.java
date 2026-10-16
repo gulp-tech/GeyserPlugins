@@ -209,6 +209,9 @@ public final class SidebarManager {
                 .replace("{h}", String.valueOf(hours))
                 .replace("{m}", String.valueOf(minutes));
 
+        text = text.replace("{device_icon}", deviceIconChar(player));
+        text = text.replace("{device}", deviceName(player));
+
         Map<String, String> values = new HashMap<>();
         values.put("player", player.getName());
         values.put("group", group);
@@ -235,6 +238,41 @@ public final class SidebarManager {
             text = hooks.applyPlaceholders(player, text);
         }
         return TextUtil.color(text);
+    }
+
+    /** Имя иконки устройства по Floodgate DeviceOs. */
+    public String deviceIconName(Player player) {
+        String os = plugin.hooks().deviceOs(player.getUniqueId());
+        if (os.contains("WINDOW") || os.equals("UWP") || os.equals("WIN32")) {
+            return "windows";
+        }
+        if (os.contains("GOOGLE") || os.contains("ANDROID") || os.contains("AMAZON")) {
+            return "android";
+        }
+        if (os.contains("IOS") || os.contains("OSX") || os.contains("MAC") || os.contains("TVOS")) {
+            return "apple";
+        }
+        return "device";
+    }
+
+    /** Человекочитаемое устройство: Windows / Android / iOS / Устройство. */
+    public String deviceName(Player player) {
+        String icon = deviceIconName(player);
+        if (icon.equals("windows")) {
+            return plugin.getConfig().getString("nametag.device-names.windows", "Windows");
+        }
+        if (icon.equals("android")) {
+            return plugin.getConfig().getString("nametag.device-names.android", "Android");
+        }
+        if (icon.equals("apple")) {
+            return plugin.getConfig().getString("nametag.device-names.apple", "iOS");
+        }
+        return plugin.getConfig().getString("nametag.device-names.device", "Устройство");
+    }
+
+    /** Глиф устройства из ресурспака для ника/скорборда. */
+    public String deviceIconChar(Player player) {
+        return iconChar(deviceIconName(player));
     }
 
     /** Иконка — всегда глиф из Bedrock-ресурспака: сервер только для Bedrock. */

@@ -27,6 +27,7 @@ public final class FaralTab extends JavaPlugin implements Listener, CommandExecu
 
     private Hooks hooks;
     private SidebarManager sidebar;
+    private NametagManager nametag;
     private BukkitTask task;
     private boolean warnedNoFloodgate;
 
@@ -35,6 +36,7 @@ public final class FaralTab extends JavaPlugin implements Listener, CommandExecu
         saveDefaultConfig();
         hooks = new Hooks(getLogger());
         sidebar = new SidebarManager(this);
+        nametag = new NametagManager(this);
 
         getServer().getPluginManager().registerEvents(this, this);
         if (getCommand("faraltab") != null) {
@@ -44,7 +46,10 @@ public final class FaralTab extends JavaPlugin implements Listener, CommandExecu
 
         startTask();
         // игроки, уже онлайн при /reload
-        Bukkit.getOnlinePlayers().forEach(p -> sidebar.update(p, true));
+        Bukkit.getOnlinePlayers().forEach(p -> {
+            sidebar.update(p, true);
+            nametag.apply(p);
+        });
         getLogger().info("FaralTab включён (Bedrock-only). Floodgate: " + (hooks.hasFloodgate() ? "найден, Java-игроки будут кикаться" : "НЕ найден — bedrock-only не сможет отличать Java, поставьте Floodgate!"));
     }
 
@@ -63,12 +68,19 @@ public final class FaralTab extends JavaPlugin implements Listener, CommandExecu
         return sidebar;
     }
 
+    public NametagManager nametag() {
+        return nametag;
+    }
+
     private void startTask() {
         if (task != null) {
             task.cancel();
         }
         long interval = Math.max(10L, getConfig().getLong("update-interval-ticks", 40L));
-        task = Bukkit.getScheduler().runTaskTimer(this, () -> sidebar.updateAll(), interval, interval);
+        task = Bukkit.getScheduler().runTaskTimer(this, () -> {
+            sidebar.updateAll();
+            Bukkit.getOnlinePlayers().forEach(p -> nametag.apply(p));
+        }, interval, interval);
     }
 
     // ------------------------------------------------------------- события
@@ -85,6 +97,7 @@ public final class FaralTab extends JavaPlugin implements Listener, CommandExecu
         long delay = Math.max(0L, getConfig().getLong("join-delay-ticks", 20L));
         Bukkit.getScheduler().runTaskLater(this, () -> {
             sidebar.update(player, true);
+            nametag.apply(player);
             showJoinTitle(player);
         }, delay);
     }
@@ -133,6 +146,7 @@ public final class FaralTab extends JavaPlugin implements Listener, CommandExecu
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
         sidebar.remove(event.getPlayer().getUniqueId());
+        nametag.remove(event.getPlayer());
     }
 
     // ------------------------------------------------------------- команды

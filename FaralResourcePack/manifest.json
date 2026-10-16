@@ -3,15 +3,27 @@
   "header": {
     "name": "FaralMC Scoreboard Icons",
     "description": "Иконки скорборда FaralMC: монеты, осколки, привилегия, У/С, время в игре. Ставится на Geyser (папка packs).",
-    "uuid": "14e884eb-3584-4936-b596-caaadbedb275",
-    "version": [1, 4, 0],
-    "min_engine_version": [1, 20, 0]
+    "uuid": "c64c6d68-89db-4d9d-af9b-31d6553a12d6",
+    "version": [
+      1,
+      5,
+      0
+    ],
+    "min_engine_version": [
+      1,
+      20,
+      0
+    ]
   },
   "modules": [
     {
       "type": "resources",
-      "uuid": "6225082d-26a8-4b61-ae25-a29534dcc3bb",
-      "version": [1, 4, 0]
+      "uuid": "0beaf739-9468-43b9-a807-cb2c3a8024cb",
+      "version": [
+        1,
+        5,
+        0
+      ]
     }
   ]
 }
