@@ -1,379 +1,350 @@
 # ============================================================
-#  FaralTalismans — талисманы как на FunTime (FaralMC, Bedrock-only)
+#  FaralTalismans — талисманы для Bedrock (FaralMC)
 #
-#  КАК ЭТО РАБОТАЕТ НА FUNTIME (и здесь так же):
-#  Талисман — обычный предмет. Пока он лежит в инвентаре, игрок
-#  получает его ПЛЮСЫ и МИНУСЫ к характеристикам: урон, броню,
-#  твёрдость брони, здоровье, скорость, скорость атаки.
-#  Убрал талисман — через пару секунд бонусы пропали.
-#  На FunTime талисманы покупают за валюту (ТК) — здесь за монеты
-#  Vault: клик по талисману в меню /talismans или /talisman buy <id>.
+#  КАК РАБОТАЕТ: талисман лежит в инвентаре — игрок получает его
+#  плюсы и минусы. Убрал — всё пропало. Покупка за монеты:
+#  /talisman buy <id> или клик в меню /talismans.
 #
-#  КАСТОМИЗАЦИЯ: настраивается АБСОЛЮТНО всё — названия, иконки
-#  (material), лор, плюсы/минусы и их числа, цены, место ношения,
-#  права, рецепты крафта, все тексты, цвета и звуки.
-#  Можно: отключить талисман (enabled: false), изменить любой,
-#  добавить свой — просто скопируй блок и дай новый id.
-#  После правок: /talisman reload (старый config.yml НЕ перезапишется
-#  сам — либо правь файл на сервере, либо удали его перед обновлением).
+#  ПОД BEDROCK: тут только характеристики, которые есть в Bedrock —
+#  урон, защита, здоровье и скорость. "Твёрдости брони" и "скорости
+#  атаки" в Bedrock нет (кулдауна ударов там нет), поэтому в
+#  стандартных талисманах их нет и в лоре не пишется лишнего.
+#
+#  НАСТРАИВАЕТСЯ ВСЁ: названия, предметы, лор, плюсы/минусы, цены,
+#  место, права, крафт, все тексты и звуки. Отключить талисман —
+#  enabled: false. Добавить свой — скопируй любой блок, дай новый id.
+#  После правок: /talisman reload. Старый config.yml сам НЕ
+#  перезапишется — при обновлении плагина удали старый файл конфига.
 #
 #  Цвета: &a, &#FFB340, <gradient:#55C8FF:#1B6FFF>текст</gradient>
-#  В лоре работают подстановки: {stats} — автолор характеристик,
-#  {price} — цена. Талисман опознаётся по скрытой метке в предмете,
-#  переименованием его не подделать.
+#  В лоре: {stats} — плюсы/минусы списком, {price} — цена.
+#  Талисман узнаётся по скрытой метке, переименованием не подделать.
 # ============================================================
 
 settings:
   # Как часто проверять инвентари, в тиках (20 = 1 сек).
   refresh-interval-ticks: 40
-  # Максимум одновременно активных талисманов у игрока (0 = без лимита, как на FunTime).
+  # Сколько талисманов работает одновременно (0 = сколько угодно).
   max-active-talismans: 0
-  # Сами дописывать характеристики в лор, если в лоре нет {stats}.
+  # Сами дописывать плюсы/минусы в лор, если в лоре нет {stats}.
   auto-stats-lore: true
-  # Цвета плюсов и минусов в авто-лоре.
+  # Цвета плюсов и минусов в лоре.
   stat-plus-color: "&a"
   stat-minus-color: "&c"
-  # Название валюты в ценах (на FunTime это ТК).
+  # Валюта в ценах.
   currency-name: "монет"
-  # Сообщать игроку, что талисман включился/выключился.
+  # Писать в чат, что талисман включился/выключился.
   notify-on-change: true
-  # Звуки включения/выключения ("" = выкл). Имена звуков Minecraft, напр. entity.player.levelup
+  # Звуки включения/выключения ("" = без звука).
   sound-activated: "entity.player.levelup"
   sound-deactivated: "block.note_block.bass"
-  # Частицы potion-эффектов талисманов (на Bedrock почти не видны).
+  # Частицы эффектов (на Bedrock их не видно, лучше выкл).
   effect-particles: false
-  # Показывать активные талисманы строкой над хотбаром.
+  # Показывать активные талисманы над хотбаром.
   show-actionbar: false
 
-# Названия характеристик в авто-лоре {stats}. Ключи атрибутов Minecraft:
-# attack_damage, armor, armor_toughness, max_health, movement_speed,
-# attack_speed, knockback_resistance, luck, jump_strength...
+# Как характеристики называются в лоре. attack_speed и armor_toughness
+# оставлены на всякий случай, но в Bedrock их нет — в стандартных
+# талисманах не используются.
 stat-names:
   attack_damage: "к урону"
-  armor: "к броне"
-  armor_toughness: "к твёрдости брони"
-  max_health: "к максимальному здоровью"
+  armor: "к защите"
+  max_health: "к здоровью"
   movement_speed: "к скорости"
-  attack_speed: "к скорости атаки"
-  knockback_resistance: "к сопротивлению отбрасыванию"
+  knockback_resistance: "к откидыванию"
   luck: "к удаче"
-  jump_strength: "к силе прыжка"
+  attack_speed: "к скорости атаки"
+  armor_toughness: "к твёрдости брони"
 
-# Названия potion-эффектов в авто-лоре (если талисману дашь effects).
+# Названия эффектов в лоре (если дашь талисману effects).
 effect-names:
   strength: "Сила"
   speed: "Скорость"
   haste: "Спешка"
   regeneration: "Регенерация"
-  resistance: "Сопротивление"
+  resistance: "Защита"
   fire_resistance: "Огнестойкость"
-  health_boost: "Прилив здоровья"
-  jump_boost: "Прыгучесть"
-  night_vision: "Ночное зрение"
+  health_boost: "Здоровье"
+  jump_boost: "Прыжки"
+  night_vision: "Видеть в темноте"
   saturation: "Сытость"
 
 menu:
-  title: "&#C86BFFТалисманы FaralMC"
+  title: "&#C86BFFТалисманы"
   rows: 4
-  # Клик по талисману в меню покупает его за монеты (как магазин на FunTime).
+  # Купить кликом по талисману в меню.
   click-to-buy: true
-  status-active: "&aАктивен"
-  status-inactive: "&7Не активен (талисмана нет в нужном месте)"
+  status-active: "&aРаботает"
+  status-inactive: "&7Не работает (нет в инвентаре)"
 
 messages:
   prefix: "&#C86BFFFaralMC &8» &f"
   reloaded: "&aКонфиг перезагружен."
-  no-permission: "&cУ вас нет прав на эту команду."
+  no-permission: "&cНельзя."
   player-not-found: "&cИгрок не найден."
   not-found: "&cТакого талисмана нет. Список: &f/talisman list"
   given: "&aТалисман выдан игроку {player}"
-  received: "&aВы получили талисман! Откройте &f/talismans"
-  bought: "&aВы купили {talisman} &aза &f{price}"
-  not-for-sale: "&7Этот талисман не продаётся."
-  no-economy: "&cПокупка недоступна: на сервере нет экономики Vault."
-  not-enough-money: "&cНе хватает монет на {talisman}&c: нужно &f{price}&c, у вас &f{balance}"
-  activated: "&aТалисман включён: {talisman}"
-  deactivated: "&7Талисман выключен: {talisman}"
+  received: "&aТы получил талисман! Глянь &f/talismans"
+  bought: "&aКупил {talisman} &aза &f{price}"
+  not-for-sale: "&7Этот не продаётся."
+  no-economy: "&cПокупка не работает: нет экономики Vault."
+  not-enough-money: "&cНе хватает на {talisman}&c: надо &f{price}&c, у тебя &f{balance}"
+  activated: "&aТалисман заработал: {talisman}"
+  deactivated: "&7Талисман перестал работать: {talisman}"
 
 # ------------------------------------------------------------
-#  САМИ ТАЛИСМАНЫ (состав и цифры — как на FunTime, всё меняется!)
+#  ТАЛИСМАНЫ
+#  id (crusher и т.д.) — для команд give/buy. НЕ меняй id, если
+#  талисманы уже выданы игрокам: по id плагин узнаёт предметы.
+#  Менять можно всё остальное: название, предмет, цифры, цену.
 #
-#  id (crusher, cobra...) — для /talisman give и /talisman buy.
-#  enabled: false — выключить талисман, не удаляя из конфига.
-#  where: INVENTORY — anywhere в инвентаре (как на FunTime) |
-#         HOTBAR — только горячая панель | OFFHAND — вторая рука.
-#  permission: "" — всем | "faraltalismans.vip" — только с правом.
-#  price: цена покупки за монеты Vault (0 = не продаётся).
-#  attributes: type — атрибут (см. stat-names выше), amount — число
-#    (для operation ADD_SCALAR/MULTIPLY_SCALAR_1 это ДОЛИ: 0.15 = +15%),
-#    operation: ADD_NUMBER — прибавить число | ADD_SCALAR — прибавить %.
-#    Здоровье считается в HP: +2 = одно сердечко.
-#  effects: необязательно: - {type: STRENGTH, amplifier: 0} (0 = уровень I).
-#  recipe: крафт на верстаке (на FunTime талисманы не крафтят — выкл по умолчанию).
+#  attributes: amount у ADD_NUMBER — просто число (здоровье в HP:
+#  +2 = одно сердце), у ADD_SCALAR — доля (0.10 = +10%).
+#  where: INVENTORY — в инвентаре | HOTBAR — в хотбаре | OFFHAND — в левой руке.
+#  price: 0 — не продаётся. recipe — крафт (enabled: true + shape + ingredients).
 # ------------------------------------------------------------
 talismans:
 
   crusher:
     enabled: true
-    display-name: "&#FF5555Талисман Крушителя"
-    material: NETHERITE_INGOT
+    display-name: "&#FF5555Талисман воина"
+    material: DIAMOND
     glow: true
     lore:
-      - "&7Главный боевой талисман."
+      - "&7Для драки. Положи в инвентарь."
       - "{stats}"
       - ""
       - "&eЦена: &f{price}"
-      - "&8Талисман FaralMC"
     where: INVENTORY
     permission: ""
     price: 24900
     effects: []
     attributes:
-      - {type: attack_damage, amount: 3.0, operation: ADD_NUMBER}
+      - {type: attack_damage, amount: 2.0, operation: ADD_NUMBER}
       - {type: armor, amount: 4.0, operation: ADD_NUMBER}
-      - {type: armor_toughness, amount: 4.0, operation: ADD_NUMBER}
       - {type: max_health, amount: 2.0, operation: ADD_NUMBER}
     recipe: {enabled: false, shape: [], ingredients: {}}
 
   punisher:
     enabled: true
-    display-name: "&#B02A2AТалисман Карателя"
-    material: WITHER_SKELETON_SKULL
+    display-name: "&#FF7847Талисман берсерка"
+    material: Blaze Powder
     glow: true
     lore:
-      - "&7Максимум урона — ценой здоровья."
+      - "&7Бьёт больно, но сам хилый."
       - "{stats}"
       - ""
       - "&eЦена: &f{price}"
-      - "&8Талисман FaralMC"
     where: INVENTORY
     permission: ""
     price: 21900
     effects: []
     attributes:
-      - {type: attack_damage, amount: 6.0, operation: ADD_NUMBER}
+      - {type: attack_damage, amount: 4.0, operation: ADD_NUMBER}
       - {type: max_health, amount: -4.0, operation: ADD_NUMBER}
     recipe: {enabled: false, shape: [], ingredients: {}}
 
   absolut:
     enabled: true
-    display-name: "<gradient:#FFE259:#FFA751>Талисман Абсолюта</gradient>"
+    display-name: "<gradient:#FFE259:#FFA751>Талисман героя</gradient>"
     material: NETHER_STAR
     glow: true
     lore:
-      - "&7Лучший талисман: плюсы во всём."
+      - "&7Самый крутой. Плюсы во всём."
       - "{stats}"
       - ""
       - "&eЦена: &f{price}"
-      - "&8Талисман FaralMC"
     where: INVENTORY
     permission: ""
     price: 34800
     effects: []
     attributes:
-      - {type: attack_damage, amount: 3.0, operation: ADD_NUMBER}
-      - {type: max_health, amount: 2.0, operation: ADD_NUMBER}
-      - {type: armor, amount: 3.0, operation: ADD_NUMBER}
-      - {type: armor_toughness, amount: 3.0, operation: ADD_NUMBER}
-      - {type: movement_speed, amount: 0.20, operation: ADD_SCALAR}
-      - {type: attack_speed, amount: 0.20, operation: ADD_SCALAR}
+      - {type: attack_damage, amount: 2.0, operation: ADD_NUMBER}
+      - {type: armor, amount: 4.0, operation: ADD_NUMBER}
+      - {type: max_health, amount: 4.0, operation: ADD_NUMBER}
+      - {type: movement_speed, amount: 0.10, operation: ADD_SCALAR}
     recipe: {enabled: false, shape: [], ingredients: {}}
 
   cobra:
     enabled: true
-    display-name: "&#7CFC00Талисман Кобры"
-    material: SPIDER_EYE
+    display-name: "&#7CFC00Талисман убийцы"
+    material: AMETHYST_SHARD
     glow: true
     lore:
-      - "&7Ядовитый удар, хрупкое тело."
+      - "&7Быстрый и злой, но дохнет быстро."
       - "{stats}"
       - ""
       - "&eЦена: &f{price}"
-      - "&8Талисман FaralMC"
     where: INVENTORY
     permission: ""
     price: 15900
     effects: []
     attributes:
-      - {type: attack_damage, amount: 5.0, operation: ADD_NUMBER}
+      - {type: attack_damage, amount: 3.0, operation: ADD_NUMBER}
+      - {type: movement_speed, amount: 0.10, operation: ADD_SCALAR}
       - {type: max_health, amount: -4.0, operation: ADD_NUMBER}
     recipe: {enabled: false, shape: [], ingredients: {}}
 
   echidna:
     enabled: true
-    display-name: "&#9ACD32Талисман Ехидны"
-    material: FERMENTED_SPIDER_EYE
+    display-name: "&#FF3D3DТалисман ярости"
+    material: MAGMA_CREAM
     glow: true
     lore:
-      - "&7Ещё злее кобры — и ещё уязвимее."
+      - "&7Всё в урон, защиты нет."
       - "{stats}"
       - ""
       - "&eЦена: &f{price}"
-      - "&8Талисман FaralMC"
     where: INVENTORY
     permission: ""
     price: 16900
     effects: []
     attributes:
-      - {type: attack_damage, amount: 6.0, operation: ADD_NUMBER}
-      - {type: max_health, amount: -2.0, operation: ADD_NUMBER}
+      - {type: attack_damage, amount: 4.0, operation: ADD_NUMBER}
       - {type: armor, amount: -2.0, operation: ADD_NUMBER}
-      - {type: armor_toughness, amount: -2.0, operation: ADD_NUMBER}
+      - {type: max_health, amount: -2.0, operation: ADD_NUMBER}
     recipe: {enabled: false, shape: [], ingredients: {}}
 
   grani:
     enabled: true
-    display-name: "&#55E6FFТалисман Грани"
-    material: PRISMARINE_SHARD
+    display-name: "&#55E6FFТалисман бегуна"
+    material: FEATHER
     glow: true
     lore:
-      - "&7Быстрый и бьющий — но хрупкий."
+      - "&7Ноги быстрые, сам лёгкий."
       - "{stats}"
       - ""
       - "&eЦена: &f{price}"
-      - "&8Талисман FaralMC"
+    where: INVENTORY
+    permission: ""
+    price: 13900
+    effects: []
+    attributes:
+      - {type: attack_damage, amount: 1.0, operation: ADD_NUMBER}
+      - {type: movement_speed, amount: 0.20, operation: ADD_SCALAR}
+      - {type: max_health, amount: -2.0, operation: ADD_NUMBER}
+    recipe: {enabled: false, shape: [], ingredients: {}}
+
+  satan:
+    enabled: true
+    display-name: "&#B03060Талисман демона"
+    material: WITHER_ROSE
+    glow: true
+    lore:
+      - "&7Сила и жизни в обмен на защиту."
+      - "{stats}"
+      - ""
+      - "&eЦена: &f{price}"
     where: INVENTORY
     permission: ""
     price: 13900
     effects: []
     attributes:
       - {type: attack_damage, amount: 3.0, operation: ADD_NUMBER}
-      - {type: movement_speed, amount: 0.15, operation: ADD_SCALAR}
-      - {type: max_health, amount: -4.0, operation: ADD_NUMBER}
-    recipe: {enabled: false, shape: [], ingredients: {}}
-
-  satan:
-    enabled: true
-    display-name: "&#8B0000Талисман Сатаны"
-    material: Blaze Powder
-    glow: true
-    lore:
-      - "&7Сделка: сила и жизни за броню."
-      - "{stats}"
-      - ""
-      - "&eЦена: &f{price}"
-      - "&8Талисман FaralMC"
-    where: INVENTORY
-    permission: ""
-    price: 13900
-    effects: []
-    attributes:
-      - {type: attack_damage, amount: 4.0, operation: ADD_NUMBER}
       - {type: max_health, amount: 4.0, operation: ADD_NUMBER}
-      - {type: armor, amount: -3.0, operation: ADD_NUMBER}
-      - {type: armor_toughness, amount: -2.0, operation: ADD_NUMBER}
+      - {type: armor, amount: -4.0, operation: ADD_NUMBER}
     recipe: {enabled: false, shape: [], ingredients: {}}
 
   sources:
     enabled: true
-    display-name: "&#4DB8FFТалисман Источников"
-    material: HEART_OF_THE_SEA
+    display-name: "&#4DB8FFТалисман танка"
+    material: OBSIDIAN
     glow: true
     lore:
-      - "&7Танк: много брони, но медленный."
+      - "&7Жирная броня, но медленный."
       - "{stats}"
       - ""
       - "&eЦена: &f{price}"
-      - "&8Талисман FaralMC"
     where: INVENTORY
     permission: ""
     price: 13900
     effects: []
     attributes:
       - {type: armor, amount: 6.0, operation: ADD_NUMBER}
-      - {type: max_health, amount: 2.0, operation: ADD_NUMBER}
+      - {type: max_health, amount: 4.0, operation: ADD_NUMBER}
       - {type: movement_speed, amount: -0.10, operation: ADD_SCALAR}
-      - {type: attack_speed, amount: -0.10, operation: ADD_SCALAR}
     recipe: {enabled: false, shape: [], ingredients: {}}
 
   triton:
     enabled: true
-    display-name: "&#2E8B8BТалисман Тритона"
-    material: NAUTILUS_SHELL
+    display-name: "&#7FB2FFТалисман стража"
+    material: IRON_INGOT
     glow: true
     lore:
-      - "&7Морская броня: держит удар, но трескается."
+      - "&7Держит удар за всю команду."
       - "{stats}"
       - ""
       - "&eЦена: &f{price}"
-      - "&8Талисман FaralMC"
     where: INVENTORY
     permission: ""
     price: 12900
     effects: []
     attributes:
-      - {type: armor, amount: 4.0, operation: ADD_NUMBER}
+      - {type: armor, amount: 5.0, operation: ADD_NUMBER}
       - {type: max_health, amount: 2.0, operation: ADD_NUMBER}
-      - {type: armor_toughness, amount: -2.0, operation: ADD_NUMBER}
+      - {type: movement_speed, amount: -0.05, operation: ADD_SCALAR}
     recipe: {enabled: false, shape: [], ingredients: {}}
 
   phoenix:
     enabled: true
-    display-name: "&#FF9A3DТалисман Феникса"
-    material: FEATHER
+    display-name: "&#FFC46BТалисман жизни"
+    material: EMERALD
     glow: true
     lore:
-      - "&7Возрождайся: жизни и темп ударов."
+      - "&7Просто куча здоровья."
       - "{stats}"
       - ""
       - "&eЦена: &f{price}"
-      - "&8Талисман FaralMC"
     where: INVENTORY
     permission: ""
     price: 9900
     effects: []
     attributes:
       - {type: max_health, amount: 6.0, operation: ADD_NUMBER}
-      - {type: attack_speed, amount: 0.10, operation: ADD_SCALAR}
     recipe: {enabled: false, shape: [], ingredients: {}}
 
   vepr:
     enabled: true
-    display-name: "&#C19A6BТалисман Вепря"
+    display-name: "&#C19A6BТалисман охотника"
     material: BONE
     glow: true
     lore:
-      - "&7Напор вепря: урон и скорость."
+      - "&7Для тех, кто бегает и бьёт."
       - "{stats}"
       - ""
       - "&eЦена: &f{price}"
-      - "&8Талисман FaralMC"
     where: INVENTORY
     permission: ""
     price: 9700
     effects: []
     attributes:
-      - {type: attack_damage, amount: 3.0, operation: ADD_NUMBER}
-      - {type: attack_speed, amount: 0.10, operation: ADD_SCALAR}
+      - {type: attack_damage, amount: 2.0, operation: ADD_NUMBER}
       - {type: movement_speed, amount: 0.10, operation: ADD_SCALAR}
       - {type: max_health, amount: -2.0, operation: ADD_NUMBER}
     recipe: {enabled: false, shape: [], ingredients: {}}
 
   harmony:
     enabled: true
-    display-name: "&#C86BFFТалисман Гармонии"
-    material: AMETHYST_SHARD
+    display-name: "&#C86BFFТалисман странника"
+    material: QUARTZ
     glow: true
     lore:
-      - "&7Сбалансированный старт без минусов."
+      - "&7Нормальный такой, без минусов."
       - "{stats}"
       - ""
       - "&eЦена: &f{price}"
-      - "&8Талисман FaralMC"
     where: INVENTORY
     permission: ""
     price: 9900
     effects: []
     attributes:
-      - {type: attack_damage, amount: 2.0, operation: ADD_NUMBER}
+      - {type: attack_damage, amount: 1.0, operation: ADD_NUMBER}
       - {type: max_health, amount: 2.0, operation: ADD_NUMBER}
-    recipe:
-      enabled: false
-      shape: []
-      ingredients: {}
+      - {type: movement_speed, amount: 0.05, operation: ADD_SCALAR}
+    recipe: {enabled: false, shape: [], ingredients: {}}
 
-    # --- Пример: свой талисман с potion-эффектом и крафтом (раскомментируй и правь) ---
-    # mytalisman:
+    # --- Пример своего талисмана (убери # и правь под себя) ---
+    # luck:
     #   enabled: true
     #   display-name: "&#FFD93DТалисман удачи"
     #   material: GOLD_INGOT
