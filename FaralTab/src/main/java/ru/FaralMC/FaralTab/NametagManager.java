@@ -11,16 +11,21 @@ import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.Team;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 /**
- * Оформление ника над головой (главный скорборд, виден всем):
- *  - префикс неймтега — значок устройства игрока из Floodgate
- *    (Windows / Android / iPhone / другое), глиф из ресурспака;
- *  - под ником — здоровье (objective BELOW_NAME, число ставит сама игра,
- *    от нас только красное сердечко после него).
- * В невидимости ник и здоровье скрывает сама игра — как и просили.
+ * Оформление НИКА над головой (не скорборд!):
+ *  - перед ником значок устройства из Floodgate (Windows / Android / iPhone / другое);
+ *  - под ником здоровье (красное сердечко + число от самой игры).
+ *
+ * Почему команды дублируются на все борды: у каждого игрока свой скорборд
+ * сайдбара, и viewer видит неймтеги по СВОЕМУ борду — команд главного борда
+ * он бы просто не увидел. Плюс для Bedrock через Geyser дополнительно
+ * выставляются display-name и player-list-name игрока.
+ * В невидимости ник и здоровье прячет сама игра.
  */
 public final class NametagManager {
 
@@ -31,24 +36,35 @@ public final class NametagManager {
 
     public NametagManager(FaralTab plugin) {
         this.plugin = plugin;
-        setupHealthObjective();
     }
 
-    private void setupHealthObjective() {
-        if (!plugin.getConfig().getBoolean("nametag.enabled", true)
-                || !plugin.getConfig().getBoolean("nametag.health-below-name", true)) {
+    /** Все борды, где должны жить неймтеги: главный + персональный борд каждого игрока. */
+    private Set<Scoreboard> allBoards() {
+        Set<Scoreboard> boards = new HashSet<>();
+        boards.add(Bukkit.getScoreboardManager().getMainScoreboard());
+        for (Player viewer : Bukkit.getOnlinePlayers()) {
+            boards.add(viewer.getScoreboard());
+        }
+        return boards;
+    }
+
+    private void ensureHealthObjective(Scoreboard board) {
+        if (!plugin.getConfig().getBoolean("nametag.health-below-name", true)) {
             return;
         }
-        Scoreboard main = Bukkit.getScoreboardManager().getMainScoreboard();
-        Objective objective = main.getObjective(HEALTH_OBJECTIVE);
+        Objective objective = board.getObjective(HEALTH_OBJECTIVE);
         if (objective == null) {
-            objective = main.registerNewObjective(HEALTH_OBJECTIVE, Criteria.HEALTH,
+            objective = board.registerNewObjective(HEALTH_OBJECTIVE, Criteria.HEALTH,
                     component(TextUtil.color(plugin.getConfig().getString("nametag.health-suffix", "&c❤"))));
             objective.setDisplaySlot(DisplaySlot.BELOW_NAME);
         }
     }
 
-    /** Поставить/обновить значок устройства в неймтеге игрока. */
+    private String teamName(Player player) {
+        return "ft" + player.getUniqueId().toString().replace("-", "").substring(0, 14);
+    }
+
+    /** Поставить/обновить значок устройства в нике игрока на всех бордах. */
     public void apply(Player player) {
         if (!plugin.getConfig().getBoolean("nametag.enabled", true)) {
             return;
@@ -60,32 +76,42 @@ public final class NametagManager {
                 prefix = icon + " ";
             }
         }
-        if (prefix.equals(appliedPrefix.get(player.getUniqueId()))) {
-            return; // уже стоит такая же — не трогаем, чтобы не дёргать клиентов
-        }
+        boolean changed = !prefix.equals(appliedPrefix.get(player.getUniqueId()));
         appliedPrefix.put(player.getUniqueId(), prefix);
 
-        Scoreboard main = Bukkit.getScoreboardManager().getMainScoreboard();
-        String teamName = "ft" + player.getUniqueId().toString().replace("-", "").substring(0, 14);
-        Team team = main.getTeam(teamName);
-        if (team == null) {
-            team = main.registerNewTeam(teamName);
+        Component prefixComponent = component(
+                TextUtil.color(plugin.getConfig().getString("nametag.prefix-color", "&f")) + prefix);
+        for (Scoreboard board : allBoards()) {
+            ensureHealthObjective(board);
+            Team team = board.getTeam(teamName(player));
+            if (team == null) {
+                team = board.registerNewTeam(teamName(player));
+            }
+            if (!team.hasEntry(player.getName())) {
+                team.addEntry(player.getName());
+            }
+            if (changed) {
+                team.prefix(prefixComponent);
+            }
         }
-        if (!team.hasEntry(player.getName())) {
-            team.addEntry(player.getName());
+
+        // Bedrock (Geyser): неймтег над головой берётся из display/list имени — дублируем туда.
+        if (changed && plugin.getConfig().getBoolean("nametag.use-display-name", true)) {
+            Component name = Component.text(prefix).append(Component.text(player.getName()));
+            player.displayName(name);
+            player.setPlayerListName(TextUtil.color(
+                    plugin.getConfig().getString("nametag.prefix-color", "&f")) + prefix + player.getName());
         }
-        team.prefix(component(TextUtil.color(plugin.getConfig().getString("nametag.prefix-color", "&f"))
-                + prefix));
     }
 
-    /** Игрок вышел — убрать его команду неймтега. */
+    /** Игрок вышел — убрать его неймтег-команды со всех бордов. */
     public void remove(Player player) {
         appliedPrefix.remove(player.getUniqueId());
-        Scoreboard main = Bukkit.getScoreboardManager().getMainScoreboard();
-        String teamName = "ft" + player.getUniqueId().toString().replace("-", "").substring(0, 14);
-        Team team = main.getTeam(teamName);
-        if (team != null) {
-            team.unregister();
+        for (Scoreboard board : allBoards()) {
+            Team team = board.getTeam(teamName(player));
+            if (team != null) {
+                team.unregister();
+            }
         }
     }
 
