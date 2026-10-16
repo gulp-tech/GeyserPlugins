@@ -256,13 +256,13 @@ public final class Hooks {
      * FloodgatePlayer.getDeviceOs() возвращает enum org.geysermc.geyser.configuration.DeviceOs.
      */
     public String deviceOs(UUID uuid) {
-        Object os = floodgateEnum(uuid, "getDeviceOs");
+        String os = floodgateEnum(uuid, "getDeviceOs");
         return os == null ? "UNKNOWN" : os;
     }
 
     /** Режим ввода Bedrock-клиента: KEYBOARD_MOUSE, TOUCH, CONTROLLER, VR, UNKNOWN. */
     public String inputMode(UUID uuid) {
-        Object mode = floodgateEnum(uuid, "getInputMode");
+        String mode = floodgateEnum(uuid, "getInputMode");
         return mode == null ? "UNKNOWN" : mode;
     }
 
