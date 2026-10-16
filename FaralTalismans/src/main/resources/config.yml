@@ -17,7 +17,7 @@
 #  перезапишется — при обновлении плагина удали старый файл конфига.
 #
 #  Цвета: &a, &#FFB340, <gradient:#55C8FF:#1B6FFF>текст</gradient>
-#  В лоре: {stats} — плюсы/минусы списком, {price} — цена.
+#  В лоре: {stats} — плюсы/минусы списком (больше ничего не пишем).
 #  Талисман узнаётся по скрытой метке, переименованием не подделать.
 # ============================================================
 
@@ -74,6 +74,7 @@ menu:
   rows: 4
   # Купить кликом по талисману в меню.
   click-to-buy: true
+  price-line: "&eЦена: &f{price}"
   status-active: "&aРаботает"
   status-inactive: "&7Не работает (нет в инвентаре)"
 
@@ -108,13 +109,10 @@ talismans:
   crusher:
     enabled: true
     display-name: "&#FF5555Талисман воина"
-    material: DIAMOND
+    material: TOTEM_OF_UNDYING
     glow: true
     lore:
-      - "&7Для драки. Положи в инвентарь."
       - "{stats}"
-      - ""
-      - "&eЦена: &f{price}"
     where: INVENTORY
     permission: ""
     price: 24900
@@ -128,13 +126,10 @@ talismans:
   punisher:
     enabled: true
     display-name: "&#FF7847Талисман берсерка"
-    material: Blaze Powder
+    material: TOTEM_OF_UNDYING
     glow: true
     lore:
-      - "&7Бьёт больно, но сам хилый."
       - "{stats}"
-      - ""
-      - "&eЦена: &f{price}"
     where: INVENTORY
     permission: ""
     price: 21900
@@ -147,13 +142,10 @@ talismans:
   absolut:
     enabled: true
     display-name: "<gradient:#FFE259:#FFA751>Талисман героя</gradient>"
-    material: NETHER_STAR
+    material: TOTEM_OF_UNDYING
     glow: true
     lore:
-      - "&7Самый крутой. Плюсы во всём."
       - "{stats}"
-      - ""
-      - "&eЦена: &f{price}"
     where: INVENTORY
     permission: ""
     price: 34800
@@ -168,13 +160,10 @@ talismans:
   cobra:
     enabled: true
     display-name: "&#7CFC00Талисман убийцы"
-    material: AMETHYST_SHARD
+    material: TOTEM_OF_UNDYING
     glow: true
     lore:
-      - "&7Быстрый и злой, но дохнет быстро."
       - "{stats}"
-      - ""
-      - "&eЦена: &f{price}"
     where: INVENTORY
     permission: ""
     price: 15900
@@ -188,13 +177,10 @@ talismans:
   echidna:
     enabled: true
     display-name: "&#FF3D3DТалисман ярости"
-    material: MAGMA_CREAM
+    material: TOTEM_OF_UNDYING
     glow: true
     lore:
-      - "&7Всё в урон, защиты нет."
       - "{stats}"
-      - ""
-      - "&eЦена: &f{price}"
     where: INVENTORY
     permission: ""
     price: 16900
@@ -208,13 +194,10 @@ talismans:
   grani:
     enabled: true
     display-name: "&#55E6FFТалисман бегуна"
-    material: FEATHER
+    material: TOTEM_OF_UNDYING
     glow: true
     lore:
-      - "&7Ноги быстрые, сам лёгкий."
       - "{stats}"
-      - ""
-      - "&eЦена: &f{price}"
     where: INVENTORY
     permission: ""
     price: 13900
@@ -228,13 +211,10 @@ talismans:
   satan:
     enabled: true
     display-name: "&#B03060Талисман демона"
-    material: WITHER_ROSE
+    material: TOTEM_OF_UNDYING
     glow: true
     lore:
-      - "&7Сила и жизни в обмен на защиту."
       - "{stats}"
-      - ""
-      - "&eЦена: &f{price}"
     where: INVENTORY
     permission: ""
     price: 13900
@@ -248,13 +228,10 @@ talismans:
   sources:
     enabled: true
     display-name: "&#4DB8FFТалисман танка"
-    material: OBSIDIAN
+    material: TOTEM_OF_UNDYING
     glow: true
     lore:
-      - "&7Жирная броня, но медленный."
       - "{stats}"
-      - ""
-      - "&eЦена: &f{price}"
     where: INVENTORY
     permission: ""
     price: 13900
@@ -268,13 +245,10 @@ talismans:
   triton:
     enabled: true
     display-name: "&#7FB2FFТалисман стража"
-    material: IRON_INGOT
+    material: TOTEM_OF_UNDYING
     glow: true
     lore:
-      - "&7Держит удар за всю команду."
       - "{stats}"
-      - ""
-      - "&eЦена: &f{price}"
     where: INVENTORY
     permission: ""
     price: 12900
@@ -288,13 +262,10 @@ talismans:
   phoenix:
     enabled: true
     display-name: "&#FFC46BТалисман жизни"
-    material: EMERALD
+    material: TOTEM_OF_UNDYING
     glow: true
     lore:
-      - "&7Просто куча здоровья."
       - "{stats}"
-      - ""
-      - "&eЦена: &f{price}"
     where: INVENTORY
     permission: ""
     price: 9900
@@ -306,13 +277,10 @@ talismans:
   vepr:
     enabled: true
     display-name: "&#C19A6BТалисман охотника"
-    material: BONE
+    material: TOTEM_OF_UNDYING
     glow: true
     lore:
-      - "&7Для тех, кто бегает и бьёт."
       - "{stats}"
-      - ""
-      - "&eЦена: &f{price}"
     where: INVENTORY
     permission: ""
     price: 9700
@@ -326,13 +294,10 @@ talismans:
   harmony:
     enabled: true
     display-name: "&#C86BFFТалисман странника"
-    material: QUARTZ
+    material: TOTEM_OF_UNDYING
     glow: true
     lore:
-      - "&7Нормальный такой, без минусов."
       - "{stats}"
-      - ""
-      - "&eЦена: &f{price}"
     where: INVENTORY
     permission: ""
     price: 9900
@@ -349,7 +314,7 @@ talismans:
     #   display-name: "&#FFD93DТалисман удачи"
     #   material: GOLD_INGOT
     #   glow: true
-    #   lore: ["&7Мой талисман", "{stats}", "", "&eЦена: &f{price}"]
+    #   lore: ["{stats}"]
     #   where: INVENTORY
     #   permission: ""
     #   price: 5000

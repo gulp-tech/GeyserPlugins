@@ -90,6 +90,11 @@ public final class FaralTalismans extends JavaPlugin implements Listener, Comman
             ItemStack item = service.createItem(t, 1);
             org.bukkit.inventory.meta.ItemMeta meta = item.getItemMeta();
             List<Component> lore = new ArrayList<>(meta.lore() == null ? List.of() : meta.lore());
+            if (t.price() > 0) {
+                lore.add(TalismanService.component(TextUtil.color(
+                        getConfig().getString("menu.price-line", "&eЦена: &f{price}")
+                                .replace("{price}", service.formatPrice(t.price())))));
+            }
             lore.add(TalismanService.component(TextUtil.color("")));
             lore.add(TalismanService.component(TextUtil.color(active
                     ? getConfig().getString("menu.status-active", "&aАктивен")
