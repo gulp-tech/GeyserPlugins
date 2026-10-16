@@ -10,7 +10,7 @@
 #  Иконки (из FaralResourcePack, только для Bedrock-игроков):
 #    {icon:coin} {icon:spark} {icon:sapphire} {icon:shard}
 #    {icon:crown} {icon:sword} {icon:skull} {icon:clock}
-#    {icon:windows} {icon:android} {icon:apple} {icon:device}
+#    {icon:windows} {icon:android} {icon:apple} {icon:device} {icon:coins}
 #  Устройство игрока (Floodgate): {device_icon} — значок его платформы, {device} — её название.
 #  Плюс любые %плейсхолдеры% PlaceholderAPI (если включён ниже).
 # ============================================================
@@ -63,11 +63,11 @@ scoreboard:
   lines:
     - "&fИмя: &#FFA63D{player}"
     - "&fДонат: {group}"
-    - "&fМонеты: &#FFD93D{coins} {icon:spark}"
+    - "&fМонеты: &#FFD93D{coins} {icon:coin}"
     - "&fОсколки: &#54C8FF{shards} {icon:shard}"
     - ""
     - "&fУ/С: &#C86BFF{kills}&f/&#FF6B6B{deaths}"
-    - "&fВ игре: &#FFD93D{playtime_hours}ч {icon:coin}"
+    - "&fВ игре: &#FFD93D{playtime_hours}ч {icon:clock}"
 
 # ------------------------------------------------------------
 # Иконки Bedrock-ресурспака (FaralResourcePack.mcpack, font/glyph_E0.png)
@@ -86,6 +86,7 @@ icons:
   android: "E00A"   # телефон Android
   apple: "E00B"     # iPhone / iOS
   device: "E00C"    # остальные устройства (консоли и т.п.)
+  coins: "E00D"     # стопка монет (для строки Монеты)
   # Иконки берутся из FaralResourcePack.mcpack (plugins/Geyser-Spigot/packs/),
   # поставьте в конфиге Geyser force-resource-packs: true — без пака вместо иконок будет пусто.
 

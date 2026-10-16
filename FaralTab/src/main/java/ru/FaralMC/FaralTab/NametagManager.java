@@ -60,6 +60,10 @@ public final class NametagManager {
         }
     }
 
+    public String appliedPrefix(UUID uuid) {
+        return appliedPrefix.getOrDefault(uuid, "<нет>");
+    }
+
     private String teamName(Player player) {
         return "ft" + player.getUniqueId().toString().replace("-", "").substring(0, 14);
     }

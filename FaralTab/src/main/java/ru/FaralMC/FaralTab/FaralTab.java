@@ -34,6 +34,7 @@ public final class FaralTab extends JavaPlugin implements Listener, CommandExecu
     @Override
     public void onEnable() {
         saveDefaultConfig();
+        migrateConfig();
         hooks = new Hooks(getLogger());
         sidebar = new SidebarManager(this);
         nametag = new NametagManager(this);
@@ -57,6 +58,25 @@ public final class FaralTab extends JavaPlugin implements Listener, CommandExecu
     public void onDisable() {
         if (task != null) {
             task.cancel();
+        }
+    }
+
+    /** Старые конфиги: значок устройства в ТАБЕ больше не нужен — он только в нике над головой. */
+    private void migrateConfig() {
+        java.util.List<String> lines = getConfig().getStringList("scoreboard.lines");
+        boolean changed = false;
+        java.util.List<String> cleaned = new java.util.ArrayList<>();
+        for (String line : lines) {
+            String c = line.replace("{device_icon} ", "").replace("{device_icon}", "");
+            if (!c.equals(line)) {
+                changed = true;
+            }
+            cleaned.add(c);
+        }
+        if (changed) {
+            getConfig().set("scoreboard.lines", cleaned);
+            saveConfig();
+            getLogger().info("Миграция: {device_icon} убран из строк скорборда (значок остался только в нике).");
         }
     }
 
@@ -153,6 +173,24 @@ public final class FaralTab extends JavaPlugin implements Listener, CommandExecu
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         String prefix = TextUtil.color(getConfig().getString("messages.prefix", "&#FFB340FaralMC &8» &f"));
+        if (args.length >= 1 && args[0].equalsIgnoreCase("debug")) {
+            if (!sender.hasPermission("faraltab.admin")) {
+                sender.sendMessage(prefix + TextUtil.color(getConfig().getString("messages.no-permission", "&cНет прав.")));
+                return true;
+            }
+            Player target = args.length >= 2 ? Bukkit.getPlayerExact(args[1])
+                    : (sender instanceof Player ? (Player) sender : null);
+            if (target == null) {
+                sender.sendMessage(prefix + "Использование: /faraltab debug [игрок]");
+                return true;
+            }
+            sender.sendMessage(prefix + "FaralTab v" + getDescription().getVersion()
+                    + " | Floodgate: " + (hooks.hasFloodgate() ? "&aда" : "&cНЕТ")
+                    + " | Устройство " + target.getName() + ": &b" + hooks.deviceOs(target.getUniqueId())
+                    + " &7(" + sidebar.deviceIconName(target) + ")"
+                    + " | Префикс ника: '" + nametag.appliedPrefix(target.getUniqueId()) + "'");
+            return true;
+        }
         if (args.length >= 1 && args[0].equalsIgnoreCase("reload")) {
             if (!sender.hasPermission("faraltab.admin")) {
                 sender.sendMessage(prefix + TextUtil.color(getConfig().getString("messages.no-permission", "&cНет прав.")));
