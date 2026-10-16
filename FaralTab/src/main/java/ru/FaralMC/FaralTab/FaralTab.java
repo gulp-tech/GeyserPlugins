@@ -188,11 +188,21 @@ public final class FaralTab extends JavaPlugin implements Listener, CommandExecu
                 sender.sendMessage(prefix + "Использование: /faraltab debug [игрок]");
                 return true;
             }
+            java.util.UUID tu = target.getUniqueId();
             sender.sendMessage(prefix + "FaralTab v" + getDescription().getVersion()
-                    + " | Floodgate: " + (hooks.hasFloodgate() ? "&aда" : "&cНЕТ")
-                    + " | Устройство " + target.getName() + ": &b" + hooks.deviceOs(target.getUniqueId())
-                    + " &7(" + sidebar.deviceIconName(target) + ")"
-                    + " | Префикс ника: '" + nametag.appliedPrefix(target.getUniqueId()) + "'");
+                    + " | Floodgate: " + (hooks.hasFloodgate() ? "&aда" : "&cНЕТ"));
+            sender.sendMessage(prefix + "Игрок &f" + target.getName() + "&7: Floodgate OS=&b" + hooks.floodgateDeviceOs(tu)
+                    + " &7| Geyser OS=&b" + hooks.geyserDeviceOs(tu)
+                    + " &7| Ввод Floodgate=&b" + hooks.inputMode(tu)
+                    + " &7| Ввод Geyser=&b" + hooks.geyserInputMode(tu)
+                    + " &7| Модель=&b" + hooks.deviceModel(tu));
+            sender.sendMessage(prefix + "Итог: &b" + hooks.deviceOs(tu) + " &7-> значок &b" + sidebar.deviceIconName(target)
+                    + " &7(" + sidebar.deviceName(target) + ") | Префикс ника: '" + nametag.appliedPrefix(tu) + "'");
+            sender.sendMessage(prefix + "Все онлайн:");
+            for (Player online : Bukkit.getOnlinePlayers()) {
+                sender.sendMessage(prefix + "&7- &f" + online.getName() + " &7-> &b" + sidebar.deviceIconName(online)
+                        + " &7(" + hooks.deviceOs(online.getUniqueId()) + "/" + hooks.inputMode(online.getUniqueId()) + ")");
+            }
             return true;
         }
         if (args.length >= 1 && args[0].equalsIgnoreCase("reload")) {

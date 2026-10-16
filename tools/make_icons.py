@@ -46,7 +46,7 @@ PALETTES = {
               "H": (120, 70, 10, 255), "S": (240, 165, 0, 255), "W": (255, 255, 255, 255)},
     "windows": {"D": (0, 90, 140, 255), "B": (0, 173, 239, 255), "L": (140, 220, 255, 255)},
     "android": {"D": (60, 90, 20, 255), "G": (164, 198, 57, 255), "L": (210, 235, 150, 255),
-                "K": (25, 25, 35, 255)},
+                "K": (25, 25, 35, 255), "W": (255, 255, 255, 255)},
     "apple": {"D": (90, 95, 110, 255), "W": (240, 242, 245, 255), "S": (190, 196, 205, 255),
               "G": (96, 200, 90, 255)},
     "device": {"D": (50, 55, 70, 255), "C": (90, 200, 235, 255), "F": (120, 128, 145, 255), "K": (30, 32, 40, 255), "L": (200, 240, 255, 255),
@@ -204,36 +204,36 @@ ICONS = {
     "E009": ("windows", [
         "................",
         "................",
-        "..LLLL..LLLL....",
-        "..LLLL..LLLL....",
-        "..BBBB..BBBB....",
-        "..BBBB..BBBB....",
+        ".DDDD..DDDDDD...",
+        ".DBBBD.DBBBBBD..",
+        ".DBBBD.DBBBBBD..",
+        ".DBBBD.DBBBBBD..",
+        ".DDDDD.DDDDDDD..",
         "................",
-        "..BBBB..BBBB....",
-        "..BBBB..BBBB....",
-        "..BBBB..BBBB....",
-        "..DDDD..DDDD....",
-        "................",
-        "................",
+        ".DDDDD.DDDDDDD..",
+        ".DBBBD.DBBBBBD..",
+        ".DBBBD.DBBBBBD..",
+        ".DBBBD.DBBBBBD..",
+        ".DDDDD.DDDDDDD..",
         "................",
         "................",
         "................",
     ]),
     "E00A": ("android", [
-        "................",
-        "....D......D....",
-        ".....D....D.....",
+        "..D..........D..",
+        "...D........D...",
         "....DDDDDDDD....",
-        "...DGGGGGGGGD...",
-        "..DGKGGGGGGKGD..",
-        "..DGGGGGGGGGGD..",
-        ".DDDGGGGGGDDD...",
-        ".D.DGGGGGGD.D...",
-        "...DGGGGGGD.....",
-        "...DGGGGGGD.....",
-        "...DDD..DDD.....",
-        "................",
-        "................",
+        "..DDGGGGGGGGDD..",
+        ".DGGWWGGGGWWGGD.",
+        ".DGGWWGGGGWWGGD.",
+        ".DGGGGGGGGGGGGD.",
+        "DDDGGGGGGGGDDD..",
+        "D.DDGGGGGGDD.D..",
+        "D..DGGGGGGD..D..",
+        "....DGGGGGD.....",
+        "....DGGGGGD.....",
+        "....DDD.DDD.....",
+        "....DD...DD.....",
         "................",
         "................",
     ]),
@@ -260,9 +260,9 @@ ICONS = {
         "................",
         "...DDDDDDDDDD...",
         "..DFFFFFFFFFFD..",
-        ".DFFKFFFFCCFCD..",
-        ".DFKKKFFFFCCCFD.",
-        ".DFFKFFFFFFFFFF.",
+        ".DFFKFFFFFCCDCD.",
+        ".DFKKKFFCCCCCCD.",
+        ".DFFKFFFFFCCDCD.",
         "..DFFFFFFFFFFD..",
         "...DDDDDDDDDD...",
         "................",
@@ -292,16 +292,16 @@ ICONS = {
         "................",
     ]),
     "E00E": ("kbmouse", [
+        ".........DDDD...",
+        "........DWWBBD..",
+        "........DWWBBD..",
+        "........DWWBBD..",
+        ".........DDDD...",
         "................",
-        ".........DDD....",
-        "........DWBBD...",
-        "........DWWBD...",
-        ".........DDD....",
-        "................",
-        ".DDDDDDDDDDDDD..",
-        ".DWDWDWDWDWDWD..",
-        ".DWWWWWWWWWWWD..",
-        ".DDDDDDDDDDDDD..",
+        ".DDDDDDDDDDDDDD.",
+        ".DWDWDWDWDWDWDD.",
+        ".DWWWWWWWWWWWWD.",
+        ".DDDDDDDDDDDDDD.",
         "................",
         "................",
         "................",
@@ -317,6 +317,7 @@ LABELS_RU = {
     "windows": "ПК (Windows)", "android": "Android", "apple": "iPhone (iOS)", "device": "Другое устройство",
     "coins": "Стопка монет", "kbmouse": "Клавиатура+мышь",
 }
+DEVICE_CODES = {"E009", "E00A", "E00B", "E00C", "E00E"}  # windows/android/apple/device/kbmouse
 CELL = 16   # ячейка на листе 256x256 (как ванильный шрифт Bedrock)
 OFF = 4     # иконка 8x8 по центру ячейки 16x16: в Bedrock глиф крупнее букв, 13x13 было слишком много
 
@@ -452,8 +453,12 @@ def main():
         img = render(rows, name)
         rendered[code] = (name, img)
         idx = int(code[1:], 16)
-        small = img.resize((8, 8), Image.NEAREST)
-        sheet.paste(small, ((idx % 16) * CELL + OFF, (idx // 16) * CELL + OFF), small)
+        if code in DEVICE_CODES:  # значки устройств — в ник над головой, там надо покрупнее
+            big = img.resize((12, 12), Image.NEAREST)
+            sheet.paste(big, ((idx % 16) * CELL + 2, (idx // 16) * CELL + 2), big)
+        else:
+            small = img.resize((8, 8), Image.NEAREST)
+            sheet.paste(small, ((idx % 16) * CELL + OFF, (idx // 16) * CELL + OFF), small)
         img.save(PREVIEW / "icons" / f"{code[1:]}_{name}.png")
         img.resize((256, 256), Image.NEAREST).save(PREVIEW / "icons" / f"{code[1:]}_{name}_x16.png")
     strip = make_title_strip()

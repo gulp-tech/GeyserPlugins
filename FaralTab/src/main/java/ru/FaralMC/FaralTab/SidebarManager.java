@@ -276,8 +276,13 @@ public final class SidebarManager {
             norm = os;
         }
         boolean mobileOs = norm.equals("ANDROID") || norm.equals("IOS");
-        if (input.equals("KEYBOARD_MOUSE") && (mobileOs || norm.equals("UNKNOWN"))) {
+        boolean keyboard = input.contains("KEYBOARD");
+        if (keyboard && (mobileOs || norm.equals("UNKNOWN"))) {
             return norm.equals("UNKNOWN") ? "windows" : "kbmouse";
+        }
+        if (os.contains("XBOX") || os.contains("SONY") || os.contains("PLAYSTATION") || os.contains("PS4")
+                || os.contains("PS5") || os.contains("NX") || os.contains("SWITCH") || os.contains("NINTENDO")) {
+            return "device"; // консоли — геймпад
         }
         if (norm.equals("WINDOWS")) {
             return "windows";
@@ -288,7 +293,7 @@ public final class SidebarManager {
         if (norm.equals("IOS")) {
             return "apple";
         }
-        if (input.equals("KEYBOARD_MOUSE")) {
+        if (keyboard) {
             return "windows";
         }
         return "device";

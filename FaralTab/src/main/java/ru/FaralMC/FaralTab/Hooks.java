@@ -38,6 +38,9 @@ public final class Hooks {
     private Method fgIsFloodgatePlayer;
     private Method fgGetPlayer;
 
+    private Object geyserApi;        // GeyserApi (запасной источник устройства)
+    private Method geyserConnectionByUuid;
+
     private Method papiSetPlaceholders; // PlaceholderAPI.setPlaceholders (static)
     private boolean papiTried;
 
@@ -47,6 +50,7 @@ public final class Hooks {
         initLuckPerms();
         initPlayerPoints();
         initFloodgate();
+        initGeyser();
     }
 
     // ---------------------------------------------------------------- Vault
@@ -256,14 +260,98 @@ public final class Hooks {
      * FloodgatePlayer.getDeviceOs() возвращает enum org.geysermc.geyser.configuration.DeviceOs.
      */
     public String deviceOs(UUID uuid) {
-        String os = floodgateEnum(uuid, "getDeviceOs");
-        return os == null ? "UNKNOWN" : os;
+        String os = floodgateDeviceOs(uuid);
+        if (os == null || os.isBlank() || os.equals("UNKNOWN")) {
+            String g = geyserEnum(uuid, "deviceOs", "getDeviceOs");
+            if (g != null && !g.isBlank()) {
+                os = g; // Floodgate не ответил — берём напрямую из Geyser
+            }
+        }
+        return os == null || os.isBlank() ? "UNKNOWN" : os;
+    }
+
+    /** Сырое значение Floodgate (для /faraltab debug). */
+    public String floodgateDeviceOs(UUID uuid) {
+        return floodgateEnum(uuid, "getDeviceOs");
+    }
+
+    /** Сырое значение Geyser (для /faraltab debug). */
+    public String geyserDeviceOs(UUID uuid) {
+        return geyserEnum(uuid, "deviceOs", "getDeviceOs");
+    }
+
+    public String geyserInputMode(UUID uuid) {
+        return geyserEnum(uuid, "inputMode", "getInputMode");
+    }
+
+    /** Подключение Geyser напрямую: GeyserApi.api().connectionByUuid(uuid), оттуда deviceOs/inputMode. */
+    private void initGeyser() {
+        Plugin geyser = Bukkit.getPluginManager().getPlugin("Geyser-Spigot");
+        if (geyser == null) {
+            geyser = Bukkit.getPluginManager().getPlugin("Geyser");
+        }
+        if (geyser == null) {
+            return;
+        }
+        try {
+            Class<?> apiClass = Class.forName("org.geysermc.geyser.api.GeyserApi", true, geyser.getClass().getClassLoader());
+            Method api = findMethod(apiClass, "api");
+            geyserApi = api == null ? null : api.invoke(null);
+            if (geyserApi != null) {
+                geyserConnectionByUuid = findMethod(geyserApi.getClass(), "connectionByUuid", UUID.class);
+                if (geyserConnectionByUuid == null) {
+                    geyserConnectionByUuid = findMethod(geyserApi.getClass(), "playerByUuid", UUID.class);
+                }
+                if (geyserConnectionByUuid != null) {
+                    log.info("Geyser подключён (запасной источник устройства игрока)");
+                }
+            }
+        } catch (Throwable t) {
+            log.warning("Geyser hook: " + t.getMessage());
+        }
+    }
+
+    private String geyserEnum(UUID uuid, String... getters) {
+        if (geyserApi == null || geyserConnectionByUuid == null) {
+            return null;
+        }
+        try {
+            Object connection = geyserConnectionByUuid.invoke(geyserApi, uuid);
+            if (connection == null) {
+                return null;
+            }
+            for (String getter : getters) {
+                Method m = findMethod(connection.getClass(), getter);
+                if (m == null) {
+                    continue;
+                }
+                Object v = m.invoke(connection);
+                if (v == null) {
+                    continue;
+                }
+                try {
+                    Method nameMethod = v.getClass().getMethod("name");
+                    return String.valueOf(nameMethod.invoke(v)).toUpperCase(java.util.Locale.ROOT);
+                } catch (Throwable ignored) {
+                    return v.toString().toUpperCase(java.util.Locale.ROOT);
+                }
+            }
+            return null;
+        } catch (Throwable t) {
+            return null;
+        }
     }
 
     /** Режим ввода Bedrock-клиента: KEYBOARD_MOUSE, TOUCH, CONTROLLER, VR, UNKNOWN. */
     public String inputMode(UUID uuid) {
         String mode = floodgateEnum(uuid, "getInputMode");
-        return mode == null ? "UNKNOWN" : mode;
+        if (mode == null || mode.isBlank() || mode.equals("UNKNOWN")) {
+            String g = geyserEnum(uuid, "inputMode", "getInputMode");
+            if (g != null && !g.isBlank()) {
+                mode = g;
+            }
+        }
+        return mode == null || mode.isBlank() ? "UNKNOWN" : mode;
     }
 
     /** Модель устройства из Floodgate (для диагностики), может быть пустой. */

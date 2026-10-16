@@ -94,9 +94,9 @@ public final class NametagManager {
             if (!team.hasEntry(player.getName())) {
                 team.addEntry(player.getName());
             }
-            if (changed) {
-                team.prefix(prefixComponent);
-            }
+            // ставим всегда: у позже зашедшего игрока новый борд, и без этого
+            // его команды остались бы вообще без значка устройства
+            team.prefix(prefixComponent);
         }
 
         // Bedrock (Geyser): неймтег над головой берётся из display/list имени — дублируем туда.
