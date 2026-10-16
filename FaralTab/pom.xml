@@ -6,7 +6,7 @@
 
     <groupId>ru.FaralMC</groupId>
     <artifactId>FaralTab</artifactId>
-    <version>1.12.0</version>
+    <version>1.12.1</version>
     <packaging>jar</packaging>
     <name>FaralTab</name>
     <description>Компактный скорборд (таб) для Geyser/Floodgate сервера FaralMC: монеты (Vault), осколки (PlayerPoints), привилегия, У/С, время в игре + кастомные иконки из Bedrock-ресурспака.</description>
@@ -17,6 +17,9 @@
         <!-- Purpur 26.2 публикуется как 26.2.build.<номер>-stable (номер растёт с каждым билдом).
              CI сам подставляет актуальный номер из maven-metadata, локально можно: mvn package -Dpurpur.version=... -->
         <purpur.version>26.2.build.2632-stable</purpur.version>
+        <!-- Координаты API: по умолчанию Purpur, CI при недоступности подставит Paper API. -->
+        <api.groupId>org.purpurmc.purpur</api.groupId>
+        <api.artifactId>purpur-api</api.artifactId>
     </properties>
 
     <repositories>
@@ -36,8 +39,8 @@
 
     <dependencies>
         <dependency>
-            <groupId>org.purpurmc.purpur</groupId>
-            <artifactId>purpur-api</artifactId>
+            <groupId>${api.groupId}</groupId>
+            <artifactId>${api.artifactId}</artifactId>
             <version>${purpur.version}</version>
             <scope>provided</scope>
         </dependency>
