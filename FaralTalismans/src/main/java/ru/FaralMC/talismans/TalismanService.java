@@ -34,7 +34,6 @@ public final class TalismanService {
     private final FaralTalismans plugin;
     private final NamespacedKey idKey;
     private final Map<String, Talisman> talismans = new LinkedHashMap<>();
-    private final Map<java.util.UUID, java.util.Set<String>> previousActive = new HashMap<>();
 
     public TalismanService(FaralTalismans plugin) {
         this.plugin = plugin;
@@ -228,9 +227,6 @@ public final class TalismanService {
         return result;
     }
 
-    public void forget(Player player) {
-        previousActive.remove(player.getUniqueId());
-    }
 
     // ------------------------------------------------------------------ активность
     /** Талисманы, которые прямо сейчас работают у игрока (каждый — только в своём месте, как на FunTime). */
@@ -306,7 +302,6 @@ public final class TalismanService {
                 }
             }
         }
-        notifyChanges(player, active);
         if (plugin.getConfig().getBoolean("settings.show-actionbar", false) && !active.isEmpty()) {
             StringBuilder sb = new StringBuilder();
             for (Talisman t : active) {
@@ -316,57 +311,6 @@ public final class TalismanService {
                 sb.append(t.displayName());
             }
             player.sendActionBar(component(TextUtil.color(sb.toString())));
-        }
-    }
-
-    /** Сообщить игроку, что талисман включился/выключился (тексты и звук — в config.yml). */
-    private void notifyChanges(Player player, List<Talisman> active) {
-        if (!plugin.getConfig().getBoolean("settings.notify-on-change", true)) {
-            previousActive.put(player.getUniqueId(), idsOf(active));
-            return;
-        }
-        java.util.Set<String> now = idsOf(active);
-        java.util.Set<String> before = previousActive.put(player.getUniqueId(), now);
-        if (before == null) {
-            return; // первый скан после входа — без спама
-        }
-        for (Talisman t : active) {
-            if (!before.contains(t.id())) {
-                send(player, "messages.activated", t);
-                playSound(player, "settings.sound-activated");
-            }
-        }
-        for (Talisman t : all()) {
-            if (before.contains(t.id()) && !now.contains(t.id())) {
-                send(player, "messages.deactivated", t);
-                playSound(player, "settings.sound-deactivated");
-            }
-        }
-    }
-
-    private java.util.Set<String> idsOf(List<Talisman> list) {
-        java.util.Set<String> ids = new java.util.HashSet<>();
-        for (Talisman t : list) {
-            ids.add(t.id());
-        }
-        return ids;
-    }
-
-    private void send(Player player, String path, Talisman t) {
-        String text = plugin.getConfig().getString(path, "");
-        if (text != null && !text.isEmpty()) {
-            player.sendMessage(component(TextUtil.color(text.replace("{talisman}", t.displayName()))));
-        }
-    }
-
-    private void playSound(Player player, String path) {
-        String sound = plugin.getConfig().getString(path, "");
-        if (sound == null || sound.isEmpty()) {
-            return;
-        }
-        try {
-            player.playSound(player.getLocation(), sound.toLowerCase(Locale.ROOT), 0.7f, 1.2f);
-        } catch (Throwable ignored) {
         }
     }
 

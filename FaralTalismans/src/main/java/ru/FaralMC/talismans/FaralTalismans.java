@@ -81,16 +81,6 @@ public final class FaralTalismans extends JavaPlugin implements Listener, Comman
             if (slot >= rows * 9) {
                 break;
             }
-            boolean active = service.activeTalismans(player).contains(t);
-            ItemStack item = service.createItem(t, 1);
-            org.bukkit.inventory.meta.ItemMeta meta = item.getItemMeta();
-            List<Component> lore = new ArrayList<>(meta.lore() == null ? List.of() : meta.lore());
-            lore.add(TalismanService.component(TextUtil.color("")));
-            lore.add(TalismanService.component(TextUtil.color(active
-                    ? getConfig().getString("menu.status-active", "&aАктивен")
-                    : getConfig().getString("menu.status-inactive", "&7Не активен (нет в нужном слоте)"))));
-            meta.lore(lore);
-            item.setItemMeta(meta);
             inv.setItem(slot++, item);
         }
         player.openInventory(inv);
@@ -127,7 +117,6 @@ public final class FaralTalismans extends JavaPlugin implements Listener, Comman
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
         service.clearAttributes(event.getPlayer());
-        service.forget(event.getPlayer());
     }
 
     // ------------------------------------------------------------------ команды

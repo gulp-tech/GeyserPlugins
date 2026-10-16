@@ -32,15 +32,16 @@ messages:
   received: "&aВыдан предмет: {item}"
   banned: "&cЗдесь этот предмет запрещён."
   cooldown: "&cПодожди ещё &f{seconds} сек. &c({item}&c)"
+  trap-used: "&aТрапка поставлена!"
   no-target: "&7Рядом никого нет."
-  trap-used: "&aТрапка на &f{player}&a!"
   trapped-you: "&#FF6B6BТы в трапке игрока {player}!"
   trap-ended: "&7Трапка рассыпалась."
   trap-unbreakable: "&cТрапку нельзя сломать."
   trap-no-place: "&cВ трапке нельзя ставить блоки."
   dust-used: "&aЯвная пыль: подсвечено игроков — &f{count}"
+  revealed-you: "&#FFE082Тебя раскрыла явная пыль!"
   disorient-used: "&aДезориентация: задет игроков — &f{count}"
-  lom-used: "&aСпавнер добыт (моб: &f{mob}&a), лом потрачен."
+  lom-used: "&aСпавнер добыт (пустой, без моба), лом потрачен."
 
 # ------------------------------------------------------------
 #  ПРЕДМЕТЫ. kind — что предмет делает:
@@ -57,13 +58,11 @@ items:
     kind: TRAP
     enabled: true
     display-name: "&#B388FFТрапка"
-    material: CRYING_OBSIDIAN
+    material: NETHERITE_SCRAP
     glow: true
     lore:
-      - "&7ПКМ: клетка 3×3 вокруг ближайшего"
-      - "&7игрока. Сломать её и ставить блоки"
-      - "&7внутри нельзя."
-    range: 12              # в каком радиусе ищем жертву
+      - "&7ПКМ: трапка появляется там,"                     
+      - "&7где ты стоишь. Клетка 3×3, внутри пусто."
     duration-seconds: 20   # сколько держится клетка
     cooldown-seconds: 45
     sound: "block.crying_obsidian.place"
@@ -132,19 +131,20 @@ items:
     kind: LOM
     enabled: true
     display-name: "&#FFB340Лом спавнеров"
-    material: IRON_PICKAXE
-    glow: true
+    material: GOLDEN_PICKAXE
+    glow: false
     lore:
-      - "&7Сломай им спавнер — заберёшь его"
-      - "&7с тем же мобом. Лом одноразовый."
-    spawner-item-name: "&#FFB340Спавнер &7({mob})"
+      - "&7Сломай ей спавнер — заберёшь его,"
+      - "&7но пустой: моб не сохранится."
+      - "&7Кирка одноразовая."
+    spawner-item-name: "&#FFB340Спавнер"
     recipe:
       enabled: true
       shape:
         - "III"
         - " S "
         - " S "
-      ingredients: {I: IRON_INGOT, S: STICK}
+      ingredients: {I: GOLD_INGOT, S: STICK}
 
   # ---------------- Зелья (работают и в запретных зонах) ----------------
   # amplifier: 0 = уровень I, 2 = уровень III. duration — секунды.

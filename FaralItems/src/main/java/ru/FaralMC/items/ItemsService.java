@@ -55,6 +55,7 @@ public final class ItemsService implements Listener {
     private final Map<UUID, Map<String, Long>> cooldowns = new HashMap<>();
     private final List<Trap> traps = new ArrayList<>();
     private final Map<String, Trap> trapBlocks = new HashMap<>(); // "world:x,y,z" -> трапка
+    private final Map<UUID, Long> revealed = new HashMap<>(); // подсвеченные явной пылью: uuid -> конец (мс)
 
     private static final class Trap {
         UUID owner;
@@ -71,6 +72,17 @@ public final class ItemsService implements Listener {
         this.idKey = new NamespacedKey(plugin, "item_id");
         load();
         registerRecipes();
+        // пока пыль действует: повторно выпитый инвиз не прячет, свечение держится
+        Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+            long now = System.currentTimeMillis();
+            revealed.entrySet().removeIf(e -> e.getValue() <= now);
+            for (UUID uuid : revealed.keySet()) {
+                Player p = Bukkit.getPlayer(uuid);
+                if (p != null && p.isOnline()) {
+                    p.removePotionEffect(PotionEffectType.INVISIBILITY);
+                }
+            }
+        }, 10L, 10L);
     }
 
     // ------------------------------------------------------------------ загрузка
@@ -297,26 +309,9 @@ public final class ItemsService implements Listener {
 
     // ------------------------------------------------------------------ трапка
     private boolean useTrap(Player user, CustomItem item) {
-        double range = item.num("range", 12);
-        Player target = null;
-        double best = range * range;
-        for (Player other : user.getWorld().getPlayers()) {
-            if (other.equals(user) || other.isDead() || isBanned(other.getLocation()) || trappedPlayer(other.getUniqueId())) {
-                continue;
-            }
-            double dist = other.getLocation().distanceSquared(user.getLocation());
-            if (dist < best) {
-                best = dist;
-                target = other;
-            }
-        }
-        if (target == null) {
-            msg(user, "no-target", item);
-            return false;
-        }
-        buildTrap(user, target, item);
-        msg(user, "trap-used", item, "{player}", target.getName());
-        msg(target, "trapped-you", item, "{player}", user.getName());
+        // Трапка появляется там, где стоит игрок (как на FunTime): клетка 3x3 вокруг него.
+        buildTrap(user, item);
+        msg(user, "trap-used", item);
         playSound(user, item.str("sound", "block.crying_obsidian.place"));
         return true;
     }
@@ -330,8 +325,8 @@ public final class ItemsService implements Listener {
         return false;
     }
 
-    private void buildTrap(Player owner, Player target, CustomItem item) {
-        Location base = target.getLocation();
+    private void buildTrap(Player owner, CustomItem item) {
+        Location base = owner.getLocation();
         int bx = base.getBlockX();
         int by = base.getBlockY();
         int bz = base.getBlockZ();
@@ -343,7 +338,7 @@ public final class ItemsService implements Listener {
 
         Trap trap = new Trap();
         trap.owner = owner.getUniqueId();
-        trap.target = target.getUniqueId();
+        trap.target = owner.getUniqueId();
         trap.world = base.getWorld().getName();
         trap.minX = bx - 1; trap.maxX = bx + 1;
         trap.minZ = bz - 1; trap.maxZ = bz + 1;
@@ -361,20 +356,39 @@ public final class ItemsService implements Listener {
                 }
             }
         }
+        // внутри пусто: центральный столб очищаем (блоки вернутся, когда трапка рассыплется)
+        for (int y = by; y <= by + 2; y++) {
+            setTrapBlock(trap, base.getWorld().getBlockAt(bx, y, bz), Material.AIR);
+        }
         setTrapBlock(trap, base.getWorld().getBlockAt(bx, by + 3, bz), light);
         traps.add(trap);
+
+        // кто оказался внутри вместе с хозяином — тот тоже в трапке
+        for (Player other : base.getWorld().getPlayers()) {
+            if (other.equals(owner) || other.isDead()) {
+                continue;
+            }
+            Location loc = other.getLocation();
+            if (loc.getBlockX() >= trap.minX && loc.getBlockX() <= trap.maxX
+                    && loc.getBlockY() >= trap.minY && loc.getBlockY() <= trap.maxY
+                    && loc.getBlockZ() >= trap.minZ && loc.getBlockZ() <= trap.maxZ) {
+                msg(other, "trapped-you", item, "{player}", owner.getName());
+            }
+        }
 
         long durationTicks = (long) item.num("duration-seconds", 20) * 20L;
         trap.task = Bukkit.getScheduler().runTaskLater(plugin, () -> endTrap(trap, true), durationTicks);
     }
 
     private void setTrapBlock(Trap trap, Block block, Material material) {
-        if (block.isLiquid() || !block.isPassable() && !block.getType().isAir()) {
-            return; // не трогаем твёрдый ландшафт: клетка встанет по воздуху/растениям
+        if (block.getType() == Material.BEDROCK) {
+            return; // бедрок не трогаем
         }
-        if (block.getType() == material) {
-            return;
+        if (trapBlocks.containsKey(key(block.getLocation()))) {
+            return; // блок другой трапки
         }
+        // Запоминаем ВСЁ, что меняем (включая очистку внутренности), —
+        // когда трапка рассыплется, территория восстановится блок в блок.
         trap.changed.put(block.getLocation(), block.getBlockData().clone());
         trapBlocks.put(key(block.getLocation()), trap);
         block.setType(material, false);
@@ -462,6 +476,8 @@ public final class ItemsService implements Listener {
             }
             other.removePotionEffect(PotionEffectType.INVISIBILITY);
             other.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, glowingSeconds * 20, 0, true, false, true));
+            revealed.put(other.getUniqueId(), System.currentTimeMillis() + glowingSeconds * 1000L);
+            msg(other, "revealed-you", item);
             found++;
         }
         playSound(user, item.str("sound", "entity.firework_rocket.launch"));
@@ -524,25 +540,13 @@ public final class ItemsService implements Listener {
             event.setCancelled(true); // в запретной зоне лом не работает и спавнер не теряется
             return;
         }
-        org.bukkit.entity.EntityType mob = null;
-        if (block.getState() instanceof CreatureSpawner) {
-            mob = ((CreatureSpawner) block.getState()).getSpawnedType();
-        }
+        // Моба спавнер НЕ сохраняет: выпадает обычный пустой спавнер.
         event.setDropItems(false);
         event.setExpToDrop(0);
         ItemStack spawnerItem = new ItemStack(Material.SPAWNER);
-        ItemMeta meta = spawnerItem.getItemMeta();
-        String mobName = mob == null ? "" : mob.name();
-        meta.displayName(component(TextUtil.color(item.str("spawner-item-name", "&#FFB340Спавнер")
-                .replace("{mob}", mobName))));
-        if (meta instanceof BlockStateMeta && mob != null) {
-            BlockStateMeta bsm = (BlockStateMeta) meta;
-            if (bsm.getBlockState() instanceof CreatureSpawner) {
-                ((CreatureSpawner) bsm.getBlockState()).setSpawnedType(mob);
-                bsm.setBlockState(bsm.getBlockState());
-            }
-        }
-        spawnerItem.setItemMeta(meta);
+        ItemMeta spawnerMeta = spawnerItem.getItemMeta();
+        spawnerMeta.displayName(component(TextUtil.color(item.str("spawner-item-name", "&#FFB340Спавнер"))));
+        spawnerItem.setItemMeta(spawnerMeta);
         consumeMainHand(player); // лом одноразовый
         Bukkit.getScheduler().runTask(plugin, () -> {
             block.setType(Material.AIR, false);
@@ -551,7 +555,7 @@ public final class ItemsService implements Listener {
                 player.getWorld().dropItemNaturally(player.getLocation(), drop);
             }
         });
-        msg(player, "lom-used", item, "{mob}", mobName);
+        msg(player, "lom-used", item);
         event.setCancelled(true);
     }
 

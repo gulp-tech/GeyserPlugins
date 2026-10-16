@@ -32,11 +32,6 @@ settings:
   # Цвета плюсов и минусов в лоре.
   stat-plus-color: "&a"
   stat-minus-color: "&c"
-  # Писать в чат, что талисман включился/выключился.
-  notify-on-change: true
-  # Звуки включения/выключения ("" = без звука).
-  sound-activated: "entity.player.levelup"
-  sound-deactivated: "block.note_block.bass"
   # Частицы эффектов (на Bedrock их не видно, лучше выкл).
   effect-particles: false
   # Показывать активные талисманы над хотбаром.
@@ -71,8 +66,6 @@ effect-names:
 menu:
   title: "&#C86BFFТалисманы"
   rows: 4
-  status-active: "&aРаботает"
-  status-inactive: "&7Не работает (нужен в левой руке)"
 
 messages:
   prefix: "&#C86BFFFaralMC &8» &f"
@@ -81,8 +74,6 @@ messages:
   player-not-found: "&cИгрок не найден."
   not-found: "&cТакого талисмана нет. Список: &f/talisman list"
   received: "&aТы получил талисман! Глянь &f/talismans"
-  activated: "&aТалисман заработал: {talisman}"
-  deactivated: "&7Талисман перестал работать: {talisman}"
 
 # ------------------------------------------------------------
 #  ТАЛИСМАНЫ
