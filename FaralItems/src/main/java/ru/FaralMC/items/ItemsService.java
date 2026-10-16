@@ -50,6 +50,7 @@ public final class ItemsService implements Listener {
 
     private final FaralItems plugin;
     private final WGHook worldGuard;
+    private final WEHook worldEdit;
     private final NamespacedKey idKey;
     private final Map<String, CustomItem> items = new LinkedHashMap<>();
     private final Map<UUID, Map<String, Long>> cooldowns = new HashMap<>();
@@ -70,9 +71,20 @@ public final class ItemsService implements Listener {
     public ItemsService(FaralItems plugin) {
         this.plugin = plugin;
         this.worldGuard = new WGHook(plugin.getLogger());
+        this.worldEdit = new WEHook(plugin.getLogger());
         this.idKey = new NamespacedKey(plugin, "item_id");
         load();
         registerRecipes();
+        // Своя схематика трапки: plugins/FaralItems/schematics/<файл из конфига trapka.schematic>
+        java.io.File schemDir = new java.io.File(plugin.getDataFolder(), "schematics");
+        schemDir.mkdirs();
+        CustomItem trapItem = items.get("trapka");
+        if (trapItem != null && trapItem.num("use-schematic", 1) > 0) {
+            String fileName = trapItem.str("schematic", "trap.schem");
+            if (!worldEdit.loadSchematic(new java.io.File(schemDir, fileName))) {
+                plugin.getLogger().info("Схематики " + fileName + " нет — трапка будет встроенной клеткой 3x3.");
+            }
+        }
         // пока пыль действует: повторно выпитый инвиз не прячет, метка над головой следует за игроком
         Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             long now = System.currentTimeMillis();
@@ -338,6 +350,10 @@ public final class ItemsService implements Listener {
     }
 
     private void buildTrap(Player owner, CustomItem item) {
+        buildCageTrap(owner, item);
+    }
+
+    private void buildCageTrap(Player owner, CustomItem item) {
         Location base = owner.getLocation();
         int bx = base.getBlockX();
         int by = base.getBlockY();
@@ -388,6 +404,64 @@ public final class ItemsService implements Listener {
             }
         }
 
+        long durationTicks = (long) item.num("duration-seconds", 20) * 20L;
+        trap.task = Bukkit.getScheduler().runTaskLater(plugin, () -> endTrap(trap, true), durationTicks);
+    }
+
+    private void notifyTrappedInside(Trap trap, Player owner, CustomItem item) {
+        for (Player other : owner.getWorld().getPlayers()) {
+            if (other.equals(owner) || other.isDead()) {
+                continue;
+            }
+            Location loc = other.getLocation();
+            if (loc.getBlockX() >= trap.minX && loc.getBlockX() <= trap.maxX
+                    && loc.getBlockY() >= trap.minY && loc.getBlockY() <= trap.maxY
+                    && loc.getBlockZ() >= trap.minZ && loc.getBlockZ() <= trap.maxZ) {
+                msg(other, "trapped-you", item, "{player}", owner.getName());
+            }
+        }
+    }
+
+    /** Трапка из своей схематики WorldEdit: центр схемы — там, где стоит игрок. */
+    private void buildSchematicTrap(Player owner, CustomItem item) {
+        Location base = owner.getLocation();
+        int bx = base.getBlockX();
+        int by = base.getBlockY();
+        int bz = base.getBlockZ();
+
+        Trap trap = new Trap();
+        trap.owner = owner.getUniqueId();
+        trap.target = owner.getUniqueId();
+        trap.world = base.getWorld().getName();
+        trap.minX = bx + worldEdit.relMinX(); trap.maxX = bx + worldEdit.relMaxX();
+        trap.minZ = bz + worldEdit.relMinZ(); trap.maxZ = bz + worldEdit.relMaxZ();
+        trap.minY = by + worldEdit.relMinY(); trap.maxY = by + worldEdit.relMaxY();
+
+        // Снапшот всей территории под схематику: после конца восстановим блок в блок.
+        for (int x = trap.minX; x <= trap.maxX; x++) {
+            for (int y = trap.minY; y <= trap.maxY; y++) {
+                for (int z = trap.minZ; z <= trap.maxZ; z++) {
+                    Block block = base.getWorld().getBlockAt(x, y, z);
+                    if (trapBlocks.containsKey(key(block.getLocation()))) {
+                        continue;
+                    }
+                    trap.changed.put(block.getLocation(), block.getBlockData().clone());
+                }
+            }
+        }
+        if (!worldEdit.paste(base)) {
+            // не вставилось — откатываемся на встроенную клетку
+            trap.changed.clear();
+            buildCageTrap(owner, item);
+            return;
+        }
+        // Защита: блоки схематики нельзя ломать, пока трапка жива.
+        for (int[] cell : worldEdit.nonAirCells()) {
+            Location loc = new Location(base.getWorld(), bx + cell[0], by + cell[1], bz + cell[2]);
+            trapBlocks.put(key(loc), trap);
+        }
+        traps.add(trap);
+        notifyTrappedInside(trap, owner, item);
         long durationTicks = (long) item.num("duration-seconds", 20) * 20L;
         trap.task = Bukkit.getScheduler().runTaskLater(plugin, () -> endTrap(trap, true), durationTicks);
     }
@@ -592,9 +666,12 @@ public final class ItemsService implements Listener {
                 .replace("{mob}", mobName))));
         if (spawnerMeta instanceof BlockStateMeta && mob != null) {
             BlockStateMeta bsm = (BlockStateMeta) spawnerMeta;
+            // ВАЖНО: getBlockState() звать один раз и править именно этот объект,
+            // иначе моб не запишется в предмет и поставленный спавнер будет пустым.
             if (bsm.getBlockState() instanceof CreatureSpawner) {
-                ((CreatureSpawner) bsm.getBlockState()).setSpawnedType(mob);
-                bsm.setBlockState(bsm.getBlockState());
+                CreatureSpawner spawnerState = (CreatureSpawner) bsm.getBlockState();
+                spawnerState.setSpawnedType(mob);
+                bsm.setBlockState(spawnerState);
             }
         }
         spawnerItem.setItemMeta(spawnerMeta);

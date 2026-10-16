@@ -66,6 +66,13 @@ items:
     duration-seconds: 20   # сколько держится клетка
     cooldown-seconds: 45
     sound: "block.crying_obsidian.place"
+    # СВОЯ СХЕМАТИКА (WorldEdit): положи .schem в plugins/FaralItems/schematics/
+    # Как сделать: построй трапку, выдели её //pos1 //pos2, встань В СЕРЕДИНУ,
+    # напиши //copy и //schem save trap — файл появится в plugins/WorldEdit/schematics/,
+    # перекинь его в папку выше. Центр схематики = где ты стоял при //copy:
+    # именно туда трапка и встанет при активации. Нет файла — встроенная клетка 3x3.
+    use-schematic: true
+    schematic: "trap.schem"
     # Скин клетки (красиво и по-игровому):
     blocks:
       floor: POLISHED_BLACKSTONE
@@ -111,16 +118,16 @@ items:
     glow: true
     lore:
       - "&7ПКМ: враги в радиусе получают:"
-      - "&cСлепота 2 сек, Тошнота 5 сек,"
-      - "&cЗамедление III 4 сек + разворот экрана."
+      - "&cСлепота 5 сек, Тошнота 5 сек,"
+      - "&cЗамедление III 5 сек + разворот экрана."
     radius: 9
     cooldown-seconds: 45
     rotate-view: 1         # 1 — разворачивать экран врагам, 0 — нет
     sound: "entity.wither.ambient"
     effects:
-      - {type: BLINDNESS, amplifier: 0, duration: 2}
+      - {type: BLINDNESS, amplifier: 0, duration: 5}
       - {type: NAUSEA, amplifier: 0, duration: 5}
-      - {type: SLOWNESS, amplifier: 2, duration: 4}
+      - {type: SLOWNESS, amplifier: 2, duration: 5}
     recipe:
       enabled: true
       shape:
