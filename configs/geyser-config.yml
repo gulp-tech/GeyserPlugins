@@ -1,0 +1,119 @@
+# --------------------------------
+# Geyser Configuration File — настроен под FaralMC
+#
+# Сервер ТОЛЬКО для Bedrock: Purpur 26.2 + Geyser + Floodgate + FaralTab.
+# Куда класть: plugins/Geyser-Spigot/config.yml (перезаписать этот файл), рестарт сервера.
+#
+# ВАЖНО перед запуском:
+#  1) В server.properties Purpur должно быть online-mode=false (иначе Floodgate не пустит).
+#  2) Плагин Floodgate должен стоять в plugins/ (он сам сгенерирует key.pem,
+#     Geyser подхватит ключ автоматически — в консоли появится "Loaded Floodgate key").
+#  3) FaralResourcePack.mcpack лежит в plugins/Geyser-Spigot/packs/ (force-resource-packs ниже уже true).
+# --------------------------------
+
+# Network settings for the Bedrock listener
+bedrock:
+  address: 0.0.0.0
+  # Порт для Bedrock-игроков (телефоны/планшеты/Win10). Игроки добавляют сервер с этим портом.
+  port: 19132
+  webrtc-port: 0
+  transport: raknet
+  clone-remote-port: false
+  signaling:
+    mode: builtin
+    builtin:
+      advertise-addresses: []
+      https:
+        certificate: ''
+        private-key: ''
+        password: ''
+    nxs:
+      advertise-addresses: []
+      token: ''
+      endpoint: https://agent.warden.cloud
+
+# Network settings for the Java server connection
+java:
+  # БЫЛО online — СТАЛО floodgate. С online Bedrock-игрок обязан иметь Java-аккаунт,
+  # а у нас вход только по Floodgate (Xbox-аккаунт Bedrock), Java-игроков FaralTab кикает.
+  auth-type: floodgate
+
+# MOTD settings
+motd:
+  # FaralMC синим — как заголовок при входе. §b = голубой, §l = жирный.
+  primary-motd: "§b§lFaralMC"
+  secondary-motd: "§fТолько Bedrock §9• §fзаходи играть!"
+  # false — Bedrock видит именно MOTD выше, а не MOTD из Purpur.
+  passthrough-motd: false
+  max-players: 100
+  passthrough-player-counts: true
+  integrated-ping-passthrough: true
+  ping-passthrough-interval: 3
+
+# Gameplay options that affect Bedrock players
+gameplay:
+  # Имя сервера в меню паузы и настройках Bedrock.
+  server-name: "§bFaralMC"
+  cooldown-type: crosshair
+  command-suggestions: true
+  show-coordinates: true
+  disable-bedrock-scaffolding: false
+  nether-roof-workaround: false
+  emotes-enabled: true
+  block-legacy-codes: true
+  unusable-space-block: minecraft:barrier
+  enable-custom-content: true
+  # Уже было true — оставляем: без FaralResourcePack.mcpack на сервер НЕ зайти (иконки скорборда обязательны).
+  force-resource-packs: true
+  # Встроенный пак Geyser (кулдаун-индикатор и пр.), при нём force-resource-packs включён автоматически.
+  enable-integrated-pack: true
+  forward-player-ping: false
+  xbox-achievements-enabled: false
+  max-visible-custom-skulls: 128
+  custom-skull-render-distance: 32
+
+# Русская локаль Geyser по умолчанию (сообщения о входе/ошибках Bedrock-игрокам).
+default-locale: ru_ru
+
+log-player-ip-addresses: true
+
+# Список нужен только для auth-type: online. У нас floodgate — список пустой.
+saved-user-logins: []
+
+pending-authentication-timeout: 120
+notify-on-new-bedrock-update: true
+
+# Advanced configuration options. These usually do not need modifications.
+advanced:
+  cache-images: 0
+  # Наш скорборд обновляется раз в 2 секунды — порога в 20 пакетов/сек хватает с запасом.
+  scoreboard-packet-threshold: 20
+  add-team-suggestions: true
+  resource-pack-urls: []
+  # Файл ключа Floodgate. Если Floodgate стоит плагином на этом же сервере — подхватится сам,
+  # путь можно не трогать.
+  floodgate-key-file: key.pem
+  java:
+    use-haproxy-protocol: false
+    use-direct-connection: true
+    disable-compression: true
+  bedrock:
+    broadcast-port: 0
+    compression-level: 6
+    use-haproxy-protocol: false
+    haproxy-protocol-whitelisted-ips: []
+    signaling-trusted-proxies: []
+    use-waterdogpe-forwarding: false
+    mtu: 1400
+    validate-bedrock-login: true
+  nxs:
+    assisted-joins: false
+    connection-checks: true
+    stun-discovery: true
+    location: {}
+    deregister-on-shutdown: false
+
+debug-mode: false
+
+# Do not change!
+config-version: 10
