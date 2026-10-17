@@ -397,14 +397,19 @@ public final class ItemsService implements Listener {
         trap.owner = owner.getUniqueId();
         trap.target = owner.getUniqueId();
         trap.world = base.getWorld().getName();
+        int floorDepth = Math.max(1, (int) item.num("floor-depth", 2)); // пол в 2 блока вниз — не прокопаться
         trap.minX = bx - 1; trap.maxX = bx + 1;
         trap.minZ = bz - 1; trap.maxZ = bz + 1;
-        trap.minY = by - 1; trap.maxY = by + 3;
+        trap.minY = by - floorDepth; trap.maxY = by + 3;
 
         for (int x = bx - 1; x <= bx + 1; x++) {
             for (int z = bz - 1; z <= bz + 1; z++) {
                 boolean corner = Math.abs(x - bx) == 1 && Math.abs(z - bz) == 1;
                 setTrapBlock(trap, base.getWorld().getBlockAt(x, by - 1, z), corner ? corners : floor);
+                // дополнительные слои пола вниз (ломать их тоже нельзя — они в trapBlocks)
+                for (int d = 2; d <= floorDepth; d++) {
+                    setTrapBlock(trap, base.getWorld().getBlockAt(x, by - d, z), corner ? corners : floor);
+                }
                 setTrapBlock(trap, base.getWorld().getBlockAt(x, by + 3, z), corner ? corners : ceiling);
                 for (int y = by; y <= by + 2; y++) {
                     if (Math.abs(x - bx) == 1 || Math.abs(z - bz) == 1) {
@@ -512,10 +517,46 @@ public final class ItemsService implements Listener {
             buildCageTrap(owner, item);
             return;
         }
+        // Пол нельзя прокопать: дорисовываем под низом схематики ещё слои пола вниз.
+        int floorDepth = Math.max(0, (int) item.num("floor-depth", 2));
+        if (floorDepth > 0) {
+            thickenFloorDown(trap, base.getWorld(), floorDepth);
+        }
         traps.add(trap);
         notifyTrappedInside(trap, owner, item);
         long durationTicks = (long) item.num("duration-seconds", 20) * 20L;
         trap.task = Bukkit.getScheduler().runTaskLater(plugin, () -> endTrap(trap, true), durationTicks);
+    }
+
+    /**
+     * Под низом трапки дорисовывает depth слоёв пола (тем же блоком, что и низ
+     * колонки) и защищает их от ломания. Территория снимется в trap.changed —
+     * после конца трапки всё вернётся как было.
+     */
+    private void thickenFloorDown(Trap trap, org.bukkit.World world, int depth) {
+        int bottom = trap.minY;
+        for (int x = trap.minX; x <= trap.maxX; x++) {
+            for (int z = trap.minZ; z <= trap.maxZ; z++) {
+                Block floorBlock = world.getBlockAt(x, bottom, z);
+                if (floorBlock.getType() == Material.AIR || floorBlock.getType() == Material.BEDROCK) {
+                    continue; // в этой колонке пола нет (пролёт схематики) или бедрок
+                }
+                BlockData floorData = floorBlock.getBlockData().clone();
+                for (int d = 1; d <= depth; d++) {
+                    Block block = world.getBlockAt(x, bottom - d, z);
+                    if (block.getType() == Material.BEDROCK) {
+                        continue;
+                    }
+                    if (trapBlocks.containsKey(key(block.getLocation()))) {
+                        continue; // блок другой трапки
+                    }
+                    trap.changed.putIfAbsent(block.getLocation(), block.getBlockData().clone());
+                    block.setBlockData(floorData.clone(), false);
+                    trapBlocks.put(key(block.getLocation()), trap);
+                }
+            }
+        }
+        trap.minY = bottom - depth;
     }
 
     private void setTrapBlock(Trap trap, Block block, Material material) {

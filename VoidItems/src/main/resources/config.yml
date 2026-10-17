@@ -64,6 +64,7 @@ items:
       - "&7ПКМ: трапка появляется там,"                     
       - "&7где ты стоишь. Клетка 3×3, внутри пусто."
     duration-seconds: 20   # сколько держится клетка
+    floor-depth: 2         # толщина пола ВНИЗ в блоках: пол нельзя сломать и под ним не прокопаться
     cooldown-seconds: 45
     sound: "block.crying_obsidian.place"
     # СВОЯ СХЕМАТИКА (WorldEdit): положи .schem в plugins/VoidItems/schematics/
