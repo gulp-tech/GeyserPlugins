@@ -52,6 +52,7 @@ public final class ItemsService implements Listener {
     private final WGHook worldGuard;
     private final WEHook worldEdit;
     private final NamespacedKey idKey;
+    private final NamespacedKey spawnerMobKey; // моб внутри выпавшего из лома спавнера (страховка к BlockStateMeta)
     private final Map<String, CustomItem> items = new LinkedHashMap<>();
     private final Map<UUID, Map<String, Long>> cooldowns = new HashMap<>();
     private final List<Trap> traps = new ArrayList<>();
@@ -73,6 +74,7 @@ public final class ItemsService implements Listener {
         this.worldGuard = new WGHook(plugin.getLogger());
         this.worldEdit = new WEHook(plugin.getLogger());
         this.idKey = new NamespacedKey(plugin, "item_id");
+        this.spawnerMobKey = new NamespacedKey(plugin, "spawner_mob");
         load();
         registerRecipes();
         // Своя схематика трапки: plugins/FaralItems/schematics/<файл из конфига trapka.schematic>
@@ -350,7 +352,12 @@ public final class ItemsService implements Listener {
     }
 
     private void buildTrap(Player owner, CustomItem item) {
-        buildCageTrap(owner, item);
+        // Своя схематика WorldEdit в приоритете; нет файла — встроенная клетка 3x3.
+        if (worldEdit.hasSchematic()) {
+            buildSchematicTrap(owner, item);
+        } else {
+            buildCageTrap(owner, item);
+        }
     }
 
     private void buildCageTrap(Player owner, CustomItem item) {
@@ -449,16 +456,30 @@ public final class ItemsService implements Listener {
                 }
             }
         }
-        if (!worldEdit.paste(base)) {
-            // не вставилось — откатываемся на встроенную клетку
+        // Ставим блоки схематики обычным Bukkit: снапшот выше уже снят,
+        // после конца трапки территория вернётся блок в блок.
+        boolean placedAny = false;
+        for (WEHook.SchematicCell cell : worldEdit.cells()) {
+            Block block = base.getWorld().getBlockAt(bx + cell.x, by + cell.y, bz + cell.z);
+            if (block.getType() == Material.BEDROCK) {
+                continue; // бедрок не трогаем
+            }
+            try {
+                block.setBlockData(Bukkit.createBlockData(cell.blockData), false);
+            } catch (IllegalArgumentException e) {
+                continue; // блок из схематики не поддерживается этой версией сервера
+            }
+            placedAny = true;
+            // Защита: не-воздушные блоки схематики нельзя ломать, пока трапка жива.
+            if (!cell.air) {
+                trapBlocks.put(key(block.getLocation()), trap);
+            }
+        }
+        if (!placedAny) {
+            // ничего не поставилось (чужая версия блоков) — откатываемся на встроенную клетку
             trap.changed.clear();
             buildCageTrap(owner, item);
             return;
-        }
-        // Защита: блоки схематики нельзя ломать, пока трапка жива.
-        for (int[] cell : worldEdit.nonAirCells()) {
-            Location loc = new Location(base.getWorld(), bx + cell[0], by + cell[1], bz + cell[2]);
-            trapBlocks.put(key(loc), trap);
         }
         traps.add(trap);
         notifyTrappedInside(trap, owner, item);
@@ -664,15 +685,21 @@ public final class ItemsService implements Listener {
         String mobName = mob == null ? "" : mob.name();
         spawnerMeta.displayName(component(TextUtil.color(item.str("spawner-item-name", "&#FFB340Спавнер")
                 .replace("{mob}", mobName))));
-        if (spawnerMeta instanceof BlockStateMeta && mob != null) {
-            BlockStateMeta bsm = (BlockStateMeta) spawnerMeta;
-            // ВАЖНО: getBlockState() звать один раз и править именно этот объект,
-            // иначе моб не запишется в предмет и поставленный спавнер будет пустым.
-            if (bsm.getBlockState() instanceof CreatureSpawner) {
-                CreatureSpawner spawnerState = (CreatureSpawner) bsm.getBlockState();
-                spawnerState.setSpawnedType(mob);
-                bsm.setBlockState(spawnerState);
+        if (mob != null) {
+            // Способ 1 (ванильный): моб в состоянии блока внутри предмета.
+            // ВАЖНО: getBlockState() звать ровно один раз и править именно этот объект.
+            if (spawnerMeta instanceof BlockStateMeta) {
+                BlockStateMeta bsm = (BlockStateMeta) spawnerMeta;
+                org.bukkit.block.BlockState state = bsm.getBlockState();
+                if (state instanceof CreatureSpawner) {
+                    ((CreatureSpawner) state).setSpawnedType(mob);
+                    bsm.setBlockState(state);
+                }
             }
+            // Способ 2 (страховка): моб в скрытой метке предмета.
+            // При постановке onPlaceSpawner вернёт его в блок, даже если
+            // сервер при выдаче предмета потерял ванильное состояние блока.
+            spawnerMeta.getPersistentDataContainer().set(spawnerMobKey, PersistentDataType.STRING, mob.name());
         }
         spawnerItem.setItemMeta(spawnerMeta);
         consumeMainHand(player); // лом одноразовый
@@ -685,6 +712,37 @@ public final class ItemsService implements Listener {
         });
         msg(player, "lom-used", item, "{mob}", mobName);
         event.setCancelled(true);
+    }
+
+    /** Спавнер из лома поставили: вернуть моба из скрытой метки предмета в блок. */
+    @EventHandler
+    public void onPlaceSpawner(BlockPlaceEvent event) {
+        if (event.getBlockPlaced().getType() != Material.SPAWNER) {
+            return;
+        }
+        ItemStack hand = event.getItemInHand();
+        if (hand == null || !hand.hasItemMeta()) {
+            return;
+        }
+        String mobName = hand.getItemMeta().getPersistentDataContainer()
+                .get(spawnerMobKey, PersistentDataType.STRING);
+        if (mobName == null || mobName.isEmpty()) {
+            return;
+        }
+        org.bukkit.entity.EntityType mob;
+        try {
+            mob = org.bukkit.entity.EntityType.valueOf(mobName);
+        } catch (IllegalArgumentException e) {
+            return;
+        }
+        org.bukkit.block.BlockState state = event.getBlockPlaced().getState();
+        if (state instanceof CreatureSpawner) {
+            CreatureSpawner spawner = (CreatureSpawner) state;
+            if (spawner.getSpawnedType() != mob) {
+                spawner.setSpawnedType(mob);
+                spawner.update(true, false);
+            }
+        }
     }
 
     private void playSound(Player player, String sound) {

@@ -4,7 +4,7 @@ main: ru.FaralMC.items.FaralItems
 api-version: '26.2'
 author: FaralMC
 description: "Кастомные предметы как на FunTime: трапка, явная пыль, дезориентация, лом спавнеров, особые зелья. Всё настраивается в config.yml."
-softdepend: [WorldGuard]
+softdepend: [WorldGuard, WorldEdit, FastAsyncWorldEdit]
 commands:
   items:
     description: "Меню кастомных предметов (только админы): клик выдаёт предмет"
