@@ -1,4 +1,4 @@
-package ru.FaralMC.items;
+package ru.voidpe.items;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
@@ -48,7 +48,7 @@ import java.util.concurrent.ThreadLocalRandom;
 /** Загрузка предметов из конфига, выдача, рецепты, вся механика (трапка, пыль, дезориентация, лом). */
 public final class ItemsService implements Listener {
 
-    private final FaralItems plugin;
+    private final VoidItems plugin;
     private final WGHook worldGuard;
     private final WEHook worldEdit;
     private final NamespacedKey idKey;
@@ -69,7 +69,7 @@ public final class ItemsService implements Listener {
         BukkitTask task;
     }
 
-    public ItemsService(FaralItems plugin) {
+    public ItemsService(VoidItems plugin) {
         this.plugin = plugin;
         this.worldGuard = new WGHook(plugin.getLogger());
         this.worldEdit = new WEHook(plugin.getLogger());
@@ -77,14 +77,32 @@ public final class ItemsService implements Listener {
         this.spawnerMobKey = new NamespacedKey(plugin, "spawner_mob");
         load();
         registerRecipes();
-        // Своя схематика трапки: plugins/FaralItems/schematics/<файл из конфига trapka.schematic>
+        // Своя схематика трапки: plugins/VoidItems/schematics/<файл из конфига trapka.schematic>
         java.io.File schemDir = new java.io.File(plugin.getDataFolder(), "schematics");
         schemDir.mkdirs();
         CustomItem trapItem = items.get("trapka");
         if (trapItem != null && trapItem.num("use-schematic", 1) > 0) {
             String fileName = trapItem.str("schematic", "trap.schem");
-            if (!worldEdit.loadSchematic(new java.io.File(schemDir, fileName))) {
-                plugin.getLogger().info("Схематики " + fileName + " нет — трапка будет встроенной клеткой 3x3.");
+            java.io.File schemFile = new java.io.File(schemDir, fileName);
+            if (!schemFile.isFile()) {
+                // Имя не совпало — берём любой .schem из папки, чтобы не падало из-за опечатки.
+                java.io.File[] found = schemDir.listFiles((dir, name) -> {
+                    String n = name.toLowerCase(java.util.Locale.ROOT);
+                    return n.endsWith(".schem") || n.endsWith(".schematic");
+                });
+                if (found != null && found.length > 0) {
+                    java.util.Arrays.sort(found);
+                    schemFile = found[0];
+                    plugin.getLogger().info("Файла " + fileName + " нет, использую схематику из папки: " + schemFile.getName());
+                }
+            }
+            if (schemFile.isFile()) {
+                if (!worldEdit.loadSchematic(schemFile)) {
+                    plugin.getLogger().warning("Схематика " + schemFile.getName() + " не загрузилась (см. выше) — трапка будет встроенной клеткой 3x3.");
+                }
+            } else {
+                plugin.getLogger().info("Схематики в " + schemDir.getPath() + " нет — трапка будет встроенной клеткой 3x3. "
+                        + "Положи туда .schem от //schem save, если нужна своя.");
             }
         }
         // пока пыль действует: повторно выпитый инвиз не прячет, метка над головой следует за игроком
@@ -286,7 +304,7 @@ public final class ItemsService implements Listener {
         for (int i = 0; i + 1 < pairs.length; i += 2) {
             text = text.replace(pairs[i], pairs[i + 1]);
         }
-        String prefix = TextUtil.color(plugin.getConfig().getString("messages.prefix", "&#C86BFFFaralMC &8» &f"));
+        String prefix = TextUtil.color(plugin.getConfig().getString("messages.prefix", "&#C86BFFVoidPE &8» &f"));
         player.sendMessage(component(prefix + TextUtil.color(text)));
     }
 

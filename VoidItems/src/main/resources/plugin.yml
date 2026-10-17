@@ -1,8 +1,8 @@
-name: FaralItems
+name: VoidItems
 version: '${project.version}'
-main: ru.FaralMC.items.FaralItems
+main: ru.voidpe.items.VoidItems
 api-version: '26.2'
-author: FaralMC
+author: VoidPE
 description: "Кастомные предметы как на FunTime: трапка, явная пыль, дезориентация, лом спавнеров, особые зелья. Всё настраивается в config.yml."
 softdepend: [WorldGuard, WorldEdit, FastAsyncWorldEdit]
 commands:
@@ -11,6 +11,6 @@ commands:
     usage: /items
     aliases: [fit, предметы]
 permissions:
-  faralitems.admin:
+  voiditems.admin:
     description: Команда /items и выдача кастомных предметов
     default: op

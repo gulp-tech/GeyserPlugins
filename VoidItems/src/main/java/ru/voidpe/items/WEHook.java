@@ -1,4 +1,4 @@
-package ru.FaralMC.items;
+package ru.voidpe.items;
 
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
@@ -13,7 +13,7 @@ import java.util.logging.Logger;
 
 /**
  * Мягкая привязка к WorldEdit/FAWE через рефлексию: загрузка схематики трапки
- * (plugins/FaralItems/schematics/*.schem).
+ * (plugins/VoidItems/schematics/*.schem).
  *
  * Схематика при загрузке сразу превращается в список блоков Bukkit
  * (смещение от центра + строка BlockData), поэтому сама вставка идёт
@@ -55,7 +55,7 @@ public final class WEHook {
             we = Bukkit.getPluginManager().getPlugin("FastAsyncWorldEdit");
         }
         if (we == null) {
-            log.warning("WorldEdit не найден: своя схематика трапки работать не будет (включится встроенная клетка).");
+            log.info("WorldEdit не найден — схематика трапки будет читаться встроенным парсером .schem.");
             return;
         }
         try {
@@ -97,7 +97,28 @@ public final class WEHook {
 
     /** Загрузить .schem файл и превратить его в блоки Bukkit. @return true, если готова. */
     public boolean loadSchematic(File file) {
-        if (!available() || file == null || !file.exists()) {
+        if (file == null || !file.exists()) {
+            return false;
+        }
+        // 1) Встроенный парсер .schem — WorldEdit для загрузки не нужен.
+        try {
+            SchemParser.Parsed parsed = SchemParser.parse(file);
+            cells.clear();
+            cells.addAll(parsed.cells);
+            relMinX = parsed.relMinX; relMinY = parsed.relMinY; relMinZ = parsed.relMinZ;
+            relMaxX = parsed.relMaxX; relMaxY = parsed.relMaxY; relMaxZ = parsed.relMaxZ;
+            loaded = true;
+            log.info("Схематика трапки загружена: " + file.getName()
+                    + " (размер " + parsed.width + "x" + parsed.height + "x" + parsed.length
+                    + ", блоков: " + parsed.cells.size()
+                    + (parsed.skippedBlocks > 0 ? ", пропущено неизвестных серверу: " + parsed.skippedBlocks : "") + ")");
+            return true;
+        } catch (Throwable t) {
+            log.warning("Встроенный парсер не прочитал " + file.getName() + ": " + t.getMessage()
+                    + (available() ? " — пробую через WorldEdit..." : ""));
+        }
+        // 2) Запасной путь — через WorldEdit/FAWE, если он стоит.
+        if (!available()) {
             return false;
         }
         try {

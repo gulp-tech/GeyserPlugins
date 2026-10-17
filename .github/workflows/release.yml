@@ -53,8 +53,8 @@ jobs:
             fi
           fi
 
-      - name: Собрать плагин FaralItems
-        working-directory: FaralItems
+      - name: Собрать плагин VoidItems
+        working-directory: VoidItems
         run: |
           build() { mvn -B -DskipTests "$@" package > mvn.log 2>&1; }
           if ! build -Dpurpur.version="$PURPUR_VERSION"; then
@@ -88,12 +88,12 @@ jobs:
         run: |
           JAR=$(ls FaralTab/target/FaralTab-*.jar | head -1)
           TAL=$(ls FaralTalismans/target/FaralTalismans-*.jar | head -1)
-          ITM=$(ls FaralItems/target/FaralItems-*.jar | head -1)
+          ITM=$(ls VoidItems/target/VoidItems-*.jar | head -1)
           echo "Файлы релиза: $JAR + $TAL + $ITM + FaralResourcePack.mcpack"
           gh release create "${{ inputs.tag || github.ref_name }}" "$JAR" "$TAL" "$ITM" FaralResourcePack.mcpack \
             --target "$GITHUB_SHA" \
-            --title "FaralMC ${{ inputs.tag || github.ref_name }} — FaralTab + ресурспак" \
-            --notes "Bedrock-only сервер FaralMC (Purpur 26.2 + Geyser + Floodgate).
+            --title "VoidPE ${{ inputs.tag || github.ref_name }} — FaralTab + ресурспак" \
+            --notes "Bedrock-only сервер VoidPE (Purpur 26.2 + Geyser + Floodgate).
 
           **FaralTab-1.1.0.jar** — плагин скорборда в \`plugins/\` (нужны Vault, PlayerPoints, LuckPerms, Geyser, Floodgate).
           **FaralResourcePack.mcpack** — Bedrock-ресурспак с иконками в \`plugins/Geyser-Spigot/packs/\` + \`force-resource-packs: true\` в конфиге Geyser.

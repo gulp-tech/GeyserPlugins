@@ -4,12 +4,12 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>ru.FaralMC</groupId>
-    <artifactId>FaralItems</artifactId>
-    <version>1.3.1</version>
+    <groupId>ru.voidpe</groupId>
+    <artifactId>VoidItems</artifactId>
+    <version>1.4.0</version>
     <packaging>jar</packaging>
-    <name>FaralItems</name>
-    <description>Кастомные предметы как на FunTime для Bedrock-сервера FaralMC: трапка, явная пыль, дезориентация, лом спавнеров, особые зелья. Запретные зоны — миры и регионы WorldGuard. Всё настраивается в config.yml.</description>
+    <name>VoidItems</name>
+    <description>Кастомные предметы как на FunTime для Bedrock-сервера VoidPE: трапка, явная пыль, дезориентация, лом спавнеров, особые зелья. Запретные зоны — миры и регионы WorldGuard. Всё настраивается в config.yml.</description>
 
     <properties>
         <java.version>25</java.version>
@@ -45,7 +45,7 @@
 
     <build>
         <defaultGoal>clean package</defaultGoal>
-        <finalName>FaralItems-${project.version}</finalName>
+        <finalName>VoidItems-${project.version}</finalName>
         <resources>
             <resource>
                 <directory>src/main/resources</directory>

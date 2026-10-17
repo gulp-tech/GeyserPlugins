@@ -1,4 +1,4 @@
-package ru.FaralMC.items;
+package ru.voidpe.items;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;

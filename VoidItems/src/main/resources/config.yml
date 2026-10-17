@@ -1,5 +1,5 @@
 # ============================================================
-#  FaralItems — кастомные предметы как на FunTime (FaralMC, Bedrock)
+#  VoidItems — кастомные предметы как на FunTime (VoidPE, Bedrock)
 #
 #  Предметы: трапка, явная пыль, дезориентация, лом спавнеров,
 #  особые зелья (сила 3 / скорость 3 и т.д.). Всё настраивается:
@@ -27,7 +27,7 @@ banned:
   worldguard-regions: []
 
 messages:
-  prefix: "&#C86BFFFaralMC &8» &f"
+  prefix: "&#C86BFFVoidPE &8» &f"
   no-permission: "&cТолько для админов."
   received: "&aВыдан предмет: {item}"
   banned: "&cЗдесь этот предмет запрещён."
@@ -66,7 +66,7 @@ items:
     duration-seconds: 20   # сколько держится клетка
     cooldown-seconds: 45
     sound: "block.crying_obsidian.place"
-    # СВОЯ СХЕМАТИКА (WorldEdit): положи .schem в plugins/FaralItems/schematics/
+    # СВОЯ СХЕМАТИКА (WorldEdit): положи .schem в plugins/VoidItems/schematics/
     # Как сделать: построй трапку, выдели её //pos1 //pos2, встань В СЕРЕДИНУ,
     # напиши //copy и //schem save trap — файл появится в plugins/WorldEdit/schematics/,
     # перекинь его в папку выше. Центр схематики = где ты стоял при //copy:

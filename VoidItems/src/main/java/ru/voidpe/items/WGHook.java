@@ -1,4 +1,4 @@
-package ru.FaralMC.items;
+package ru.voidpe.items;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;

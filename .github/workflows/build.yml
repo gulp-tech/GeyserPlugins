@@ -50,8 +50,8 @@ jobs:
             fi
           fi
 
-      - name: Собрать плагин FaralItems
-        working-directory: FaralItems
+      - name: Собрать плагин VoidItems
+        working-directory: VoidItems
         run: |
           build() { mvn -B -DskipTests "$@" package > mvn.log 2>&1; }
           if ! build -Dpurpur.version="$PURPUR_VERSION"; then
@@ -82,7 +82,7 @@ jobs:
       - name: Артефакты (плагин + пак)
         uses: actions/upload-artifact@v4
         with:
-          name: FaralMC-release
+          name: VoidPE-release
           path: |
             FaralTab/target/FaralTab-*.jar
             FaralTalismans/target/FaralTalismans-*.jar
