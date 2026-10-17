@@ -106,7 +106,7 @@ python3 tools/make_icons.py       # перегенерация иконок и �
 ```
 FaralTab/               скорборд и ник (Maven, Java 25, api-version 26.2)
 FaralTalismans/         талисманы как на FunTime (Maven, Java 25, api-version 26.2)
-FaralResourcePack/      исходники Bedrock-пака (manifest.json, font/glyph_E0.png)
+VoidResourcePack/      исходники Bedrock-пака (manifest.json, font/glyph_E0.png)
 VoidResourcePack.mcpack  готовый пак для Geyser (папка packs/)
 preview/                превью иконок и мокап скорборда
 tools/                  генераторы иконок и сборщик .mcpack
