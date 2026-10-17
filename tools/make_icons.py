@@ -19,7 +19,7 @@ from PIL import Image, ImageDraw, ImageFont
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-PACK = ROOT / "FaralResourcePack"
+PACK = ROOT / "VoidResourcePack"
 PREVIEW = ROOT / "preview"
 FONT_LOGO = ROOT / "tools" / "fonts" / "MinecraftTen.ttf"
 FONT_GAME = ROOT / "tools" / "fonts" / "Minecraftia.ttf"

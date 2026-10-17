@@ -86,4 +86,4 @@ jobs:
           path: |
             FaralTab/target/FaralTab-*.jar
             FaralTalismans/target/FaralTalismans-*.jar
-            FaralResourcePack.mcpack
+            VoidResourcePack.mcpack

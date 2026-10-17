@@ -1,12 +1,12 @@
-# FaralResourcePack — иконки скорборда для Geyser (Bedrock)
+# VoidResourcePack — иконки скорборда для Geyser (Bedrock)
 
-Готовый файл: **`FaralResourcePack.mcpack`** в корне репозитория (или в релизах GitHub).
+Готовый файл: **`VoidResourcePack.mcpack`** в корне репозитория (или в релизах GitHub).
 
 ## Что внутри (пак v1.4.0)
 
 - `font/glyph_E0.png` — иконки скорборда: чёткий пиксель-арт 16×16 в майнкрафт-стиле
   на стандартном листе 256×256 ужаты до 13×13 в ячейке 16×16 — в игре меньше высоты строки.
-- `textures/ui/title.png` — **логотип FaralMC** игровым шрифтом Minecraft (синий градиент, объём, блик,
+- `textures/ui/title.png` — **логотип VoidPE** игровым шрифтом Minecraft (синий градиент, объём, блик,
   чёрная обводка, тень) вместо стандартного MINECRAFT на экране загрузки и главном экране.
 - `pack_icon.png` — иконка пака.
 
@@ -18,7 +18,7 @@
 Bedrock не умеет картинки в скорборде, зато умеет **кастомные глифы шрифта**.
 В паке лежит `font/glyph_E0.png` — лист 256×256 (сетка 16×16 ячеек по 16 px),
 иконки стоят на символах приватной области Unicode `U+E001`–`U+E008`.
-Плагин FaralTab просто вставляет этот один символ в строку скорборда, а Geyser
+Плагин VoidTab просто вставляет этот один символ в строку скорборда, а Geyser
 показывает Bedrock-игроку картинку. **Иконка = 1 символ = высота одной строки**,
 поэтому скорборд не раздувается — как на референсе.
 
@@ -38,7 +38,7 @@ Bedrock не умеет картинки в скорборде, зато уме�
 
 ## Установка на Geyser
 
-1. Положите `FaralResourcePack.mcpack` в **`plugins/Geyser-Spigot/packs/`**
+1. Положите `VoidResourcePack.mcpack` в **`plugins/Geyser-Spigot/packs/`**
    (для standalone-Geyser — в папку `packs/` рядом с конфигом).
 2. Перезапустите сервер (или Geyser). Пак сам предложится Bedrock-игрокам при входе,
    ничего в конфиге Geyser дописывать не нужно — он подхватывает все `.mcpack` из `packs/`.
@@ -50,7 +50,7 @@ Bedrock не умеет картинки в скорборде, зато уме�
 
 ```bash
 python3 tools/make_icons.py     # перерисовать glyph_E0.png и превью (пиксель-арт правится в этом файле)
-python3 tools/build_mcpack.py   # собрать FaralResourcePack.mcpack
+python3 tools/build_mcpack.py   # собрать VoidResourcePack.mcpack
 ```
 
 Новая иконка: добавьте рисунок 16×16 в `tools/make_icons.py` (следующий свободный код —
