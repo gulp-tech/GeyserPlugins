@@ -99,7 +99,6 @@ items:
       - "&7и теряют невидимость."
     radius: 15
     glowing-seconds: 10
-    marker-text: "&f&l▼"   # белая метка над подсвеченным (видна сквозь блоки)
     cooldown-seconds: 30
     sound: "entity.firework_rocket.launch"
     recipe:

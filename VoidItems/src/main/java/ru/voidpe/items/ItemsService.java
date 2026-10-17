@@ -58,7 +58,6 @@ public final class ItemsService implements Listener {
     private final List<Trap> traps = new ArrayList<>();
     private final Map<String, Trap> trapBlocks = new HashMap<>(); // "world:x,y,z" -> трапка
     private final Map<UUID, Long> revealed = new HashMap<>(); // подсвеченные явной пылью: uuid -> конец (мс)
-    private final Map<UUID, org.bukkit.entity.ArmorStand> markers = new HashMap<>(); // белая метка над подсвеченным
 
     private static final class Trap {
         UUID owner;
@@ -105,25 +104,30 @@ public final class ItemsService implements Listener {
                         + "Положи туда .schem от //schem save, если нужна своя.");
             }
         }
-        // пока пыль действует: повторно выпитый инвиз не прячет, метка над головой следует за игроком
+        // пока пыль действует: повторно выпитый инвиз не прячет, белая обводка (свечение) не гаснет
         Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             long now = System.currentTimeMillis();
-            revealed.entrySet().removeIf(e -> e.getValue() <= now);
-            for (UUID uuid : new ArrayList<>(markers.keySet())) {
-                if (!revealed.containsKey(uuid)) {
-                    removeMarker(uuid);
-                }
-            }
-            for (UUID uuid : revealed.keySet()) {
+            for (UUID uuid : new ArrayList<>(revealed.keySet())) {
+                Long until = revealed.get(uuid);
                 Player p = Bukkit.getPlayer(uuid);
+                if (until == null || until <= now) {
+                    revealed.remove(uuid);
+                    if (p != null) {
+                        p.setGlowing(false);
+                        p.removePotionEffect(PotionEffectType.GLOWING);
+                    }
+                    continue;
+                }
                 if (p == null || !p.isOnline() || p.isDead()) {
-                    removeMarker(uuid);
                     continue;
                 }
                 p.removePotionEffect(PotionEffectType.INVISIBILITY);
-                org.bukkit.entity.ArmorStand marker = markers.get(uuid);
-                if (marker != null && marker.isValid()) {
-                    marker.teleport(p.getLocation().add(0, 2.45, 0));
+                if (!p.isGlowing()) {
+                    p.setGlowing(true);
+                }
+                if (!p.hasPotionEffect(PotionEffectType.GLOWING)) {
+                    int leftTicks = (int) Math.max(20L, (until - now) / 50L);
+                    p.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, leftTicks, 0, true, false, true));
                 }
             }
         }, 4L, 4L);
@@ -447,19 +451,28 @@ public final class ItemsService implements Listener {
         }
     }
 
-    /** Трапка из своей схематики WorldEdit: центр схемы — там, где стоит игрок. */
+    /**
+     * Трапка из своей схематики: ставится МГНОВЕННО и ровно по игроку в момент
+     * нажатия — центр постройки по горизонтали совмещается с блоком, где стоит
+     * игрок (даже на бегу), куда смотрит игрок — не важно. По вертикали низ
+     * схематики от точки //copy сохраняется (схема не прыгает вверх/вниз).
+     */
     private void buildSchematicTrap(Player owner, CustomItem item) {
         Location base = owner.getLocation();
         int bx = base.getBlockX();
         int by = base.getBlockY();
         int bz = base.getBlockZ();
+        // Сдвиг, чтобы геометрический центр схематики встал точно на игрока,
+        // даже если при //copy игрок стоял не по центру своей постройки.
+        int shiftX = (worldEdit.relMinX() + worldEdit.relMaxX()) / 2;
+        int shiftZ = (worldEdit.relMinZ() + worldEdit.relMaxZ()) / 2;
 
         Trap trap = new Trap();
         trap.owner = owner.getUniqueId();
         trap.target = owner.getUniqueId();
         trap.world = base.getWorld().getName();
-        trap.minX = bx + worldEdit.relMinX(); trap.maxX = bx + worldEdit.relMaxX();
-        trap.minZ = bz + worldEdit.relMinZ(); trap.maxZ = bz + worldEdit.relMaxZ();
+        trap.minX = bx + worldEdit.relMinX() - shiftX; trap.maxX = bx + worldEdit.relMaxX() - shiftX;
+        trap.minZ = bz + worldEdit.relMinZ() - shiftZ; trap.maxZ = bz + worldEdit.relMaxZ() - shiftZ;
         trap.minY = by + worldEdit.relMinY(); trap.maxY = by + worldEdit.relMaxY();
 
         // Снапшот всей территории под схематику: после конца восстановим блок в блок.
@@ -478,7 +491,7 @@ public final class ItemsService implements Listener {
         // после конца трапки территория вернётся блок в блок.
         boolean placedAny = false;
         for (WEHook.SchematicCell cell : worldEdit.cells()) {
-            Block block = base.getWorld().getBlockAt(bx + cell.x, by + cell.y, bz + cell.z);
+            Block block = base.getWorld().getBlockAt(bx + cell.x - shiftX, by + cell.y, bz + cell.z - shiftZ);
             if (block.getType() == Material.BEDROCK) {
                 continue; // бедрок не трогаем
             }
@@ -542,9 +555,14 @@ public final class ItemsService implements Listener {
         for (Trap trap : new ArrayList<>(traps)) {
             endTrap(trap, true);
         }
-        for (UUID uuid : new ArrayList<>(markers.keySet())) {
-            removeMarker(uuid);
+        for (UUID uuid : new ArrayList<>(revealed.keySet())) {
+            Player p = Bukkit.getPlayer(uuid);
+            if (p != null) {
+                p.setGlowing(false);
+                p.removePotionEffect(PotionEffectType.GLOWING);
+            }
         }
+        revealed.clear();
     }
 
     private static String key(Location loc) {
@@ -604,36 +622,14 @@ public final class ItemsService implements Listener {
             }
             other.removePotionEffect(PotionEffectType.INVISIBILITY);
             other.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, glowingSeconds * 20, 0, true, false, true));
+            other.setGlowing(true); // белая обводка вокруг игрока (эффект свечения)
             revealed.put(other.getUniqueId(), System.currentTimeMillis() + glowingSeconds * 1000L);
-            spawnMarker(other, item);
             msg(other, "revealed-you", item);
             found++;
         }
         playSound(user, item.str("sound", "entity.firework_rocket.launch"));
         msg(user, "dust-used", item);
         return true;
-    }
-
-    /** Белая метка над подсвеченным игроком: в Bedrock неймтеги видны сквозь блоки — игрока видно через стены. */
-    private void spawnMarker(Player player, CustomItem item) {
-        removeMarker(player.getUniqueId());
-        org.bukkit.entity.ArmorStand marker = (org.bukkit.entity.ArmorStand) player.getWorld()
-                .spawnEntity(player.getLocation().add(0, 2.45, 0), org.bukkit.entity.EntityType.ARMOR_STAND);
-        marker.setVisible(false);
-        marker.setMarker(true);
-        marker.setGravity(false);
-        marker.setInvulnerable(true);
-        marker.setPersistent(false);
-        marker.customName(component(TextUtil.color(item.str("marker-text", "&f&l▼"))));
-        marker.setCustomNameVisible(true);
-        markers.put(player.getUniqueId(), marker);
-    }
-
-    private void removeMarker(UUID uuid) {
-        org.bukkit.entity.ArmorStand marker = markers.remove(uuid);
-        if (marker != null) {
-            marker.remove();
-        }
     }
 
     // ------------------------------------------------------------------ дезориентация
