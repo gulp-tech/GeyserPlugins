@@ -40,8 +40,8 @@ jobs:
               print("PURPUR_VERSION=26.2.build.2632-stable")
           PY
 
-      - name: Собрать плагин FaralTab
-        working-directory: FaralTab
+      - name: Собрать плагин VoidTab
+        working-directory: VoidTab
         run: |
           build() { mvn -B -DskipTests "$@" package > mvn.log 2>&1; }
           if ! build -Dpurpur.version="$PURPUR_VERSION"; then
@@ -86,7 +86,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          JAR=$(ls FaralTab/target/FaralTab-*.jar | head -1)
+          JAR=$(ls VoidTab/target/VoidTab-*.jar | head -1)
           TAL=$(ls FaralTalismans/target/FaralTalismans-*.jar | head -1)
           ITM=$(ls VoidItems/target/VoidItems-*.jar | head -1)
           echo "Файлы релиза: $JAR + $TAL + $ITM + VoidResourcePack.mcpack"

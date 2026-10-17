@@ -37,8 +37,8 @@ jobs:
           PY
           echo "Purpur API: $PURPUR_VERSION"
 
-      - name: Собрать плагин FaralTab
-        working-directory: FaralTab
+      - name: Собрать плагин VoidTab
+        working-directory: VoidTab
         run: |
           build() { mvn -B -DskipTests "$@" package > mvn.log 2>&1; }
           if ! build -Dpurpur.version="$PURPUR_VERSION"; then
@@ -84,6 +84,6 @@ jobs:
         with:
           name: VoidPE-release
           path: |
-            FaralTab/target/FaralTab-*.jar
+            VoidTab/target/VoidTab-*.jar
             FaralTalismans/target/FaralTalismans-*.jar
             VoidResourcePack.mcpack
