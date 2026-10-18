@@ -150,52 +150,65 @@ Hunger:
 Sounds:
   Enabled: true
   ProtocolLibSound: false
-  Delay: entity_tnt_primed
-  Success: entity_generic_explode
+  # https://www.spigotmc.org/wiki/cc-sounds-list/
+  Delay: entity_experience_orb_pickup
+  Success: entity_player_levelup
 
 Titles:
   Enabled: true
+  # Placeholders: %player% %x% %y% %z% %time%
+
   NoDelay:
-    Title: '&#55FFFFТелепортация...'
-    Subtitle: '&8пожалуйста, подождите'
+    Title: '&#55FFFFVoidPE'
+    Subtitle: '&fТелепортация... &7подождите'
     SendMessage: true
+
   Teleport:
     Title: '&#55FFFFВы телепортированы!'
     Subtitle: '&fКоординаты: &#FFD54A%x% %y% %z%'
     SendMessage: true
+
   Delay:
     Title: '&#55FFFFТелепортация'
     Subtitle: '&fЧерез &#FFD54A%time% &fсек. &7Не двигайтесь'
     SendMessage: true
+
   Cancelled:
     Title: '&cRTP отменён'
     Subtitle: '&fВы сдвинулись с места'
     SendMessage: true
+
   Loading:
     Title: '&#55FFFFПоиск места'
     Subtitle: '&7Прогрузка чанков...'
     SendMessage: true
+
   Failed:
     Title: '&cОшибка'
     Subtitle: '&fБезопасное место не найдено'
     SendMessage: true
 
 Particles:
+  # /rtp info particles
   Enabled: true
   Type:
-  - EXPLOSION_NORMAL
+  - FLAME
   - CRIT
-  Shape: EXPLODE
+  - END_ROD
+  # /rtp info shapes: Scan, Teleport, Explode
+  Shape: TELEPORT
 
 Invincible:
   Enabled: true
-  Seconds: 5 # 5 секунд неуязвимости после телепорта
+  Seconds: 5
 
 Potions:
-  Enabled: false # эффекты после RTP не нужны
+  # /rtp info potion_effects. Формат: <зелье>:[длительность_тики]:[уровень]
+  Enabled: true
   Types:
-  - Blindness:60:1
-  - Invisibility:60:1
+  - Blindness:40:1
+  - Invisibility:40:1
+  - Slow_Falling:40:1
 
 Enabled: false
 RequirePermission: false
