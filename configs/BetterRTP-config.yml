@@ -1,0 +1,223 @@
+# BetterRTP — VoidPE: /rtp кидает в мир world2 (выживание)
+
+Language-File: ru.yml
+
+Settings:
+  Respect:
+    MinePlots: false
+    WorldGuard: true # не телепортировать внутрь чужих регионов WorldGuard
+    GriefPrevention: false
+    Towny: false
+    RedProtect: false
+    FactionsUUID: false
+    Lands: false
+    Residence: false
+    KingdomsX: false
+    hClaims: false
+    GriefDefender: false
+    UltimateClaims: false
+    Pueblos: false
+    SaberFactions: false
+    HuskTowns: false
+    FactionsBridge: false
+    CrashClaim: false
+
+  Debugger: false
+  PreloadRadius: 5
+  MaxAttempts: 32
+
+  RtpOnFirstJoin:
+    Enabled: false # новички появляются на спавне (мир spawn), а не рандомно
+    World: spawn
+    SetAsRespawn: false
+
+  Cooldown:
+    Enabled: true
+    LockAfter: 0
+    Time: 300 # кулдаун /rtp — 5 минут
+    PerWorld: false
+
+  Delay:
+    Enabled: true
+    Time: 5 # 5 секунд до телепорта, чтобы не убегали из боя
+    CancelOnMove: true
+
+  Queue:
+    Enabled: true
+
+  DisableUpdater: false
+
+  Logger:
+    Enabled: true
+    LogToConsole: false
+    Format: yyyy-MM-dd HH:mm:ss
+
+Default:
+  UseWorldBorder: false
+  Biomes: []
+  MaxRadius: 5000
+  MinRadius: 100
+  CenterX: 0
+  CenterZ: 0
+  Shape: square
+  MaxY: 320
+  MinY: 0
+  RTPOnDeath: false
+
+BlacklistedBlocks:
+- stationary_water
+- stationary_lava
+- water
+- flowing_water
+- lava
+- flowing_lava
+- cactus
+- leaves
+- leaves_2
+- air
+- void_air
+- bedrock
+- oak_leaves
+- jungle_leaves
+- kelp
+
+DisabledWorlds: []
+
+# Настройки мира выживания world2
+CustomWorlds:
+- world2:
+    UseWorldBorder: false
+    MaxRadius: 5000
+    MinRadius: 100
+    CenterX: 0
+    CenterZ: 0
+    Price: 0
+    Shape: square
+    MaxY: 320
+    MinY: 0
+    Cooldown: 300
+
+# Из любого мира /rtp ведёт в world2
+Overrides:
+- spawn: world2
+- world: world2
+- world_nether: world2
+- world_the_end: world2
+- world2: world2
+
+WorldType:
+- world2: NORMAL
+- spawn: NORMAL
+- world: NORMAL
+- world_nether: NETHER
+- world_the_end: NORMAL
+
+PermissionGroup:
+  Enabled: false
+  Groups:
+  - vip:
+    - Build_World:
+        Priority: 0
+        MaxRadius: 10000
+        MinRadius: 1000
+        Price: 100
+        Cooldown: 500
+    - Survival_World:
+        Priority: 10
+        UseWorldBorder: false
+        MaxRadius: 5000
+        MinRadius: 1000
+        CenterX: 10
+        CenterZ: 10
+        Price: 10
+        MaxY: 320
+        MinY: 0
+  - vip2:
+    - Build_World:
+        MaxRadius: 25000
+        MinRadius: 10000
+        Price: 15
+        Cooldown: 1500
+
+Economy:
+  Enabled: false # /rtp бесплатный
+  Price: 500
+
+Hunger:
+  Enabled: false
+  Honches: 4
+
+Sounds:
+  Enabled: true
+  ProtocolLibSound: false
+  Delay: entity_tnt_primed
+  Success: entity_generic_explode
+
+Titles:
+  Enabled: true
+  NoDelay:
+    Title: '&#55FFFFТелепортация...'
+    Subtitle: '&8пожалуйста, подождите'
+    SendMessage: true
+  Teleport:
+    Title: '&#55FFFFВы телепортированы!'
+    Subtitle: '&fКоординаты: &#FFD54A%x% %y% %z%'
+    SendMessage: true
+  Delay:
+    Title: '&#55FFFFТелепортация'
+    Subtitle: '&fЧерез &#FFD54A%time% &fсек. &7Не двигайтесь'
+    SendMessage: true
+  Cancelled:
+    Title: '&cRTP отменён'
+    Subtitle: '&fВы сдвинулись с места'
+    SendMessage: true
+  Loading:
+    Title: '&#55FFFFПоиск места'
+    Subtitle: '&7Прогрузка чанков...'
+    SendMessage: true
+  Failed:
+    Title: '&cОшибка'
+    Subtitle: '&fБезопасное место не найдено'
+    SendMessage: true
+
+Particles:
+  Enabled: true
+  Type:
+  - EXPLOSION_NORMAL
+  - CRIT
+  Shape: EXPLODE
+
+Invincible:
+  Enabled: true
+  Seconds: 5 # 5 секунд неуязвимости после телепорта
+
+Potions:
+  Enabled: false # эффекты после RTP не нужны
+  Types:
+  - Blindness:60:1
+  - Invisibility:60:1
+
+Enabled: false
+RequirePermission: false
+UseLocationIfAvailable: true
+UseLocationsInSameWorld: true
+
+Locations: []
+
+Config:
+  TimeFormat:
+    Days: '{0} Day(s)'
+    Hours: '{0} Hour(s)'
+    Minutes: '{0} Min(s)'
+    Seconds: '{0} Secs'
+    ZeroAll: None
+    Infinite: Inf
+    Separator:
+      Middle: ', '
+      Last: ' and '
+  CanRTP:
+    Success: '&aYes'
+    NoPermission: '&cNo Permission'
+    Cooldown: '&fCooling Down'
+    Price: '&cNo. &7Reason: &eBankrupt'
+    Hunger: '&cNo. &7Reason: &3Starvation'
