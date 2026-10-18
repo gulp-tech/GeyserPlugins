@@ -32,7 +32,7 @@ bedrock-only:
 # Показывается после загрузки мира, время — в тиках (20 = 1 сек).
 join-title:
   enabled: true
-  title: "<gradient:#55C8FF:#1B6FFF>VoidPE</gradient>"
+  title: "&l<gradient:#55C8FF:#1B6FFF>VoidPE</gradient>"   # &l = жирный (градиент жирность сохраняет)
   subtitle: "&fДобро пожаловать, &#FFA63D{player}&f!"
   fade-in-ticks: 10
   stay-ticks: 70

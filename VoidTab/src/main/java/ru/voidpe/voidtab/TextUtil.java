@@ -43,6 +43,16 @@ public final class TextUtil {
             int[] from = parse(m.group(1));
             int[] to = parse(m.group(2));
             String body = m.group(3);
+            // Жирность: &l перед <gradient> или в начале его текста. Цветовые коды
+            // сбрасывают форматирование, поэтому §l подмешиваем после каждого цвета.
+            boolean bold = false;
+            if (body.startsWith("&l") || body.startsWith("§l")) {
+                bold = true;
+                body = body.substring(2);
+            } else if (sb.toString().endsWith("&l") || sb.toString().endsWith("§l")) {
+                bold = true;
+                sb.setLength(sb.length() - 2);
+            }
             StringBuilder grad = new StringBuilder();
             int len = Math.max(1, body.length());
             for (int i = 0; i < body.length(); i++) {
@@ -50,7 +60,11 @@ public final class TextUtil {
                 int r = (int) Math.round(from[0] + (to[0] - from[0]) * t);
                 int g = (int) Math.round(from[1] + (to[1] - from[1]) * t);
                 int b = (int) Math.round(from[2] + (to[2] - from[2]) * t);
-                grad.append(String.format("&#%02X%02X%02X", r, g, b)).append(body.charAt(i));
+                grad.append(String.format("&#%02X%02X%02X", r, g, b));
+                if (bold) {
+                    grad.append("§l");
+                }
+                grad.append(body.charAt(i));
             }
             m.appendReplacement(sb, Matcher.quoteReplacement(grad.toString()));
         }
