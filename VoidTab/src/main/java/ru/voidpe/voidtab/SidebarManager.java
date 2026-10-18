@@ -372,6 +372,20 @@ public final class SidebarManager {
         return iconChar(groupRaw(player));
     }
 
+    /** Название привилегии для неймтега: groups.<группа>.display, иначе как в скорборде. */
+    public String rankDisplayName(Player player) {
+        String raw = groupRaw(player);
+        String display = plugin.getConfig().getString("groups." + raw + ".display");
+        if (display == null && plugin.getConfig().getBoolean("groups.use-luckperms-display-name", false)) {
+            String[] lp = plugin.hooks().hasLuckPerms() ? plugin.hooks().luckPermsGroup(player.getUniqueId()) : null;
+            if (lp != null) display = lp[1];
+        }
+        if (display == null || display.isBlank()) {
+            display = raw.isEmpty() ? "Игрок" : Character.toUpperCase(raw.charAt(0)) + raw.substring(1);
+        }
+        return display;
+    }
+
     /** Иконка — всегда глиф из Bedrock-ресурспака: сервер только для Bedrock. */
     private String iconChar(String name) {
         String code = plugin.getConfig().getString("icons." + name, "");

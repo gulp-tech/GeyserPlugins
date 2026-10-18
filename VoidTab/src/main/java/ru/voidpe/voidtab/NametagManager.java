@@ -87,6 +87,9 @@ public final class NametagManager {
                 prefix += rankIcon + " ";
             }
         }
+        if (plugin.getConfig().getBoolean("nametag.rank-name", true)) {
+            prefix += TextUtil.color(plugin.sidebar().rankDisplayName(player)) + " ";
+        }
         boolean changed = !prefix.equals(appliedPrefix.get(player.getUniqueId()));
         appliedPrefix.put(player.getUniqueId(), prefix);
 
