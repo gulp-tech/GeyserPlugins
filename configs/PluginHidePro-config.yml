@@ -101,6 +101,8 @@ groups:
       - points
       - voidtab
       - items
+      - skin
+      - skins
       - help
     #The list of commands that will be made visible only in tabcomplete
     tabcomplete:
@@ -137,6 +139,8 @@ groups:
       - points
       - voidtab
       - items
+      - skin
+      - skins
       - help
     #If a player is in two groups, the group with the higher priority number is used
     #The minimum value is 0
