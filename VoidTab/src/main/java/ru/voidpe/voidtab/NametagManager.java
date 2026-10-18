@@ -83,7 +83,7 @@ public final class NametagManager {
         if (plugin.getConfig().getBoolean("nametag.device-icon", true)) {
             String icon = plugin.sidebar().deviceIconChar(player);
             if (!icon.isBlank()) {
-                prefix = icon + " ";
+                prefix += icon + " ";
             }
         }
         boolean changed = !prefix.equals(appliedPrefix.get(player.getUniqueId()));
