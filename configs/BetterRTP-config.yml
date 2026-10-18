@@ -34,7 +34,7 @@ Settings:
   Cooldown:
     Enabled: true
     LockAfter: 0
-    Time: 300 # кулдаун /rtp — 5 минут
+    Time: 15 # кулдаун /rtp — 15 секунд
     PerWorld: false
 
   Delay:
@@ -95,7 +95,7 @@ CustomWorlds:
     Shape: square
     MaxY: 320
     MinY: 0
-    Cooldown: 300
+    Cooldown: 15
 
 # Из любого мира /rtp ведёт в world2
 Overrides:
