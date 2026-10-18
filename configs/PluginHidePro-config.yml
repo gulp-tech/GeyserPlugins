@@ -148,7 +148,47 @@ groups:
     #Read more here https://github.com/Nononitas/Plugin-Hide-Pro/wiki#Group#inheritance
     inherited-groups: []
 
-  # Состав сервера (Хелпер, Модератор, Создатель): видны и доступны ВСЕ команды.
+  # Хелпер: все команды игроков (наследование от default) + модерация по мелочи.
+  # Группа выдаётся правом plhide.group.helper в LuckPerms.
+  helper:
+    commands:
+      - kick
+      - mute
+      - unmute
+      - vanish
+    tabcomplete:
+      - kick
+      - mute
+      - unmute
+      - vanish
+    priority: 5
+    blocked-command-message: "Unknown command. Type \"/help\" for help."
+    inherited-groups:
+      - default
+
+  # Модератор: всё от хелпера (наследование helper -> default) + баны и тюрьма.
+  # Группа выдаётся правом plhide.group.moderator в LuckPerms.
+  moderator:
+    commands:
+      - ban
+      - tempban
+      - banip
+      - unban
+      - jail
+      - invsee
+    tabcomplete:
+      - ban
+      - tempban
+      - banip
+      - unban
+      - jail
+      - invsee
+    priority: 8
+    blocked-command-message: "Unknown command. Type \"/help\" for help."
+    inherited-groups:
+      - helper
+
+  # Создатель: видны и доступны ВСЕ команды.
   # Группа выдаётся правом plhide.group.staff в LuckPerms.
   staff:
     commands:
