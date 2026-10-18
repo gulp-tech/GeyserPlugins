@@ -249,6 +249,12 @@ public final class VoidTab extends JavaPlugin implements Listener, CommandExecut
                     + " &7| Модель=&b" + hooks.deviceModel(tu));
             sender.sendMessage(prefix + "Итог: &b" + hooks.deviceOs(tu) + " &7-> значок &b" + sidebar.deviceIconName(target)
                     + " &7(" + sidebar.deviceName(target) + ") | Префикс ника: '" + nametag.appliedPrefix(tu) + "'");
+            String[] dbgLp = hooks.hasLuckPerms() ? hooks.luckPermsGroup(tu) : null;
+            String dbgRaw = sidebar.groupRaw(target);
+            sender.sendMessage(prefix + "Группа: LuckPerms=&b" + (dbgLp == null ? "null (не подключён/игрок не загружен)" : dbgLp[0])
+                    + " &7| groupRaw=&b" + dbgRaw
+                    + " &7| icons." + dbgRaw + "=&b" + getConfig().getString("icons." + dbgRaw, "<нет в конфиге>")
+                    + " &7| rank-icon=&b" + getConfig().getBoolean("nametag.rank-icon", true));
             sender.sendMessage(prefix + "Все онлайн:");
             for (Player online : Bukkit.getOnlinePlayers()) {
                 sender.sendMessage(prefix + "&7- &f" + online.getName() + " &7-> &b" + sidebar.deviceIconName(online)

@@ -158,6 +158,33 @@ nametag:
 # иначе — display-name группы LuckPerms (если включено ниже), иначе имя группы с большой буквы.
 groups:
   use-luckperms-display-name: false
+
+  default:
+    display: '&#CFCFCFИгрок'
+  strannik:
+    display: '&#CFCFCFСтранник'
+  geroy:
+    display: '&#55FF55Герой'
+  rycar:
+    display: '&#FFFF55Рыцарь'
+  baron:
+    display: '&#FFAA00Барон'
+  lord:
+    display: '&#55FFFFЛорд'
+  knyaz:
+    display: '&#FF55FFКнязь'
+  imperator:
+    display: '<gradient:#FFD93D:#AA00AA>Император</gradient>'
+  youtuber:
+    display: '&#FF5555Ютубер'
+  tiktoker:
+    display: '&#55E6FFТиктокер'
+  helper:
+    display: '&#55FF55Хелпер'
+  moderator:
+    display: '&#5B8CFFМодератор'
+  sozdatel:
+    display: '&#FF5555Создатель'
   default:
     display: "&#7AE582Игрок"
   vip:

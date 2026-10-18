@@ -73,17 +73,18 @@ public final class NametagManager {
         if (!plugin.getConfig().getBoolean("nametag.enabled", true)) {
             return;
         }
+        // Порядок над головой: [устройство] [привилегия] Ник
         String prefix = "";
-        if (plugin.getConfig().getBoolean("nametag.rank-icon", true)) {
-            String rankIcon = plugin.sidebar().rankIconChar(player);
-            if (!rankIcon.isBlank()) {
-                prefix += rankIcon + " ";
-            }
-        }
         if (plugin.getConfig().getBoolean("nametag.device-icon", true)) {
             String icon = plugin.sidebar().deviceIconChar(player);
             if (!icon.isBlank()) {
                 prefix += icon + " ";
+            }
+        }
+        if (plugin.getConfig().getBoolean("nametag.rank-icon", true)) {
+            String rankIcon = plugin.sidebar().rankIconChar(player);
+            if (!rankIcon.isBlank()) {
+                prefix += rankIcon + " ";
             }
         }
         boolean changed = !prefix.equals(appliedPrefix.get(player.getUniqueId()));
