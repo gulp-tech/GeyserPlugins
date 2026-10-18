@@ -108,13 +108,14 @@ public final class VoidTab extends JavaPlugin implements Listener, CommandExecut
             saveConfig();
             getLogger().info("Миграция: {device_icon} убран из строк скорборда (значок остался только в нике).");
         }
-        // Заголовок скорборда: жирный VoidPE вместо старых вариантов (один раз).
-        if (!getConfig().getBoolean("scoreboard.title-bold-migrated", false)) {
+        // Заголовок скорборда: простой &b&lVoidPE (градиент жирность в Bedrock не даёт).
+        if (!getConfig().getBoolean("scoreboard.title-simple-migrated", false)) {
             String title = getConfig().getString("scoreboard.title", "");
-            if (title != null && (title.contains("FaralMC") || title.equals("<gradient:#55C8FF:#1B6FFF>VoidPE</gradient>"))) {
-                getConfig().set("scoreboard.title", "&l<gradient:#55C8FF:#1B6FFF>VoidPE</gradient>");
-                getLogger().info("Миграция: заголовок скорборда — жирный VoidPE.");
+            if (title != null && (title.contains("FaralMC") || title.contains("VoidPE"))) {
+                getConfig().set("scoreboard.title", "&b&lVoidPE");
+                getLogger().info("Миграция: заголовок скорборда — &b&lVoidPE (синий, жирный).");
             }
+            getConfig().set("scoreboard.title-simple-migrated", true);
             getConfig().set("scoreboard.title-bold-migrated", true);
             saveConfig();
         }
