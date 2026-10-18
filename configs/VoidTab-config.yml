@@ -166,6 +166,9 @@ nametag:
 # Привилегия ({group}). Сначала ищется здесь по имени группы LuckPerms/Vault,
 # иначе — display-name группы LuckPerms (если включено ниже), иначе имя группы с большой буквы.
 groups:
+  # Префикс из LuckPerms (lp ... meta setprefix) — главный: поменял в LP,
+  # поменялось в чате, скорборде и нике над головой. false — брать display ниже.
+  use-luckperms-prefix: true
   use-luckperms-display-name: false
 
   default:

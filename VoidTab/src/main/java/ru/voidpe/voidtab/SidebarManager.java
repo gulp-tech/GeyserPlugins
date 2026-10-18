@@ -186,7 +186,17 @@ public final class SidebarManager {
                 groupRaw = vg;
             }
         }
-        String group = plugin.getConfig().getString("groups." + groupRaw.toLowerCase(Locale.ROOT) + ".display");
+        String group = null;
+        // Префикс из LuckPerms — главный источник: поменял в LP, поменялось везде.
+        if (plugin.getConfig().getBoolean("groups.use-luckperms-prefix", true) && hooks.hasLuckPerms()) {
+            String lpPrefix = hooks.luckPermsPrefix(player.getUniqueId());
+            if (lpPrefix != null && !lpPrefix.isBlank()) {
+                group = lpPrefix.trim();
+            }
+        }
+        if (group == null) {
+            group = plugin.getConfig().getString("groups." + groupRaw.toLowerCase(Locale.ROOT) + ".display");
+        }
         if (group == null && plugin.getConfig().getBoolean("groups.use-luckperms-display-name", false)) {
             group = groupDisplay;
         }
@@ -374,6 +384,12 @@ public final class SidebarManager {
 
     /** Название привилегии для неймтега: groups.<группа>.display, иначе как в скорборде. */
     public String rankDisplayName(Player player) {
+        if (plugin.getConfig().getBoolean("groups.use-luckperms-prefix", true) && plugin.hooks().hasLuckPerms()) {
+            String lpPrefix = plugin.hooks().luckPermsPrefix(player.getUniqueId());
+            if (lpPrefix != null && !lpPrefix.isBlank()) {
+                return lpPrefix.trim();
+            }
+        }
         String raw = groupRaw(player);
         String display = plugin.getConfig().getString("groups." + raw + ".display");
         if (display == null && plugin.getConfig().getBoolean("groups.use-luckperms-display-name", false)) {

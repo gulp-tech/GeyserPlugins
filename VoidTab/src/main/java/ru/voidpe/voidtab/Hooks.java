@@ -168,6 +168,97 @@ public final class Hooks {
         }
     }
 
+    /**
+     * Действующий префикс LuckPerms (CachedMetaData: свой + наследованные, с приоритетами).
+     * Сначала префикс самого игрока, если нет — префикс его основной группы. null — префикса нет.
+     */
+    public String luckPermsPrefix(UUID uuid) {
+        if (luckPerms == null || lpGetUserManager == null) {
+            return null;
+        }
+        try {
+            Object userManager = lpGetUserManager.invoke(luckPerms);
+            if (userManager == null) {
+                return null;
+            }
+            Method getUser = findMethod(userManager.getClass(), "getUser", UUID.class);
+            Object user = getUser == null ? null : getUser.invoke(userManager, uuid);
+            if (user == null) {
+                return null;
+            }
+            String prefix = metaPrefix(user);
+            if (prefix != null && !prefix.isBlank()) {
+                return prefix;
+            }
+            Method getPrimaryGroup = findMethod(user.getClass(), "getPrimaryGroup");
+            String raw = getPrimaryGroup == null ? null : String.valueOf(getPrimaryGroup.invoke(user));
+            if (raw != null && lpGetGroupManager != null) {
+                Object gm = lpGetGroupManager.invoke(luckPerms);
+                Method getGroup = gm == null ? null : findMethod(gm.getClass(), "getGroup", String.class);
+                Object group = getGroup == null ? null : getGroup.invoke(gm, raw);
+                if (group != null) {
+                    prefix = metaPrefix(group);
+                    if (prefix != null && !prefix.isBlank()) {
+                        return prefix;
+                    }
+                }
+            }
+            return null;
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
+    /** getPrefix() из CachedMetaData держателя (User или Group), QueryOptions — контекстные по умолчанию. */
+    private String metaPrefix(Object holder) {
+        try {
+            Method getCachedData = findMethod(holder.getClass(), "getCachedData");
+            if (getCachedData == null) {
+                return null;
+            }
+            Object cached = getCachedData.invoke(holder);
+            if (cached == null) {
+                return null;
+            }
+            Method getMeta = null;
+            Object options = null;
+            for (Method m : cached.getClass().getMethods()) {
+                if (m.getName().equals("getMetaData") && m.getParameterCount() == 0) {
+                    getMeta = m;
+                    break;
+                }
+            }
+            if (getMeta == null) {
+                for (Method m : cached.getClass().getMethods()) {
+                    if (m.getName().equals("getMetaData") && m.getParameterCount() == 1) {
+                        for (Method sm : m.getParameterTypes()[0].getMethods()) {
+                            if (sm.getName().equals("defaultContextualOptions") && sm.getParameterCount() == 0) {
+                                sm.setAccessible(true);
+                                options = sm.invoke(null);
+                                getMeta = m;
+                                break;
+                            }
+                        }
+                        break;
+                    }
+                }
+            }
+            if (getMeta == null) {
+                return null;
+            }
+            getMeta.setAccessible(true);
+            Object meta = getMeta.getParameterCount() == 0 ? getMeta.invoke(cached) : getMeta.invoke(cached, options);
+            if (meta == null) {
+                return null;
+            }
+            Method getPrefix = findMethod(meta.getClass(), "getPrefix");
+            Object value = getPrefix == null ? null : getPrefix.invoke(meta);
+            return value == null ? null : String.valueOf(value);
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
     public String vaultGroup(OfflinePlayer player) {
         if (vaultPermission == null || permGetPrimaryGroup == null) {
             return null;
