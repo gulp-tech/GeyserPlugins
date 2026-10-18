@@ -74,6 +74,12 @@ public final class NametagManager {
             return;
         }
         String prefix = "";
+        if (plugin.getConfig().getBoolean("nametag.rank-icon", true)) {
+            String rankIcon = plugin.sidebar().rankIconChar(player);
+            if (!rankIcon.isBlank()) {
+                prefix += rankIcon + " ";
+            }
+        }
         if (plugin.getConfig().getBoolean("nametag.device-icon", true)) {
             String icon = plugin.sidebar().deviceIconChar(player);
             if (!icon.isBlank()) {

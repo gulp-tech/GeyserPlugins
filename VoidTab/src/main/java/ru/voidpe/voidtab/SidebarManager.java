@@ -353,6 +353,25 @@ public final class SidebarManager {
         return iconChar(deviceIconName(player));
     }
 
+    /** Сырое имя группы игрока (LuckPerms primary group, иначе Vault, иначе default). */
+    public String groupRaw(Player player) {
+        Hooks hooks = plugin.hooks();
+        String[] lp = hooks.hasLuckPerms() ? hooks.luckPermsGroup(player.getUniqueId()) : null;
+        if (lp != null && lp[0] != null && !lp[0].isBlank()) {
+            return lp[0].toLowerCase(Locale.ROOT);
+        }
+        String vg = hooks.vaultGroup(player);
+        if (vg != null && !vg.isBlank()) {
+            return vg.toLowerCase(Locale.ROOT);
+        }
+        return "default";
+    }
+
+    /** Кастомный значок привилегии из ресурспака (иконка названа как группа: icons.<группа>). */
+    public String rankIconChar(Player player) {
+        return iconChar(groupRaw(player));
+    }
+
     /** Иконка — всегда глиф из Bedrock-ресурспака: сервер только для Bedrock. */
     private String iconChar(String name) {
         String code = plugin.getConfig().getString("icons." + name, "");
