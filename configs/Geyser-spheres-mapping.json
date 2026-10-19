@@ -1,41 +1,39 @@
 {
-  "format_version": 1,
+  "format_version": 2,
   "items": {
     "minecraft:paper": [
       {
-        "name": "sphere1",
-        "allow_offhand": true,
-        "custom_model_data": 9001
+        "type": "legacy",
+        "custom_model_data": 9001,
+        "bedrock_identifier": "geyser_custom:sphere1",
+        "bedrock_options": {
+          "icon": "sphere1",
+          "allow_offhand": true,
+          "display_handheld": true,
+          "creative_category": "items"
+        }
       },
       {
-        "name": "sphere2",
-        "allow_offhand": true,
-        "custom_model_data": 9002
+        "type": "legacy",
+        "custom_model_data": 9002,
+        "bedrock_identifier": "geyser_custom:sphere2",
+        "bedrock_options": {
+          "icon": "sphere2",
+          "allow_offhand": true,
+          "display_handheld": true,
+          "creative_category": "items"
+        }
       },
       {
-        "name": "sphere3",
-        "allow_offhand": true,
-        "custom_model_data": 9003
-      },
-      {
-        "name": "sphere4",
-        "allow_offhand": true,
-        "custom_model_data": 9004
-      },
-      {
-        "name": "sphere5",
-        "allow_offhand": true,
-        "custom_model_data": 9005
-      },
-      {
-        "name": "sphere6",
-        "allow_offhand": true,
-        "custom_model_data": 9006
-      },
-      {
-        "name": "sphere7",
-        "allow_offhand": true,
-        "custom_model_data": 9007
+        "type": "legacy",
+        "custom_model_data": 9003,
+        "bedrock_identifier": "geyser_custom:sphere3",
+        "bedrock_options": {
+          "icon": "sphere3",
+          "allow_offhand": true,
+          "display_handheld": true,
+          "creative_category": "items"
+        }
       }
     ]
   }

@@ -9,6 +9,10 @@ commands:
     description: "Талисманы и сферы: меню, выдача, список"
     usage: "/talisman [give <игрок> <id> [кол-во]|list|reload|help]"
     aliases: [tal]
+  sphere:
+    description: "Сферы: выдача по уровню"
+    usage: "/sphere give <игрок> <1|2|3> [кол-во]"
+    aliases: [spheres]
 permissions:
   voidtalismans.admin:
     description: "Команда /talisman: меню, выдача, reload"

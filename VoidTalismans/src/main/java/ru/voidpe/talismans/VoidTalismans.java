@@ -47,6 +47,10 @@ public final class VoidTalismans extends JavaPlugin implements Listener, Command
             getCommand("talisman").setExecutor(this);
             getCommand("talisman").setTabCompleter(this);
         }
+        if (getCommand("sphere") != null) {
+            getCommand("sphere").setExecutor(this);
+            getCommand("sphere").setTabCompleter(this);
+        }
         startTask();
         getLogger().info("VoidTalismans включён, талисманов: " + service.all().size());
     }
@@ -148,6 +152,9 @@ public final class VoidTalismans extends JavaPlugin implements Listener, Command
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         String prefix = TextUtil.color(getConfig().getString("messages.prefix", "&#C86BFFVoidPE &8» &f"));
+        if (command.getName().equalsIgnoreCase("sphere")) {
+            return onSphereCommand(sender, prefix, args);
+        }
         if (!isAdmin(sender)) {
             sender.sendMessage(TalismanService.component(prefix + TextUtil.color(
                     getConfig().getString("messages.no-permission", "&cНет прав."))));
@@ -227,6 +234,67 @@ public final class VoidTalismans extends JavaPlugin implements Listener, Command
         return true;
     }
 
+    /** Отдельная команда сфер: /sphere give <игрок> <уровень 1-3> [кол-во] | /sphere list. */
+    private boolean onSphereCommand(CommandSender sender, String prefix, String[] args) {
+        if (!isAdmin(sender)) {
+            sender.sendMessage(TalismanService.component(prefix + TextUtil.color(
+                    getConfig().getString("messages.no-permission", "&cНет прав."))));
+            return true;
+        }
+        if (args.length >= 1 && args[0].equalsIgnoreCase("list")) {
+            StringBuilder sb = new StringBuilder();
+            for (Talisman t : service.all()) {
+                if (!t.id().startsWith("sphere")) {
+                    continue;
+                }
+                if (sb.length() > 0) {
+                    sb.append("&7, &f");
+                }
+                sb.append(t.id());
+            }
+            sender.sendMessage(TalismanService.component(prefix + "&f" + sb));
+            return true;
+        }
+        if (args.length >= 3 && args[0].equalsIgnoreCase("give")) {
+            Player target = Bukkit.getPlayerExact(args[1]);
+            if (target == null) {
+                sender.sendMessage(TalismanService.component(prefix + TextUtil.color(
+                        getConfig().getString("messages.player-not-found", "&cИгрок не найден."))));
+                return true;
+            }
+            String idArg = args[2].toLowerCase();
+            String id = idArg.startsWith("sphere") ? idArg : "sphere" + idArg;
+            Talisman t = service.byId(id);
+            if (t == null) {
+                sender.sendMessage(TalismanService.component(prefix + TextUtil.color(
+                        getConfig().getString("messages.not-found", "&cТакого предмета нет."))));
+                return true;
+            }
+            int amount = 1;
+            if (args.length >= 4) {
+                try {
+                    amount = Math.max(1, Math.min(64, Integer.parseInt(args[3])));
+                } catch (NumberFormatException ignored) {
+                }
+            }
+            java.util.Map<Integer, ItemStack> rest = target.getInventory().addItem(service.createItem(t, amount));
+            for (ItemStack drop : rest.values()) {
+                target.getWorld().dropItemNaturally(target.getLocation(), drop);
+            }
+            target.sendMessage(TalismanService.component(prefix + TextUtil.color(
+                    getConfig().getString("messages.received", "&aТы получил: &f{talisman}&a!")
+                            .replace("{talisman}", t.displayName()))));
+            sender.sendMessage(TalismanService.component(prefix + TextUtil.color(
+                    getConfig().getString("messages.given", "&aВыдано игроку {player}: &f{talisman} &7x{amount}")
+                            .replace("{player}", target.getName())
+                            .replace("{talisman}", t.displayName())
+                            .replace("{amount}", String.valueOf(amount)))));
+            return true;
+        }
+        sender.sendMessage(TalismanService.component(prefix + "&f/sphere give <игрок> <1|2|3> [кол-во] &7| &f/sphere list"));
+        return true;
+    }
+
     private void sendHelp(CommandSender sender, String prefix) {
         for (String line : getConfig().getStringList("messages.help")) {
             sender.sendMessage(TalismanService.component(prefix + TextUtil.color(line)));
@@ -236,6 +304,33 @@ public final class VoidTalismans extends JavaPlugin implements Listener, Command
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (!isAdmin(sender)) {
+            return List.of();
+        }
+        if (command.getName().equalsIgnoreCase("sphere")) {
+            if (args.length == 1) {
+                List<String> out = new ArrayList<>();
+                for (String sub : new String[]{"give", "list"}) {
+                    if (sub.startsWith(args[0].toLowerCase())) {
+                        out.add(sub);
+                    }
+                }
+                return out;
+            }
+            if (args.length == 2 && args[0].equalsIgnoreCase("give")) {
+                return null; // ники игроков
+            }
+            if (args.length == 3 && args[0].equalsIgnoreCase("give")) {
+                List<String> out = new ArrayList<>();
+                for (Talisman t : service.all()) {
+                    if (t.id().startsWith("sphere")) {
+                        String num = t.id().substring("sphere".length());
+                        if (num.startsWith(args[2])) {
+                            out.add(num);
+                        }
+                    }
+                }
+                return out;
+            }
             return List.of();
         }
         if (args.length == 1) {

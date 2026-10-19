@@ -290,15 +290,15 @@ talismans:
   #  Вид в Bedrock даёт отдельный пак VoidSpheres.mcpack +
   #  маппинг Geyser configs/Geyser-spheres-mapping.json.
   #  Работают ТОЛЬКО в левой руке (where: OFFHAND).
-  #  Статы по возрастанию: Сфера 1 слабая -> Сфера 7 сильная.
+  #  Статы по возрастанию: I уровень слабая -> III уровень сильная.
   # ------------------------------------------------------------
 
   sphere1:
     enabled: true
-    display-name: "&#CFCFCFСфера 1"
+    display-name: "&#CFCFCFСфера I уровня"
     material: PAPER
     custom-model-data: 9001
-    glow: true
+    glow: false
     lore: ["{stats}"]
     where: OFFHAND
     permission: ""
@@ -306,63 +306,31 @@ talismans:
     attributes:
       - {type: attack_damage, amount: 1.0, operation: ADD_NUMBER}
       - {type: armor, amount: 1.0, operation: ADD_NUMBER}
+      - {type: max_health, amount: 2.0, operation: ADD_NUMBER}
     recipe: {enabled: false, shape: [], ingredients: {}}
 
   sphere2:
     enabled: true
-    display-name: "&#7AE582Сфера 2"
+    display-name: "&#55C8FFСфера II уровня"
     material: PAPER
     custom-model-data: 9002
-    glow: true
+    glow: false
     lore: ["{stats}"]
     where: OFFHAND
     permission: ""
     effects: []
     attributes:
-      - {type: attack_damage, amount: 1.0, operation: ADD_NUMBER}
+      - {type: attack_damage, amount: 2.0, operation: ADD_NUMBER}
       - {type: armor, amount: 2.0, operation: ADD_NUMBER}
-      - {type: max_health, amount: 2.0, operation: ADD_NUMBER}
+      - {type: max_health, amount: 4.0, operation: ADD_NUMBER}
     recipe: {enabled: false, shape: [], ingredients: {}}
 
   sphere3:
     enabled: true
-    display-name: "&#55C8FFСфера 3"
+    display-name: "<gradient:#FFE259:#FF7518>Сфера III уровня</gradient>"
     material: PAPER
     custom-model-data: 9003
-    glow: true
-    lore: ["{stats}"]
-    where: OFFHAND
-    permission: ""
-    effects: []
-    attributes:
-      - {type: attack_damage, amount: 2.0, operation: ADD_NUMBER}
-      - {type: armor, amount: 2.0, operation: ADD_NUMBER}
-      - {type: max_health, amount: 2.0, operation: ADD_NUMBER}
-    recipe: {enabled: false, shape: [], ingredients: {}}
-
-  sphere4:
-    enabled: true
-    display-name: "&#C86BFFСфера 4"
-    material: PAPER
-    custom-model-data: 9004
-    glow: true
-    lore: ["{stats}"]
-    where: OFFHAND
-    permission: ""
-    effects: []
-    attributes:
-      - {type: attack_damage, amount: 2.0, operation: ADD_NUMBER}
-      - {type: armor, amount: 3.0, operation: ADD_NUMBER}
-      - {type: max_health, amount: 4.0, operation: ADD_NUMBER}
-      - {type: movement_speed, amount: 0.05, operation: ADD_SCALAR}
-    recipe: {enabled: false, shape: [], ingredients: {}}
-
-  sphere5:
-    enabled: true
-    display-name: "&#FF7AD9Сфера 5"
-    material: PAPER
-    custom-model-data: 9005
-    glow: true
+    glow: false
     lore: ["{stats}"]
     where: OFFHAND
     permission: ""
@@ -370,42 +338,8 @@ talismans:
     attributes:
       - {type: attack_damage, amount: 3.0, operation: ADD_NUMBER}
       - {type: armor, amount: 3.0, operation: ADD_NUMBER}
-      - {type: max_health, amount: 4.0, operation: ADD_NUMBER}
-      - {type: movement_speed, amount: 0.05, operation: ADD_SCALAR}
-    recipe: {enabled: false, shape: [], ingredients: {}}
-
-  sphere6:
-    enabled: true
-    display-name: "&#FFD93DСфера 6"
-    material: PAPER
-    custom-model-data: 9006
-    glow: true
-    lore: ["{stats}"]
-    where: OFFHAND
-    permission: ""
-    effects: []
-    attributes:
-      - {type: attack_damage, amount: 3.0, operation: ADD_NUMBER}
-      - {type: armor, amount: 4.0, operation: ADD_NUMBER}
       - {type: max_health, amount: 6.0, operation: ADD_NUMBER}
-      - {type: movement_speed, amount: 0.10, operation: ADD_SCALAR}
-    recipe: {enabled: false, shape: [], ingredients: {}}
-
-  sphere7:
-    enabled: true
-    display-name: "<gradient:#FFE259:#FF7518>Сфера 7</gradient>"
-    material: PAPER
-    custom-model-data: 9007
-    glow: true
-    lore: ["{stats}"]
-    where: OFFHAND
-    permission: ""
-    effects: []
-    attributes:
-      - {type: attack_damage, amount: 4.0, operation: ADD_NUMBER}
-      - {type: armor, amount: 5.0, operation: ADD_NUMBER}
-      - {type: max_health, amount: 8.0, operation: ADD_NUMBER}
-      - {type: movement_speed, amount: 0.10, operation: ADD_SCALAR}
+      - {type: movement_speed, amount: 0.05, operation: ADD_SCALAR}
     recipe: {enabled: false, shape: [], ingredients: {}}
 
     # --- Пример своего талисмана (убери # и правь под себя) ---

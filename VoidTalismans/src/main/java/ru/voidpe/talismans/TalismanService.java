@@ -1,6 +1,7 @@
 package ru.voidpe.talismans;
 
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -145,22 +146,22 @@ public final class TalismanService {
     public ItemStack createItem(Talisman talisman, int amount) {
         ItemStack item = new ItemStack(talisman.material(), Math.max(1, amount));
         ItemMeta meta = item.getItemMeta();
-        meta.displayName(component(TextUtil.color(talisman.displayName())));
+        meta.displayName(noItalic(component(TextUtil.color(talisman.displayName()))));
         List<Component> lore = new ArrayList<>();
         boolean statsInserted = false;
         for (String line : talisman.lore()) {
             if (line.contains("{stats}")) {
                 for (String stat : statLines(talisman)) {
-                    lore.add(component(TextUtil.color(stat)));
+                    lore.add(noItalic(component(TextUtil.color(stat))));
                 }
                 statsInserted = true;
             } else {
-                lore.add(component(TextUtil.color(line)));
+                lore.add(noItalic(component(TextUtil.color(line))));
             }
         }
         if (!statsInserted && plugin.getConfig().getBoolean("settings.auto-stats-lore", true)) {
             for (String stat : statLines(talisman)) {
-                lore.add(component(TextUtil.color(stat)));
+                lore.add(noItalic(component(TextUtil.color(stat))));
             }
         }
         if (talisman.customModelData() > 0) {
@@ -369,6 +370,11 @@ public final class TalismanService {
                 }
             }
         }
+    }
+
+    /** Имена и лор предметов без ванильного курсива. */
+    static Component noItalic(Component c) {
+        return c.decoration(TextDecoration.ITALIC, TextDecoration.State.FALSE);
     }
 
     static Component component(String legacy) {
