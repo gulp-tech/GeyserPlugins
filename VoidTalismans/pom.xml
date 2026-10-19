@@ -4,12 +4,12 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>ru.FaralMC</groupId>
-    <artifactId>FaralTalismans</artifactId>
-    <version>1.6.1</version>
+    <groupId>ru.voidpe</groupId>
+    <artifactId>VoidTalismans</artifactId>
+    <version>1.7.0</version>
     <packaging>jar</packaging>
-    <name>FaralTalismans</name>
-    <description>Талисманы как на FunTime для Bedrock-сервера FaralMC (Geyser/Floodgate, Purpur 26.2): пассивные эффекты и атрибуты за ношение в инвентаре. Всё настраивается в config.yml.</description>
+    <name>VoidTalismans</name>
+    <description>Талисманы и сферы как на FunTime для Bedrock-сервера VoidPE (Geyser/Floodgate, Purpur 26.2): пассивные эффекты и атрибуты за ношение в инвентаре. Всё настраивается в config.yml.</description>
 
     <properties>
         <java.version>25</java.version>

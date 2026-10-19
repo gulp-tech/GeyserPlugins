@@ -1,4 +1,4 @@
-package ru.FaralMC.talismans;
+package ru.voidpe.talismans;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
@@ -31,11 +31,11 @@ import java.util.Map;
 /** Загрузка талисманов из конфига, создание предметов, эффекты, рецепты. */
 public final class TalismanService {
 
-    private final FaralTalismans plugin;
+    private final VoidTalismans plugin;
     private final NamespacedKey idKey;
     private final Map<String, Talisman> talismans = new LinkedHashMap<>();
 
-    public TalismanService(FaralTalismans plugin) {
+    public TalismanService(VoidTalismans plugin) {
         this.plugin = plugin;
         this.idKey = new NamespacedKey(plugin, "talisman_id");
         load();
@@ -111,7 +111,8 @@ public final class TalismanService {
                     plugin.getConfig().getBoolean(path + ".glow", true),
                     where,
                     plugin.getConfig().getString(path + ".permission", ""),
-                    effects, attributes, recipe));
+                    effects, attributes, recipe,
+                    plugin.getConfig().getInt(path + ".custom-model-data", 0)));
         }
         plugin.getLogger().info("Загружено талисманов: " + talismans.size());
     }
@@ -162,6 +163,9 @@ public final class TalismanService {
                 lore.add(component(TextUtil.color(stat)));
             }
         }
+        if (talisman.customModelData() > 0) {
+            meta.setCustomModelData(talisman.customModelData());
+        }
         meta.lore(lore);
         if (talisman.glow()) {
             meta.addEnchant(Enchantment.UNBREAKING, 1, true);
@@ -208,7 +212,34 @@ public final class TalismanService {
         if (item == null || item.getType() == Material.AIR || !item.hasItemMeta()) {
             return null;
         }
-        return item.getItemMeta().getPersistentDataContainer().get(idKey, PersistentDataType.STRING);
+        String id = item.getItemMeta().getPersistentDataContainer().get(idKey, PersistentDataType.STRING);
+        if (id == null) {
+            // старые предметы FaralTalismans (до переименования плагина) тоже узнаём
+            id = item.getItemMeta().getPersistentDataContainer()
+                    .get(new NamespacedKey("faraltalismans", "talisman_id"), PersistentDataType.STRING);
+        }
+        return id;
+    }
+
+    /** Перезагрузка конфига: заново прочитать предметы и рецепты. */
+    public void reload() {
+        load();
+        registerRecipes();
+    }
+
+    /** Снять модификаторы со старым namespace faraltalismans (остались от старой версии плагина). */
+    private void stripLegacyModifiers(Player player) {
+        for (Attribute attribute : Registry.ATTRIBUTE) {
+            AttributeInstance instance = player.getAttribute(attribute);
+            if (instance == null) {
+                continue;
+            }
+            for (AttributeModifier m : new ArrayList<>(instance.getModifiers())) {
+                if (m.getKey().getNamespace().equals("faraltalismans")) {
+                    instance.removeModifier(m);
+                }
+            }
+        }
     }
 
     public Talisman byId(String id) {
@@ -261,6 +292,7 @@ public final class TalismanService {
 
     /** Применить эффекты и атрибуты активных талисманов. Вызывается по таймеру. */
     public void refresh(Player player) {
+        stripLegacyModifiers(player);
         List<Talisman> active = activeTalismans(player);
         int duration = plugin.getConfig().getInt("settings.refresh-interval-ticks", 40) + 100;
         boolean particles = plugin.getConfig().getBoolean("settings.effect-particles", false);
@@ -316,6 +348,7 @@ public final class TalismanService {
 
     /** Игрок вышел: снять все атрибут-модификаторы талисманов. */
     public void clearAttributes(Player player) {
+        stripLegacyModifiers(player);
         for (Talisman t : talismans.values()) {
             List<Talisman.AttributeDef> defs = t.attributes();
             for (int ai = 0; ai < defs.size(); ai++) {

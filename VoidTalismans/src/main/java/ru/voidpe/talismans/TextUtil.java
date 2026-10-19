@@ -1,4 +1,4 @@
-package ru.FaralMC.talismans;
+package ru.voidpe.talismans;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;

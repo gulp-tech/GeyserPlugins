@@ -1,4 +1,4 @@
-package ru.FaralMC.talismans;
+package ru.voidpe.talismans;
 
 import org.bukkit.Material;
 import org.bukkit.attribute.AttributeModifier;
@@ -26,10 +26,11 @@ public final class Talisman {
     private final List<EffectDef> effects;
     private final List<AttributeDef> attributes;
     private final RecipeDef recipe;
+    private final int customModelData;
 
     public Talisman(String id, boolean enabled, String displayName, Material material, List<String> lore, boolean glow,
                     Where where, String permission, List<EffectDef> effects,
-                    List<AttributeDef> attributes, RecipeDef recipe) {
+                    List<AttributeDef> attributes, RecipeDef recipe, int customModelData) {
         this.id = id;
         this.enabled = enabled;
         this.displayName = displayName;
@@ -41,6 +42,7 @@ public final class Talisman {
         this.effects = effects;
         this.attributes = attributes;
         this.recipe = recipe;
+        this.customModelData = customModelData;
     }
 
     public String id() { return id; }
@@ -54,6 +56,7 @@ public final class Talisman {
     public List<EffectDef> effects() { return effects; }
     public List<AttributeDef> attributes() { return attributes; }
     public RecipeDef recipe() { return recipe; }
+    public int customModelData() { return customModelData; }
 
     public boolean hasPermission(org.bukkit.entity.Player player) {
         return permission == null || permission.isBlank() || player.hasPermission(permission);

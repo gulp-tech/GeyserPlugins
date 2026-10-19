@@ -63,8 +63,8 @@ jobs:
             fi
           fi
 
-      - name: Собрать плагин FaralTalismans
-        working-directory: FaralTalismans
+      - name: Собрать плагин VoidTalismans
+        working-directory: VoidTalismans
         run: |
           build() { mvn -B -DskipTests "$@" package > mvn.log 2>&1; }
           if ! build -Dpurpur.version="$PURPUR_VERSION"; then
@@ -98,5 +98,5 @@ jobs:
           name: VoidPE-release
           path: |
             VoidTab/target/VoidTab-*.jar
-            FaralTalismans/target/FaralTalismans-*.jar
+            VoidTalismans/target/VoidTalismans-*.jar
             VoidResourcePack.mcpack
