@@ -63,7 +63,7 @@ scoreboard:
   # Иконка в конце строки занимает ровно 1 символ — таб не раздувается.
   lines:
     - "&fИмя: &#FFA63D{player}"
-    - "&fДонат: {group}"
+    - "&fДонат: {group_icon} {group}"
     - "&fМонеты: &#FFD93D{coins} {icon:coin}"
     - "&fОсколки: &#54C8FF{shards} {icon:shard}"
     - ""

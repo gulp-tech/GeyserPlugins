@@ -57,11 +57,11 @@ items:
   trapka:
     kind: TRAP
     enabled: true
-    display-name: "&#B388FFТрапка"
+    display-name: "&#B388FFКапкан"
     material: NETHERITE_SCRAP
     glow: true
     lore:
-      - "&7ПКМ: трапка появляется там,"                     
+      - "&7ПКМ: капкан появляется там,"                     
       - "&7где ты стоишь. Клетка 3×3, внутри пусто."
     duration-seconds: 20   # сколько держится клетка
     floor-depth: 2         # толщина пола ВНИЗ в блоках: пол нельзя сломать и под ним не прокопаться
@@ -92,7 +92,7 @@ items:
   dust:
     kind: DUST
     enabled: true
-    display-name: "&#FFE082Явная пыль"
+    display-name: "&#FFE082Пыль обнаружения"
     material: GLOWSTONE_DUST
     glow: true
     lore:
@@ -113,7 +113,7 @@ items:
   dezorientation:
     kind: DISORIENT
     enabled: true
-    display-name: "&#8CE8FFДезориентация"
+    display-name: "&#8CE8FFОко дезориентации"
     material: ENDER_EYE
     glow: true
     lore:
@@ -139,7 +139,7 @@ items:
   spawner_lom:
     kind: LOM
     enabled: true
-    display-name: "&#FFB340Лом спавнеров"
+    display-name: "&#FFB340Лом для спавнеров"
     material: GOLDEN_PICKAXE
     glow: false
     lore:
@@ -160,7 +160,7 @@ items:
   pot_berserk:
     kind: POTION
     enabled: true
-    display-name: "&#FF5555Зелье берсерка"
+    display-name: "&#FF5555Зелье ярости"
     material: POTION
     glow: true
     lore: ["&7Сила III + Скорость III"]
@@ -176,7 +176,7 @@ items:
   pot_warrior:
     kind: POTION
     enabled: true
-    display-name: "&#FF9A3DЗелье воина"
+    display-name: "&#FF9A3DБоевое зелье"
     material: POTION
     glow: true
     lore: ["&7Сила II + Скорость I"]
@@ -192,7 +192,7 @@ items:
   pot_runner:
     kind: POTION
     enabled: true
-    display-name: "&#55E6FFЗелье бегуна"
+    display-name: "&#55E6FFЗелье скорости"
     material: POTION
     glow: true
     lore: ["&7Скорость III + Прыгучесть II"]
@@ -208,7 +208,7 @@ items:
   pot_tank:
     kind: POTION
     enabled: true
-    display-name: "&#8FB8FFЗелье танка"
+    display-name: "&#8FB8FFЗелье защиты"
     material: POTION
     glow: true
     lore: ["&7Сопротивление II + Огнестойкость"]
