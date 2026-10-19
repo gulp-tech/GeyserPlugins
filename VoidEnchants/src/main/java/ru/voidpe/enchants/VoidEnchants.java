@@ -12,6 +12,7 @@ import org.bukkit.Sound;
 import org.bukkit.block.Block;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabCompleter;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -20,6 +21,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.enchantment.EnchantItemEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
+import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.event.inventory.PrepareAnvilEvent;
 import org.bukkit.inventory.AnvilInventory;
 import org.bukkit.inventory.ItemStack;
@@ -52,7 +54,7 @@ import java.util.regex.Pattern;
  * Книги с чарами: выдача /vench give, стол зачарований (только 30 уровень), наковальня
  * (объединение одинаковых чар с повышением выше ванильных капов — см. конфиг).
  */
-public final class VoidEnchants extends JavaPlugin implements Listener {
+public final class VoidEnchants extends JavaPlugin implements Listener, TabCompleter {
 
     private NamespacedKey keyAutosmelt;
     private NamespacedKey keyMagnet;
@@ -73,6 +75,7 @@ public final class VoidEnchants extends JavaPlugin implements Listener {
         Bukkit.getPluginManager().registerEvents(this, this);
         if (getCommand("voidenchants") != null) {
             getCommand("voidenchants").setExecutor(this);
+            getCommand("voidenchants").setTabCompleter(this);
         }
         getLogger().info("VoidEnchants включён: Автоплавка, Магнит, Бур.");
     }
@@ -208,32 +211,41 @@ public final class VoidEnchants extends JavaPlugin implements Listener {
         Player player = event.getPlayer();
         ItemStack tool = player.getInventory().getItemInMainHand();
         boolean extra = drilling.contains(player.getUniqueId());
-
-        // Другой плагин уже забрал дроп себе (например, кастомный дроп энд-шахты LMAutoMine) — не вмешиваемся.
-        if (!event.isDropItems()) {
-            return;
-        }
         boolean hasCustom = autosmelt(tool) > 0 || magnet(tool) > 0 || drill(tool) > 0;
         if (!hasCustom) {
             return;
         }
-        if (player.getGameMode() == GameMode.CREATIVE && !getConfig().getBoolean("drill.in-creative", false)) {
+        boolean creative = player.getGameMode() == GameMode.CREATIVE;
+
+        // Дроп уже забрал другой плагин (кастомный дроп шахты LMAutoMine: керамика -> жемчуг, пурпур -> хорус).
+        // Блок не трогаем, но магнит подберёт выброшенное, а бур всё равно сработает.
+        if (!event.isDropItems()) {
+            if (magnet(tool) > 0) {
+                magnetSweep(player, event.getBlock().getLocation());
+            }
+            if (!extra && drill(tool) > 0 && (!creative || getConfig().getBoolean("drill.in-creative", true))) {
+                expandDrill(player, event.getBlock(), tool, drill(tool));
+            }
+            return;
+        }
+        if (creative && !getConfig().getBoolean("drill.in-creative", true)) {
             return;
         }
 
         boolean silk = hasEnchant(tool, "silk_touch");
-        Collection<ItemStack> drops = event.getBlock().getDrops(tool, player);
-        event.setDropItems(false);
-        deliver(player, event.getBlock().getLocation(), tool, drops, silk);
+        if (!creative) {
+            Collection<ItemStack> drops = event.getBlock().getDrops(tool, player);
+            event.setDropItems(false);
+            deliver(player, event.getBlock().getLocation(), tool, drops, silk);
+        }
+        if (!extra && drill(tool) > 0) {
+            expandDrill(player, event.getBlock(), tool, drill(tool));
+        }
+    }
 
-        if (extra) {
-            return; // дополнительные блоки бура не расширяются дальше
-        }
-        int drillLevel = drill(tool);
-        if (drillLevel <= 0) {
-            return;
-        }
-        List<Block> targets = drillTargets(player, event.getBlock(), drillLevel);
+    /** Расширение бура: каждый блок — через настоящее событие ломания (WorldGuard и шахта могут отменить/забрать дроп). */
+    private void expandDrill(Player player, Block center, ItemStack tool, int drillLevel) {
+        List<Block> targets = drillTargets(player, center, drillLevel);
         if (targets.isEmpty()) {
             return;
         }
@@ -261,6 +273,44 @@ public final class VoidEnchants extends JavaPlugin implements Listener {
         }
     }
 
+    /** Магнит для дропа, который выбросил другой плагин предметом на землю: подобрать свежевыпавшее рядом. */
+    private void magnetSweep(Player player, Location at) {
+        Location center = at.clone().add(0.5, 0.5, 0.5);
+        Bukkit.getScheduler().runTask(this, () -> {
+            for (org.bukkit.entity.Entity entity : center.getWorld().getNearbyEntities(center, 1.6, 1.6, 1.6)) {
+                if (entity instanceof org.bukkit.entity.Item itemEntity && itemEntity.getTicksLived() < 40) {
+                    ItemStack stack = itemEntity.getItemStack().clone();
+                    itemEntity.remove();
+                    Map<Integer, ItemStack> left = player.getInventory().addItem(stack);
+                    for (ItemStack rest : left.values()) {
+                        player.getWorld().dropItemNaturally(player.getLocation(), rest);
+                    }
+                }
+            }
+        });
+    }
+
+    /**
+     * Поддержка авто-скупщика (LMbuyer): если плагин стоит, магнитный предмет сначала
+     * проходит через настоящее событие подбора — автоскупщик успевает его продать.
+     * @return true, если предмет забрал скупщик и в инвентарь его класть не надо
+     */
+    private boolean tryAutoBuy(Player player, ItemStack stack) {
+        if (!getConfig().getBoolean("magnet.autobuy-support", true)) {
+            return false;
+        }
+        if (!Bukkit.getPluginManager().isPluginEnabled("LMbuyer")) {
+            return false;
+        }
+        org.bukkit.entity.Item entity = player.getWorld().dropItem(player.getLocation(), stack.clone());
+        entity.setPickupDelay(32767);
+        EntityPickupItemEvent pickup = new EntityPickupItemEvent(player, entity, 0);
+        Bukkit.getPluginManager().callEvent(pickup);
+        boolean consumed = pickup.isCancelled() || !entity.isValid();
+        entity.remove();
+        return consumed;
+    }
+
     /** Обработать дроп одного блока: автоплавка -> магнит в инвентарь / на землю. */
     private void deliver(Player player, Location at, ItemStack tool, Collection<ItemStack> drops, boolean silk) {
         boolean smelt = autosmelt(tool) > 0 && !silk;
@@ -278,6 +328,9 @@ public final class VoidEnchants extends JavaPlugin implements Listener {
                         out.setType(result);
                     }
                 }
+            }
+            if (toInventory && tryAutoBuy(player, out)) {
+                continue; // автоскупщик LMbuyer забрал предмет через событие подбора
             }
             if (toInventory) {
                 Map<Integer, ItemStack> left = player.getInventory().addItem(out);
@@ -321,10 +374,20 @@ public final class VoidEnchants extends JavaPlugin implements Listener {
                         continue; // сам центральный блок уже сломан
                     }
                     Block block = center.getWorld().getBlockAt(x, y, z);
-                    if (!block.getType().isAir() && block.getType() != Material.BEDROCK
-                            && block.getType().getHardness() >= 0) {
-                        result.add(block);
+                    if (block.getType().isAir() || block.getType() == Material.BEDROCK
+                            || block.getType().getHardness() < 0) {
+                        continue;
                     }
+                    // сундуки, спавнеры, таблички и прочие хранилища бур не трогает
+                    if (block.getState() instanceof org.bukkit.block.TileState) {
+                        continue;
+                    }
+                    // только природные блоки из конфига (поставленные игроками постройки бур не сносит)
+                    List<String> allowed = getConfig().getStringList("drill.allowed-blocks");
+                    if (!allowed.isEmpty() && !allowed.contains(block.getType().name())) {
+                        continue;
+                    }
+                    result.add(block);
                 }
             }
         }
@@ -443,7 +506,13 @@ public final class VoidEnchants extends JavaPlugin implements Listener {
             return; // ванильная наковальня и так справляется
         }
 
-        ItemStack result = event.getResult() != null ? event.getResult().clone() : first.clone();
+        // Базовый предмет: книга + инструмент = ИНСТРУМЕНТ (раньше получалась книга и инструмент пропадал).
+        ItemStack result;
+        if (isBook(first) && !isBook(second)) {
+            result = second.clone();
+        } else {
+            result = event.getResult() != null ? event.getResult().clone() : first.clone();
+        }
 
         // ванильные чары: равный уровень + равный = +1 (до капа из конфига)
         Set<Enchantment> all = new HashSet<>();
@@ -583,6 +652,10 @@ public final class VoidEnchants extends JavaPlugin implements Listener {
             msg(sender, "no-permission");
             return true;
         }
+        if (args.length >= 1 && args[0].equalsIgnoreCase("help")) {
+            sendHelp(sender);
+            return true;
+        }
         if (args.length >= 1 && args[0].equalsIgnoreCase("reload")) {
             reloadConfig();
             msg(sender, "reloaded");
@@ -658,7 +731,42 @@ public final class VoidEnchants extends JavaPlugin implements Listener {
             msg(player, "enchanted", "enchant", plainName(enchant));
             return true;
         }
-        msg(sender, "usage");
+        sendHelp(sender);
         return true;
+    }
+
+    private void sendHelp(CommandSender sender) {
+        for (String line : getConfig().getStringList("messages.help")) {
+            sender.sendMessage(comp(getConfig().getString("messages.prefix", "") + line));
+        }
+    }
+
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        List<String> result = new ArrayList<>();
+        if (!sender.hasPermission("voidenchants.admin")) {
+            return result;
+        }
+        if (args.length == 1) {
+            for (String sub : new String[]{"give", "enchant", "reload", "help"}) {
+                if (sub.startsWith(args[0].toLowerCase(Locale.ROOT))) result.add(sub);
+            }
+        } else if (args.length == 2 && args[0].equalsIgnoreCase("give")) {
+            for (Player online : Bukkit.getOnlinePlayers()) {
+                if (online.getName().toLowerCase(Locale.ROOT).startsWith(args[1].toLowerCase(Locale.ROOT))) result.add(online.getName());
+            }
+        } else if (args.length == 3 && args[0].equalsIgnoreCase("give")) {
+            for (String what : new String[]{"miner1", "miner2", "miner3", "book_autosmelt", "book_magnet", "book_drill"}) {
+                if (what.startsWith(args[2].toLowerCase(Locale.ROOT))) result.add(what);
+            }
+        } else if (args.length == 2 && args[0].equalsIgnoreCase("enchant")) {
+            for (String ench : new String[]{"autosmelt", "magnet", "drill"}) {
+                if (ench.startsWith(args[1].toLowerCase(Locale.ROOT))) result.add(ench);
+            }
+        } else if (args.length == 3 && args[0].equalsIgnoreCase("enchant")) {
+            result.add("1");
+            if (args[1].equalsIgnoreCase("drill")) result.add("2");
+        }
+        return result;
     }
 }

@@ -14,6 +14,14 @@ messages:
   no-permission: '&cУ вас нет прав на эту команду.'
   player-not-found: '&cИгрок не найден.'
   usage: '&fИспользование: &b/vench give <игрок> <miner1|miner2|miner3|book_autosmelt|book_magnet|book_drill> &fили &b/vench enchant <autosmelt|magnet|drill> [уровень]'
+  # Подсказки: как получить чары (команда /vench help и просто /vench).
+  help:
+    - '&fКак добыть кастомные зачарования:'
+    - '&7• &fСтол зачарований: &bтолько 30 уровень&f — шанс Автоплавки, Магнита и Бура I (и на книги тоже)'
+    - '&7• &fКниги: &b/vench give <игрок> book_autosmelt|book_magnet|book_drill&f (админ)'
+    - '&7• &fНаковальня: &fкнига + инструмент, Бур I + Бур I = &bБур II&f, одинаковые чары складываются'
+    - '&7• &fГотовые кирки: &b/vench give <игрок> miner1|miner2|miner3&f (админ)'
+    - '&7• &fВручную на предмет в руке: &b/vench enchant <autosmelt|magnet|drill> [уровень]&f (админ)'
 
 # Названия зачарований в лоре предметов (строка добавляется автоматически).
 enchant-names:
@@ -43,8 +51,56 @@ anvil:
     unbreaking: 5
 
 drill:
-  # Бур в креативе не работает (чтобы случайно не сносить постройки).
-  in-creative: false
+  # Бур и в креативе тоже работает (дроп в креативе не даётся). false — если мешает при строительстве.
+  in-creative: true
+  # Бур ломает ТОЛЬКО эти природные блоки (поставленные игроками постройки, сундуки и спавнеры не трогает).
+  # Пустой список [] — любые блоки кроме хранилищ и бедрока.
+  allowed-blocks:
+    - STONE
+    - DEEPSLATE
+    - COBBLESTONE
+    - COBBLED_DEEPSLATE
+    - ANDESITE
+    - DIORITE
+    - GRANITE
+    - TUFF
+    - DIRT
+    - GRAVEL
+    - SAND
+    - RED_SAND
+    - CLAY
+    - IRON_ORE
+    - DEEPSLATE_IRON_ORE
+    - GOLD_ORE
+    - DEEPSLATE_GOLD_ORE
+    - COPPER_ORE
+    - DEEPSLATE_COPPER_ORE
+    - COAL_ORE
+    - DEEPSLATE_COAL_ORE
+    - DIAMOND_ORE
+    - DEEPSLATE_DIAMOND_ORE
+    - EMERALD_ORE
+    - DEEPSLATE_EMERALD_ORE
+    - LAPIS_ORE
+    - DEEPSLATE_LAPIS_ORE
+    - REDSTONE_ORE
+    - DEEPSLATE_REDSTONE_ORE
+    - NETHER_GOLD_ORE
+    - NETHER_QUARTZ_ORE
+    - ANCIENT_DEBRIS
+    - NETHERRACK
+    - BASALT
+    - BLACKSTONE
+    - MAGMA_BLOCK
+    - SOUL_SAND
+    - SOUL_SOIL
+    - END_STONE
+    - OBSIDIAN
+    - SANDSTONE
+    - RED_SANDSTONE
+    - PURPUR_BLOCK
+    - PURPUR_PILLAR
+    - PURPLE_GLAZED_TERRACOTTA
   # Прочность тратится за каждый дополнительный блок бура (с учётом Прочности).
   damage-per-block: true
   # Опыт за дополнительные блоки бура не даётся (только за основной блок).
@@ -53,6 +109,9 @@ drill:
 magnet:
   # true — добытое сразу в инвентарь; переполнение падает под ноги.
   direct-to-inventory: true
+  # Поддержка авто-скупщика LMbuyer (/buyer): магнитный дроп проходит через событие
+  # подбора предмета, и автоскупщик успевает продать его до попадания в инвентарь.
+  autobuy-support: true
   # Магнит на топоре собирает дроп с убитых мобов (на игроков НЕ работает).
   mob-drops: true
 

@@ -159,18 +159,18 @@ Titles:
   # Placeholders: %player% %x% %y% %z% %time%
 
   NoDelay:
-    Title: '&#55FFFFVoidPE'
+    Title: '#55FFFFVoidPE'
     Subtitle: '&fТелепортация... &7подождите'
     SendMessage: true
 
   Teleport:
-    Title: '&#55FFFFВы телепортированы!'
-    Subtitle: '&fКоординаты: &#FFD54A%x% %y% %z%'
+    Title: '#55FFFFВы телепортированы!'
+    Subtitle: '&fКоординаты: #FFD54A%x% %y% %z%'
     SendMessage: true
 
   Delay:
-    Title: '&#55FFFFТелепортация'
-    Subtitle: '&fЧерез &#FFD54A%time% &fсек. &7Не двигайтесь'
+    Title: '#55FFFFТелепортация'
+    Subtitle: '&fЧерез #FFD54A%time% &fсек. &7Не двигайтесь'
     SendMessage: true
 
   Cancelled:
@@ -179,7 +179,7 @@ Titles:
     SendMessage: true
 
   Loading:
-    Title: '&#55FFFFПоиск места'
+    Title: '#55FFFFПоиск места'
     Subtitle: '&7Прогрузка чанков...'
     SendMessage: true
 
