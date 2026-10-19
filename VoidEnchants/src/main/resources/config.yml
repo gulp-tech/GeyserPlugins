@@ -1,0 +1,108 @@
+# ============================================================
+#  VoidEnchants — кастомные зачарования сервера VoidPE
+#  Автоплавка, Магнит, Бур I/II + кирки шахтёра.
+# ============================================================
+
+messages:
+  prefix: '&bVoidPE &8» &f'
+  given: '&aВыдано игроку &f{player}&a: &f{item}'
+  received: '&aВы получили: &f{item}'
+  enchanted: '&aЗачарование &f{enchant} &aдобавлено на предмет в руке.'
+  not-applicable: '&cЭто зачарование нельзя наложить на этот предмет.'
+  no-item: '&cВозьмите предмет в руку.'
+  reloaded: '&aКонфиг перезагружен.'
+  no-permission: '&cУ вас нет прав на эту команду.'
+  player-not-found: '&cИгрок не найден.'
+  usage: '&fИспользование: &b/vench give <игрок> <miner1|miner2|miner3|book_autosmelt|book_magnet|book_drill> &fили &b/vench enchant <autosmelt|magnet|drill> [уровень]'
+
+# Названия зачарований в лоре предметов (строка добавляется автоматически).
+enchant-names:
+  autosmelt: '&6Автоплавка'
+  magnet: '&bМагнит'
+  drill: '&eБур' # уровень дописывается римской цифрой: Бур I, Бур II
+
+# Стол зачарований: кастомные чары выпадают ТОЛЬКО на максимальном (30) уровне.
+enchanting-table:
+  enabled: true
+  min-level-cost: 30
+  chances: # шанс 0..1 для каждого чара (проверяется отдельно)
+    autosmelt: 0.15
+    magnet: 0.15
+    drill: 0.08 # с книгой/киркой/лопатой; выпадает только Бур I (II — наковальней из двух I)
+
+# Наковальня: цена в уровнях опыта за объединение с повышением/добавлением кастомных чар.
+anvil:
+  xp-cost: 8
+  # Максимальные уровни при объединении одинаковых чар (L + L = L+1, но не выше капа).
+  # Тут капы ВЫШЕ ванильных: эффективность до 7, острота до 7, защита до 5, удача до 5, прочность до 5.
+  caps:
+    efficiency: 7
+    sharpness: 7
+    protection: 5
+    fortune: 5
+    unbreaking: 5
+
+drill:
+  # Бур в креативе не работает (чтобы случайно не сносить постройки).
+  in-creative: false
+  # Прочность тратится за каждый дополнительный блок бура (с учётом Прочности).
+  damage-per-block: true
+  # Опыт за дополнительные блоки бура не даётся (только за основной блок).
+  extra-blocks-xp: false
+
+magnet:
+  # true — добытое сразу в инвентарь; переполнение падает под ноги.
+  direct-to-inventory: true
+  # Магнит на топоре собирает дроп с убитых мобов (на игроков НЕ работает).
+  mob-drops: true
+
+# Автоплавка: во что превращается ВЫПАВШИЙ предмет (дроп -> результат).
+# Работает и на все блоки бура. С шёлковым касанием автоплавка не применяется.
+smelt-map:
+  RAW_IRON: IRON_INGOT
+  RAW_GOLD: GOLD_INGOT
+  RAW_COPPER: COPPER_INGOT
+  IRON_ORE: IRON_INGOT
+  DEEPSLATE_IRON_ORE: IRON_INGOT
+  GOLD_ORE: GOLD_INGOT
+  DEEPSLATE_GOLD_ORE: GOLD_INGOT
+  NETHER_GOLD_ORE: GOLD_INGOT
+  COPPER_ORE: COPPER_INGOT
+  DEEPSLATE_COPPER_ORE: COPPER_INGOT
+  ANCIENT_DEBRIS: NETHERITE_SCRAP
+  COBBLESTONE: STONE
+  SAND: GLASS
+  RED_SAND: GLASS
+
+# Готовые кирки шахтёра (команда /vench give <игрок> miner1|miner2|miner3).
+picks:
+  miner1:
+    name: '&6Кирка шахтёра &eI'
+    material: NETHERITE_PICKAXE
+    efficiency: 5
+    fortune: 3
+    unbreaking: 3
+    mending: true
+    autosmelt: true
+    magnet: true
+    drill: 0
+  miner2:
+    name: '&6Кирка шахтёра &eII'
+    material: NETHERITE_PICKAXE
+    efficiency: 6
+    fortune: 4
+    unbreaking: 4
+    mending: true
+    autosmelt: true
+    magnet: true
+    drill: 1
+  miner3:
+    name: '&6Кирка шахтёра &eIII'
+    material: NETHERITE_PICKAXE
+    efficiency: 7
+    fortune: 5
+    unbreaking: 5
+    mending: true
+    autosmelt: true
+    magnet: true
+    drill: 2
