@@ -45,7 +45,7 @@
 
     <build>
         <defaultGoal>clean package</defaultGoal>
-        <finalName>FaralTalismans-${project.version}</finalName>
+        <finalName>VoidTalismans-${project.version}</finalName>
         <resources>
             <resource>
                 <directory>src/main/resources</directory>
