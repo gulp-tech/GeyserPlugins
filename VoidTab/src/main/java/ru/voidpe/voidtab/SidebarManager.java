@@ -242,6 +242,7 @@ public final class SidebarManager {
         Map<String, String> values = new HashMap<>();
         values.put("player", player.getName());
         values.put("group", group);
+        values.put("group_icon", rankIconChar(player));
         values.put("group_raw", groupRaw);
         values.put("coins", coins);
         values.put("coins_raw", balance < 0 ? "0" : String.valueOf((long) balance));

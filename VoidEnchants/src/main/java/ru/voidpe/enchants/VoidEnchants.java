@@ -262,7 +262,7 @@ public final class VoidEnchants extends JavaPlugin implements Listener, TabCompl
                 }
                 target.setType(Material.AIR, false);
                 if (getConfig().getBoolean("drill.damage-per-block", true)) {
-                    damageTool(player, tool);
+                    damageTool(player, tool, getConfig().getDouble("drill.durability-multiplier", 1.3));
                     if (tool.getAmount() == 0) {
                         break; // инструмент сломался
                     }
@@ -281,6 +281,9 @@ public final class VoidEnchants extends JavaPlugin implements Listener, TabCompl
                 if (entity instanceof org.bukkit.entity.Item itemEntity && itemEntity.getTicksLived() < 40) {
                     ItemStack stack = itemEntity.getItemStack().clone();
                     itemEntity.remove();
+                    if (tryAutoBuy(player, stack)) {
+                        continue; // автоскупщик продал предмет - в инвентарь НЕ кладём (иначе дюп: деньги + предмет)
+                    }
                     Map<Integer, ItemStack> left = player.getInventory().addItem(stack);
                     for (ItemStack rest : left.values()) {
                         player.getWorld().dropItemNaturally(player.getLocation(), rest);
@@ -392,6 +395,17 @@ public final class VoidEnchants extends JavaPlugin implements Listener, TabCompl
             }
         }
         return result;
+    }
+
+    /** Урон инструменту за блок бура: множитель износа (1.3 = на 30% быстрее обычной скорости). */
+    private void damageTool(Player player, ItemStack tool, double multiplier) {
+        int times = (int) multiplier;
+        if (ThreadLocalRandom.current().nextDouble() < multiplier - times) {
+            times++;
+        }
+        for (int i = 0; i < times && tool.getAmount() > 0; i++) {
+            damageTool(player, tool);
+        }
     }
 
     /** Урон инструменту за блок бура с шансом от Прочности. */
