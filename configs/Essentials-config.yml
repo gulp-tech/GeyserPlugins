@@ -1,0 +1,512 @@
+############################################################
+# EssentialsX — VoidPE (Purpur 26.2, Geyser/Floodgate)     #
+# Дома по привилегиям, русский язык, LiteBans вместо банов #
+############################################################
+
+# 'none' — чтобы ОП-ник не красился красным (красный чат Создателя лечили этим).
+ops-name-color: 'none'
+
+nickname-prefix: '~'
+max-nick-length: 16
+allowed-nicks-regex: '^[a-zA-Z_0-9§]+$'
+nick-blacklist:
+  #- Notch
+ignore-colors-in-max-nick-length: false
+reset-nick-on-name-change: false
+hide-displayname-in-vanish: true
+
+change-displayname: true
+change-tab-complete-name: false
+
+teleport-safety: true
+force-disable-teleport-safety: false
+force-safe-teleport-location: false
+consider-world-height-for-teleport-safety: true
+is-water-safe: false
+teleport-passenger-dismount: true
+teleport-cooldown: 0
+# 3 секунды до телепорта (чтобы не убегали из боя), отмена при движении/уроне — стандарт Essentials.
+teleport-delay: 3
+teleport-invulnerability: 4
+teleport-to-center: true
+
+heal-cooldown: 60
+remove-effects-on-heal: true
+near-radius: 200
+
+item-spawn-blacklist:
+permission-based-item-spawn: false
+spawnmob-limit: 10
+warn-on-smite: true
+drop-items-if-full: false
+notify-no-new-mail: true
+notify-player-of-mail-cooldown: 60
+
+overridden-commands:
+  #- god
+
+# Баны/муты ведёт LiteBans — эти команды Essentials отключаем, чтобы не путались.
+disabled-commands:
+  - ban
+  - banip
+  - tempban
+  - mute
+  - unban
+
+verbose-command-usages: true
+
+socialspy-commands:
+  - msg
+  - r
+  - reply
+  - tell
+  - w
+  - whisper
+  - mail
+socialspy-listen-muted-players: true
+socialspy-messages: true
+socialspy-uses-displaynames: true
+
+world-change-fly-reset: true
+world-change-preserve-flying: true
+gamemode-change-preserve-flying: false
+world-change-speed-reset: true
+
+# В муте LiteBans и так блокирует личные сообщения своим списком.
+mute-commands:
+  - f
+  - kittycannon
+
+# Список ниже не используется (права раздаёт LuckPerms), оставлен для справки.
+player-commands:
+  - afk
+  - balance
+  - delhome
+  - help
+  - home
+  - kit
+  - mail
+  - mail.send
+  - msg
+  - pay
+  - r
+  - rules
+  - sethome
+  - spawn
+  - tpa
+  - tpaccept
+  - tpdeny
+  - warp
+
+use-bukkit-permissions: true
+
+skip-used-one-time-kits-from-kit-list: false
+kit-auto-equip: false
+pastebin-createkit: false
+use-nbt-serialization-in-createkit: false
+
+enabledSigns:
+  #- color
+  #- balance
+  #- buy
+  #- free
+  #- sell
+  #- trade
+  #- enchant
+  #- repair
+  #- gamemode
+  #- heal
+  #- info
+  #- kit
+  #- mail
+  #- randomteleport
+  #- warp
+  #- anvil
+  #- cartography
+  #- disposal
+  #- grindstone
+  #- loom
+  #- smithing
+  #- workbench
+  #- spawnmob
+  #- time
+  #- weather
+
+sign-use-per-second: 4
+allow-old-id-signs: false
+unprotected-sign-names:
+  #- kit
+
+backup:
+  interval: 30
+  always-run: false
+
+per-warp-permission: false
+
+# /list: состав сервера отдельной группой сверху.
+list:
+  Staff: sozdatel moderator helper
+real-names-on-list: false
+
+debug: false
+
+# Русский язык сообщений Essentials.
+locale: ru
+per-player-locale: false
+
+message-colors:
+  primary: '#55ffff'
+  secondary: '#ff5555'
+
+remove-god-on-disconnect: false
+auto-afk: 300
+auto-afk-timeout: -1
+afk-timeout-commands:
+  #- kick {USERNAME} AFK
+freeze-afk-players: false
+disable-item-pickup-while-afk: false
+cancel-afk-on-interact: true
+cancel-afk-on-move: true
+cancel-afk-on-chat: true
+cancel-afk-on-fish: true
+sleep-ignores-afk-players: true
+sleep-ignores-vanished-player: true
+afk-list-name: "none"
+broadcast-afk-message: true
+
+death-messages: true
+vanishing-items-policy: keep
+binding-items-policy: keep
+send-info-after-death: false
+allow-silent-join-quit: false
+custom-join-message: "none"
+custom-quit-message: "none"
+custom-new-username-message: "none"
+use-custom-server-full-message: true
+use-custom-whitelist-message: true
+hide-join-quit-messages-above: -1
+
+no-god-in-worlds:
+  #- world_nether
+
+world-teleport-permissions: false
+default-stack-size: -1
+oversized-stacksize: 64
+repair-enchanted: true
+unsafe-enchantments: false
+tree-command-range-limit: 300
+register-back-in-listener: false
+login-attack-delay: 5
+max-walk-speed: 0.8
+max-fly-speed: 0.8
+mails-per-minute: 1000
+max-mute-time: -1
+max-tempban-time: -1
+last-message-reply-recipient: true
+last-message-reply-recipient-timeout: 180
+last-message-reply-vanished: false
+milk-bucket-easter-egg: true
+send-fly-enable-on-join: true
+world-time-permissions: false
+
+command-cooldowns:
+  #feed: 100
+command-cooldown-persistence: true
+
+npcs-in-balance-ranking: false
+allow-bulk-buy-sell: true
+allow-selling-named-items: false
+delay-motd: 0
+default-enabled-confirm-commands:
+  #- pay
+
+teleport-when-freed: back
+jail-online-time: false
+tpa-accept-cancellation: 120
+tpa-max-requests: 5
+allow-direct-hat: true
+allow-world-in-broadcastworld: true
+safe-usermap-names: true
+log-command-block-commands: true
+log-console-commands: true
+max-projectile-speed: 8
+max-itemlore-lines: 10
+update-check: true
+
+############################################################
+#                        Homes                             #
+############################################################
+
+update-bed-at-daytime: true
+world-home-permissions: false
+
+# Дома по привилегиям VoidPE. Право: essentials.sethome.multiple.<группа> (уже розданы в LuckPerms).
+sethome-multiple:
+  default: 1
+  strannik: 2
+  geroy: 2
+  rycar: 3
+  baron: 4
+  lord: 5
+  knyaz: 7
+  imperator: 10
+
+compass-towards-home-perm: false
+spawn-if-no-home: true
+confirm-home-overwrite: false
+
+############################################################
+#                       Economy                            #
+############################################################
+
+starting-balance: 0
+command-costs:
+  #example: 1000
+currency-symbol: '$'
+currency-symbol-suffix: false
+max-money: 10000000000000
+min-money: -10000
+economy-log-enabled: false
+economy-log-uuids: false
+economy-log-update-enabled: false
+minimum-pay-amount: 0.001
+pay-excludes-ignore-list: false
+show-zero-baltop: true
+baltop-requirements:
+  minimum-balance: 0
+  minimum-playtime: 0
+baltop-entry-limit: -1
+
+sell-multipliers:
+  default: 1.0
+
+############################################################
+#                         Help                             #
+############################################################
+
+non-ess-in-help: true
+hide-permissionless-help: true
+
+############################################################
+#                   EssentialsX Chat                       #
+# (чат ведёт ChatEx; секция оставлена на всякий случай)    #
+############################################################
+
+chat:
+  radius: 0
+  format: '<{DISPLAYNAME}> {MESSAGE}'
+  group-formats:
+    #default: '{WORLDNAME} {DISPLAYNAME}&7:&r {MESSAGE}'
+  world-aliases:
+    #plots: "&dP&r"
+  shout-default: false
+  persist-shout: false
+  question-enabled: true
+  paper-chat-events: true
+
+############################################################
+#                  EssentialsX Protect                     #
+############################################################
+
+protect:
+  prevent:
+    lava-flow: false
+    water-flow: false
+    water-bucket-flow: false
+    fire-spread: true
+    lava-fire-spread: true
+    lava-itemdamage: false
+    flint-fire: false
+    lightning-fire-spread: true
+    portal-creation: false
+    tnt-explosion: false
+    tnt-playerdamage: false
+    tnt-itemdamage: false
+    tnt-minecart-explosion: false
+    tnt-minecart-playerdamage: false
+    tnt-minecart-itemdamage: false
+    fireball-explosion: false
+    fireball-fire: false
+    fireball-playerdamage: false
+    fireball-itemdamage: false
+    windcharge-explosion: false
+    witherskull-explosion: false
+    witherskull-playerdamage: false
+    witherskull-itemdamage: false
+    wither-spawnexplosion: false
+    wither-blockreplace: false
+    creeper-explosion: false
+    creeper-playerdamage: false
+    creeper-itemdamage: false
+    creeper-blockdamage: false
+    ender-crystal-explosion: false
+    enderdragon-blockdamage: true
+    enderman-pickup: false
+    villager-death: false
+    bed-explosion: false
+    respawn-anchor-explosion: false
+    entitytarget: false
+    zombie-door-break: false
+    ravager-thief: false
+    sheep-eat-grass: false
+    transformation:
+      charged-creeper: false
+      zombie-villager: false
+      villager: false
+      witch: false
+      zombie-pigman: false
+      drowned: false
+      mooshroom: false
+    spawn:
+      creeper: false
+      skeleton: false
+      spider: false
+      giant: false
+      zombie: false
+      slime: false
+      ghast: false
+      pig_zombie: false
+      enderman: false
+      cave_spider: false
+      silverfish: false
+      blaze: false
+      magma_cube: false
+      ender_dragon: false
+      pig: false
+      sheep: false
+      cow: false
+      chicken: false
+      squid: false
+      wolf: false
+      mushroom_cow: false
+      snowman: false
+      ocelot: false
+      iron_golem: false
+      villager: false
+      wither: false
+      bat: false
+      witch: false
+      horse: false
+      phantom: false
+      zombified_piglin: false
+      mooshroom: false
+      snow_golem: false
+      rabbit: false
+      guardian: false
+      elder_guardian: false
+      endermite: false
+      shulker: false
+      polar_bear: false
+      stray: false
+      husk: false
+      wither_skeleton: false
+      zombie_villager: false
+      skeleton_horse: false
+      zombie_horse: false
+      donkey: false
+      mule: false
+      llama: false
+      evoker: false
+      vex: false
+      vindicator: false
+      illusioner: false
+      parrot: false
+      turtle: false
+      cod: false
+      salmon: false
+      pufferfish: false
+      tropical_fish: false
+      dolphin: false
+      drowned: false
+      cat: false
+      fox: false
+      panda: false
+      pillager: false
+      ravager: false
+      trader_llama: false
+      wandering_trader: false
+      bee: false
+      hoglin: false
+      piglin: false
+      piglin_brute: false
+      strider: false
+      zoglin: false
+      axolotl: false
+      glow_squid: false
+      goat: false
+      allay: false
+      frog: false
+      tadpole: false
+      warden: false
+      camel: false
+      sniffer: false
+      armadillo: false
+      bogged: false
+      breeze: false
+      creaking: false
+      happy_ghast: false
+      copper_golem: false
+      camel_husk: false
+      nautilus: false
+      zombie_nautilus: false
+      parched: false
+      sulfur_cube: false
+      cushion: false
+  creeper:
+    max-height: -1
+  disable:
+    fall: false
+    pvp: false
+    drown: false
+    suffocate: false
+    lavadmg: false
+    projectiles: false
+    contactdmg: false
+    firedmg: false
+    lightning: false
+    wither: false
+    weather:
+      storm: false
+      thunder: false
+      lightning: false
+
+############################################################
+#                 EssentialsX AntiBuild                    #
+############################################################
+
+    build: true
+    use: true
+    warn-on-build-disallow: true
+
+  alert:
+    on-placement: LAVA,TNT,LAVA_BUCKET
+    on-use: LAVA_BUCKET
+    on-break:
+
+  blacklist:
+    placement: LAVA,TNT,LAVA_BUCKET
+    usage: LAVA_BUCKET
+    break:
+    piston:
+    dispenser:
+
+############################################################
+#            EssentialsX Spawn + New Players               #
+############################################################
+
+newbies:
+  announce-format: '&b&lVoidPE &8» &fДобро пожаловать на сервер, {DISPLAYNAME}&f!'
+  spawnpoint: newbies
+  # Стартовый кит отключён — киты выдаёт LiteKits.
+  kit: ''
+
+respawn-listener-priority: high
+spawn-join-listener-priority: high
+respawn-at-home: false
+respawn-at-home-bed: true
+respawn-at-anchor: false
+random-spawn-location: "none"
+random-respawn-location: "none"
+spawn-on-join: false
+
+# End of file

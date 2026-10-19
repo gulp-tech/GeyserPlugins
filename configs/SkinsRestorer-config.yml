@@ -1,0 +1,174 @@
+##################################
+#      SkinsRestorer config      #
+#      Настроено под VoidPE      #
+##################################
+
+##########
+# Locale #
+##########
+
+messages:
+    # Русский язык сообщений для всех игроков.
+    locale: ru
+    consoleLocale: en
+    disablePrefix: false
+    # false — всем игрокам русский, не зависящий от языка клиента.
+    perIssuerLocale: false
+    dateFormat: dd.MM.yyyy
+
+############
+# Database #
+############
+
+database:
+    type: FILE
+    host: localhost
+    port: 3306
+    database: db
+    username: root
+    password: pass
+    maxPoolSize: 10
+    tablePrefix: sr_
+    connectionOptions: sslMode=trust&serverTimezone=UTC
+
+############
+# Commands #
+############
+
+commands:
+    # false — доступ к командам выдаёт LuckPerms (право skinsrestorer.player), а не всем подряд.
+    forceDefaultPermissions: false
+    skinChangeCooldown: 30
+    skullGetCooldown: 30
+    skinErrorCooldown: 5
+    skullErrorCooldown: 5
+    restrictSkinUrls:
+        enabled: false
+        list:
+        - https://i.imgur.com
+        - http://i.imgur.com
+        - https://storage.googleapis.com
+        - http://storage.googleapis.com
+        - https://cdn.discordapp.com
+        - http://cdn.discordapp.com
+        - https://textures.minecraft.net
+        - http://textures.minecraft.net
+    disabledSkins:
+        enabled: false
+        list:
+        - steve
+        - owner
+    perSkinPermissionsConsent: ''
+    perSkinPermissions: false
+    maxHistoryLength: 36
+    maxFavouriteLength: 180
+    customHelp:
+        # Справка /skin в стиле VoidPE.
+        enabled: true
+        message:
+        - <aqua><bold>VoidPE</bold> <dark_gray>» <white>Скины
+        - <gray>/skin set <скин> <dark_gray>- <white>установить скин по нику
+        - <gray>/skin url <ссылка> <dark_gray>- <white>скин по ссылке на картинку
+        - <gray>/skin clear <dark_gray>- <white>вернуть свой скин
+        - <gray>/skins <dark_gray>- <white>меню скинов
+    disableSkinCommand: false
+    disableSkullCommand: false
+    disableGUICommand: false
+
+gui:
+    notUnlockedSkin: c10591e6909e6a281b371836e462d67a2c78fa0952e910f32b41a26c48c1757c
+    custom:
+        enabled: true
+        index: 0
+        onlyShowList: false
+        list:
+        - xknat
+        - pistonmaster
+    players:
+        enabled: false
+        index: 1
+        onlyShowList: false
+        list:
+        - 7dcfc130-344a-4719-9fbe-3176bc2075c6
+        - b1ae0778-4817-436c-96a3-a72c67cda060
+    recommendations:
+        enabled: true
+        index: 2
+        onlyShowList: false
+        list:
+        - vampire
+        - space-suit
+
+###########
+# Storage #
+###########
+
+storage:
+    defaultSkins:
+        enabled: false
+        applyForPremium: false
+        list:
+        - xknat
+        - pistonmaster
+        - <random>
+    disallowAutoUpdateSkin: false
+    skinExpiresAfter: 15
+    uuidExpiresAfter: 60
+
+#########
+# Proxy #
+#########
+
+proxy:
+    notAllowedCommandServers:
+        # У нас один сервер без прокси — ограничение выключено, иначе команды могут блокироваться.
+        enabled: false
+        ifNoServerBlockCommand: true
+        allowList: false
+        list:
+        - auth
+
+##########
+# Server #
+##########
+
+server:
+    # Важно для нас: после загрузки ресурспака скин применяется заново и не слетает.
+    resourcePackFix: true
+    dismountPlayerOnSkinUpdate: true
+    remountPlayerOnSkinUpdate: true
+    dismountPassengersOnSkinUpdate: false
+    sound:
+        enabled: true
+        value: ENTITY_PLAYER_TELEPORT, 0.7
+    proxyMode:
+        detection: AUTO
+        api: true
+login:
+    noSkinIfLoginCanceled: true
+    alwaysApplyPremium: false
+    offlineModeWarning:
+        enabled: true
+api:
+    # Ключ MineSkin не вписан (был плейсхолдер 'key' — с ним были бы ошибки запросов).
+    mineskinAPIKey: ''
+    mineskinSecretSkins: false
+    fetchRecommendedSkins: true
+    mojangBatchWindowSeconds: 1
+    elyByEnabled: false
+
+###############
+# Danger Zone #
+###############
+
+advanced:
+    disableOnJoinSkins: false
+    enablePaperJoinListener: true
+    teleportRefresh: false
+    noConnections: false
+    playerHeadChatObjects: false
+
+dev:
+    debug: false
+
+# End #
