@@ -36,16 +36,16 @@ public final class WGHook {
         }
         try {
             ClassLoader cl = wg.getClass().getClassLoader();
-            Class<?> wgClass = Class.forName("org.sk89q.worldguard.WorldGuard", true, cl);
+            Class<?> wgClass = Class.forName("com.sk89q.worldguard.WorldGuard", true, cl);
             Object instance = wgClass.getMethod("getInstance").invoke(null);
             Object platform = wgClass.getMethod("getPlatform").invoke(instance);
             regionContainer = platform.getClass().getMethod("getRegionContainer").invoke(platform);
-            Class<?> adapter = Class.forName("org.sk89q.worldedit.bukkit.BukkitAdapter", true, cl);
-            Class<?> weWorld = Class.forName("org.sk89q.worldedit.world.World", true, cl);
+            Class<?> adapter = Class.forName("com.sk89q.worldedit.bukkit.BukkitAdapter", true, cl);
+            Class<?> weWorld = Class.forName("com.sk89q.worldedit.world.World", true, cl);
             adaptWorld = adapter.getMethod("adapt", World.class);
             adaptLocation = adapter.getMethod("adapt", Location.class);
             containerGet = regionContainer.getClass().getMethod("get", weWorld);
-            Class<?> bv3 = Class.forName("org.sk89q.worldedit.math.BlockVector3", true, cl);
+            Class<?> bv3 = Class.forName("com.sk89q.worldedit.math.BlockVector3", true, cl);
             vectorAt = bv3.getMethod("at", int.class, int.class, int.class);
             available = true;
             log.info("WorldGuard подключён (запретные регионы активны)");

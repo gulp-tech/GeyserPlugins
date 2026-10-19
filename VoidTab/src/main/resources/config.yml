@@ -190,14 +190,6 @@ groups:
     display: '&#5B8CFFМодератор'
   sozdatel:
     display: '&#FF5555Создатель'
-  default:
-    display: "&#7AE582Игрок"
-  vip:
-    display: "&#55FF55VIP"
-  premium:
-    display: "&#FFD93DПремиум"
-  admin:
-    display: "&#FF5555Администратор"
   owner:
     display: "<gradient:#FF6A00:#FFD93D>Владелец</gradient>"
 

@@ -62,7 +62,7 @@ public final class WEHook {
             cl = we.getClass().getClassLoader();
             Class<?> weClass = Class.forName("com.sk89q.worldedit.WorldEdit", true, cl);
             worldEdit = weClass.getMethod("getInstance").invoke(null);
-            Class<?> adapter = Class.forName("org.sk89q.worldedit.bukkit.BukkitAdapter", true, cl);
+            Class<?> adapter = Class.forName("com.sk89q.worldedit.bukkit.BukkitAdapter", true, cl);
             Class<?> bukkitBlockData = Class.forName("org.bukkit.block.data.BlockData");
             for (Method m : adapter.getMethods()) {
                 if (m.getName().equals("adapt") && m.getParameterCount() == 1
@@ -142,7 +142,7 @@ public final class WEHook {
             relMinX = minX - ox; relMinY = minY - oy; relMinZ = minZ - oz;
             relMaxX = maxX - ox; relMaxY = maxY - oy; relMaxZ = maxZ - oz;
 
-            Class<?> bv3 = Class.forName("org.sk89q.worldedit.math.BlockVector3", true, cl);
+            Class<?> bv3 = Class.forName("com.sk89q.worldedit.math.BlockVector3", true, cl);
             Method vectorAt = bv3.getMethod("at", int.class, int.class, int.class);
             Method getBlock = null;
             for (Method m : clipboard.getClass().getMethods()) {
