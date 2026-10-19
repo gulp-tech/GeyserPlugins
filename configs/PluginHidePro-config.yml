@@ -87,7 +87,6 @@ groups:
       - feed
       - heal
       - craft
-      - workbench
       - anvil
       - enderchest
       - ec
@@ -98,12 +97,18 @@ groups:
       - near
       - fly
       - rtp
-      - points
-      - voidtab
-      - items
-      - skin
-      - skins
       - help
+      - skins
+      - miner
+      - miner2
+      - keys
+      - skin
+      - afk
+      - mail
+      - balancetop
+      - warps
+      - points
+      - menu
     #The list of commands that will be made visible only in tabcomplete
     tabcomplete:
       - spawn
@@ -125,7 +130,6 @@ groups:
       - feed
       - heal
       - craft
-      - workbench
       - anvil
       - enderchest
       - ec
@@ -136,12 +140,18 @@ groups:
       - near
       - fly
       - rtp
-      - points
-      - voidtab
-      - items
-      - skin
-      - skins
       - help
+      - skins
+      - miner
+      - miner2
+      - keys
+      - skin
+      - afk
+      - mail
+      - balancetop
+      - warps
+      - points
+      - menu
     #If a player is in two groups, the group with the higher priority number is used
     #The minimum value is 0
     priority: 0
@@ -178,14 +188,12 @@ groups:
       - tempban
       - banip
       - unban
-      - jail
       - invsee
     tabcomplete:
       - ban
       - tempban
       - banip
       - unban
-      - jail
       - invsee
     priority: 8
     blocked-command-message: "Unknown command. Type \"/help\" for help."
