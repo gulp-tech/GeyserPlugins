@@ -247,11 +247,7 @@ items:
     glow: false
     trim-material: EMERALD
     trim-pattern: SENTRY
-    lore:
-      - "&7Алмазная броня из изумрудного крафта"
-      - "&aЗащита III"
-      - "&8Отделка: &aизумрудная"
-      - "&8На наковальне усиливается до &aЗащиты V"
+    lore: []
     enchants:
       - {type: PROTECTION, level: 3}
     recipe:
@@ -267,11 +263,7 @@ items:
     glow: false
     trim-material: EMERALD
     trim-pattern: SENTRY
-    lore:
-      - "&7Алмазная броня из изумрудного крафта"
-      - "&aЗащита III"
-      - "&8Отделка: &aизумрудная"
-      - "&8На наковальне усиливается до &aЗащиты V"
+    lore: []
     enchants:
       - {type: PROTECTION, level: 3}
     recipe:
@@ -287,11 +279,7 @@ items:
     glow: false
     trim-material: EMERALD
     trim-pattern: SENTRY
-    lore:
-      - "&7Алмазная броня из изумрудного крафта"
-      - "&aЗащита III"
-      - "&8Отделка: &aизумрудная"
-      - "&8На наковальне усиливается до &aЗащиты V"
+    lore: []
     enchants:
       - {type: PROTECTION, level: 3}
     recipe:
@@ -307,11 +295,7 @@ items:
     glow: false
     trim-material: EMERALD
     trim-pattern: SENTRY
-    lore:
-      - "&7Алмазная броня из изумрудного крафта"
-      - "&aЗащита III"
-      - "&8Отделка: &aизумрудная"
-      - "&8На наковальне усиливается до &aЗащиты V"
+    lore: []
     enchants:
       - {type: PROTECTION, level: 3}
     recipe:
@@ -325,9 +309,7 @@ items:
     display-name: "&#2EE66BИзумрудный меч"
     material: DIAMOND_SWORD
     glow: false
-    lore:
-      - "&7Алмазный меч из изумрудного крафта"
-      - "&aОстрота III"
+    lore: []
     enchants:
       - {type: SHARPNESS, level: 3}
     recipe:
@@ -341,9 +323,7 @@ items:
     display-name: "&#2EE66BИзумрудная кирка"
     material: DIAMOND_PICKAXE
     glow: false
-    lore:
-      - "&7Алмазный инструмент из изумрудного крафта"
-      - "&aЭффективность III"
+    lore: []
     enchants:
       - {type: EFFICIENCY, level: 3}
     recipe:
@@ -357,9 +337,7 @@ items:
     display-name: "&#2EE66BИзумрудный топор"
     material: DIAMOND_AXE
     glow: false
-    lore:
-      - "&7Алмазный инструмент из изумрудного крафта"
-      - "&aЭффективность III"
+    lore: []
     enchants:
       - {type: EFFICIENCY, level: 3}
     recipe:
@@ -373,9 +351,7 @@ items:
     display-name: "&#2EE66BИзумрудная лопата"
     material: DIAMOND_SHOVEL
     glow: false
-    lore:
-      - "&7Алмазный инструмент из изумрудного крафта"
-      - "&aЭффективность III"
+    lore: []
     enchants:
       - {type: EFFICIENCY, level: 3}
     recipe:
@@ -389,9 +365,7 @@ items:
     display-name: "&#2EE66BИзумрудная мотыга"
     material: DIAMOND_HOE
     glow: false
-    lore:
-      - "&7Алмазный инструмент из изумрудного крафта"
-      - "&aЭффективность III"
+    lore: []
     enchants:
       - {type: EFFICIENCY, level: 3}
     recipe:
