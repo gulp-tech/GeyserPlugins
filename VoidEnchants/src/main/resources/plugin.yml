@@ -1,0 +1,15 @@
+name: VoidEnchants
+version: '${project.version}'
+main: ru.voidpe.enchants.VoidEnchants
+api-version: '26.2'
+author: VoidPE
+description: 'Кастомные зачарования VoidPE: Автоплавка, Магнит, Бур I/II, кирки шахтёра, книги, умная наковальня.'
+commands:
+  voidenchants:
+    description: Выдача кирок/книг и зачарование предметов VoidEnchants
+    usage: /voidenchants <give|enchant|reload>
+    aliases: [vench]
+permissions:
+  voidenchants.admin:
+    description: Админ-команды VoidEnchants (выдача, зачарование, перезагрузка)
+    default: op
