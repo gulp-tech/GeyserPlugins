@@ -1,0 +1,138 @@
+# ============================================================
+#  VoidCases — донат-кейсы (VoidPE, Bedrock)
+#
+#  Игрок получает предмет-кейс и открывает его ПКМ: крутится
+#  рулетка-анимация со звуками, в конце — приз, фейерверк и,
+#  если у приза announce: true, объявление на весь сервер.
+#
+#  Выдача: /cases give <игрок> <кейс> [кол-во] (voidcases.admin)
+#  В DeluxeMenus: [console] cases give %player_name% titles
+#
+#  Призы: weight — вес (шанс = weight / сумма всех весов),
+#  commands — консольные команды приза, {player} — ник игрока.
+#  Цвета: &a, &#FFB340, <gradient:#..:#..>текст</gradient>
+# ============================================================
+
+animation:
+  duration-ticks: 90        # длина рулетки (90 = 4.5 сек)
+  spin-sound: "block.note_block.hat"
+  win-sound: "entity.player.levelup"
+  open-sound: "block.chest.open"
+  firework: true            # фейерверк при выигрыше
+
+messages:
+  prefix: "&#C86BFFVoidPE &8» &f"
+  no-permission: "&cТолько для админов."
+  received: "&aВыдан кейс: {case} &7x{amount}"
+  given: "&aИгроку &f{player} &aвыдан кейс: {case} &7x{amount}"
+  player-offline: "&cИгрок не в сети."
+  case-not-found: "&cТакого кейса нет. Список: &f/cases list"
+  already-opening: "&cПодожди, кейс уже открывается."
+  win: "&#FFD93DТы выбил: {prize}&r &#FFD93Dиз кейса {case}!"
+  # Объявление на весь сервер (только призы с announce: true):
+  win-broadcast: "&#FFD93DИгрок &f{player} &#FFD93Dвыбил {prize} &#FFD93Dиз кейса {case}!"
+
+cases:
+
+  # ---------------- Кейс титулов (привилегии LuckPerms) ----------------
+  # parent set ставит титул основным. Группы LP: поменяй под свои названия.
+  titles:
+    display-name: "&#FFD93DКейс титулов"
+    material: NAME_TAG
+    item-lore:
+      - "&7ПКМ — открыть кейс"
+      - "&7Внутри: титул от Странника до Императора"
+    prizes:
+      - id: strannik
+        name: "&7Титул: Странник"
+        material: LEATHER_HELMET
+        weight: 300
+        announce: false
+        commands: ["lp user {player} parent set strannik"]
+      - id: geroy
+        name: "&#55E6FFТитул: Герой"
+        material: IRON_HELMET
+        weight: 220
+        announce: false
+        commands: ["lp user {player} parent set geroy"]
+      - id: rycar
+        name: "&#8CE8FFТитул: Рыцарь"
+        material: GOLDEN_HELMET
+        weight: 160
+        announce: false
+        commands: ["lp user {player} parent set rycar"]
+      - id: baron
+        name: "&#7CFC00Титул: Барон"
+        material: DIAMOND_HELMET
+        weight: 110
+        announce: true
+        commands: ["lp user {player} parent set baron"]
+      - id: lord
+        name: "&#C86BFFТитул: Лорд"
+        material: DIAMOND_CHESTPLATE
+        weight: 70
+        announce: true
+        commands: ["lp user {player} parent set lord"]
+      - id: knyaz
+        name: "&#FF9A3DТитул: Князь"
+        material: NETHERITE_HELMET
+        weight: 35
+        announce: true
+        commands: ["lp user {player} parent set knyaz"]
+      - id: imperator
+        name: "<gradient:#FFD93D:#FF5555>Титул: Император</gradient>"
+        material: DRAGON_HEAD
+        weight: 10
+        announce: true
+        commands: ["lp user {player} parent set imperator"]
+
+  # ---------------- Кейс осколков (PlayerPoints) ----------------
+  shards:
+    display-name: "&#8CE8FFКейс осколков"
+    material: PRISMARINE_SHARD
+    item-lore:
+      - "&7ПКМ — открыть кейс"
+      - "&7Внутри: осколки (PlayerPoints)"
+    prizes:
+      - id: shards_25
+        name: "&#8CE8FF25 осколков"
+        material: PRISMARINE_SHARD
+        weight: 300
+        announce: false
+        commands: ["points give {player} 25"]
+      - id: shards_50
+        name: "&#8CE8FF50 осколков"
+        material: PRISMARINE_SHARD
+        weight: 220
+        announce: false
+        commands: ["points give {player} 50"]
+      - id: shards_100
+        name: "&#55E6FF100 осколков"
+        material: PRISMARINE_SHARD
+        weight: 160
+        announce: false
+        commands: ["points give {player} 100"]
+      - id: shards_200
+        name: "&#7CFC00 200 осколков"
+        material: PRISMARINE_SHARD
+        weight: 100
+        announce: false
+        commands: ["points give {player} 200"]
+      - id: shards_350
+        name: "&#C86BFF350 осколков"
+        material: PRISMARINE_SHARD
+        weight: 60
+        announce: true
+        commands: ["points give {player} 350"]
+      - id: shards_500
+        name: "&#FF9A3D500 осколков"
+        material: PRISMARINE_SHARD
+        weight: 30
+        announce: true
+        commands: ["points give {player} 500"]
+      - id: shards_1000
+        name: "<gradient:#FFD93D:#FF5555>1000 осколков</gradient>"
+        material: PRISMARINE_CRYSTALS
+        weight: 10
+        announce: true
+        commands: ["points give {player} 1000"]
