@@ -286,7 +286,7 @@ talismans:
     recipe: {enabled: false, shape: [], ingredients: {}}
 
 # ------------------------------------------------------------
-  #  СФЕРЫ (FunTime): бумага с custom-model-data 9001-9007.
+  #  СФЕРЫ (FunTime): бумага с item-model voidspheres:sphere1-3 (и custom-model-data 9001-9003 про запас).
   #  Вид в Bedrock даёт отдельный пак VoidSpheres.mcpack +
   #  маппинг Geyser configs/Geyser-spheres-mapping.json.
   #  Работают ТОЛЬКО в левой руке (where: OFFHAND).
@@ -295,9 +295,10 @@ talismans:
 
   sphere1:
     enabled: true
-    display-name: "&#CFCFCFСфера I уровня"
+    display-name: "&#55C8FFОбычная сфера"
     material: PAPER
     custom-model-data: 9001
+    item-model: "voidspheres:sphere1"
     glow: false
     lore: ["{stats}"]
     where: OFFHAND
@@ -311,9 +312,10 @@ talismans:
 
   sphere2:
     enabled: true
-    display-name: "&#55C8FFСфера II уровня"
+    display-name: "&#C86BFFРедкая сфера"
     material: PAPER
     custom-model-data: 9002
+    item-model: "voidspheres:sphere2"
     glow: false
     lore: ["{stats}"]
     where: OFFHAND
@@ -327,9 +329,10 @@ talismans:
 
   sphere3:
     enabled: true
-    display-name: "<gradient:#FFE259:#FF7518>Сфера III уровня</gradient>"
+    display-name: "<gradient:#FFE259:#FF7518>Легендарная сфера</gradient>"
     material: PAPER
     custom-model-data: 9003
+    item-model: "voidspheres:sphere3"
     glow: false
     lore: ["{stats}"]
     where: OFFHAND

@@ -113,7 +113,8 @@ public final class TalismanService {
                     where,
                     plugin.getConfig().getString(path + ".permission", ""),
                     effects, attributes, recipe,
-                    plugin.getConfig().getInt(path + ".custom-model-data", 0)));
+                    plugin.getConfig().getInt(path + ".custom-model-data", 0),
+                    plugin.getConfig().getString(path + ".item-model", "")));
         }
         plugin.getLogger().info("Загружено талисманов: " + talismans.size());
     }
@@ -166,6 +167,13 @@ public final class TalismanService {
         }
         if (talisman.customModelData() > 0) {
             meta.setCustomModelData(talisman.customModelData());
+        }
+        if (talisman.itemModel() != null && !talisman.itemModel().isBlank()) {
+            // современный способ кастомных предметов (1.21.4+): Geyser v2 маппит именно item_model
+            org.bukkit.NamespacedKey modelKey = org.bukkit.NamespacedKey.fromString(talisman.itemModel());
+            if (modelKey != null) {
+                meta.setItemModel(modelKey);
+            }
         }
         meta.lore(lore);
         if (talisman.glow()) {

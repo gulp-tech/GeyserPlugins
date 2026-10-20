@@ -3,8 +3,8 @@
   "items": {
     "minecraft:paper": [
       {
-        "type": "legacy",
-        "custom_model_data": 9001,
+        "type": "definition",
+        "model": "voidspheres:sphere1",
         "bedrock_identifier": "geyser_custom:sphere1",
         "bedrock_options": {
           "icon": "sphere1",
@@ -14,8 +14,8 @@
         }
       },
       {
-        "type": "legacy",
-        "custom_model_data": 9002,
+        "type": "definition",
+        "model": "voidspheres:sphere2",
         "bedrock_identifier": "geyser_custom:sphere2",
         "bedrock_options": {
           "icon": "sphere2",
@@ -25,8 +25,8 @@
         }
       },
       {
-        "type": "legacy",
-        "custom_model_data": 9003,
+        "type": "definition",
+        "model": "voidspheres:sphere3",
         "bedrock_identifier": "geyser_custom:sphere3",
         "bedrock_options": {
           "icon": "sphere3",

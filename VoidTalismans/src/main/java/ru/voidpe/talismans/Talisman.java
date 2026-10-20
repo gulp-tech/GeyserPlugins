@@ -27,10 +27,11 @@ public final class Talisman {
     private final List<AttributeDef> attributes;
     private final RecipeDef recipe;
     private final int customModelData;
+    private final String itemModel;
 
     public Talisman(String id, boolean enabled, String displayName, Material material, List<String> lore, boolean glow,
                     Where where, String permission, List<EffectDef> effects,
-                    List<AttributeDef> attributes, RecipeDef recipe, int customModelData) {
+                    List<AttributeDef> attributes, RecipeDef recipe, int customModelData, String itemModel) {
         this.id = id;
         this.enabled = enabled;
         this.displayName = displayName;
@@ -43,6 +44,7 @@ public final class Talisman {
         this.attributes = attributes;
         this.recipe = recipe;
         this.customModelData = customModelData;
+        this.itemModel = itemModel;
     }
 
     public String id() { return id; }
@@ -57,6 +59,7 @@ public final class Talisman {
     public List<AttributeDef> attributes() { return attributes; }
     public RecipeDef recipe() { return recipe; }
     public int customModelData() { return customModelData; }
+    public String itemModel() { return itemModel; }
 
     public boolean hasPermission(org.bukkit.entity.Player player) {
         return permission == null || permission.isBlank() || player.hasPermission(permission);
