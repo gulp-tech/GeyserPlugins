@@ -295,7 +295,7 @@ talismans:
 
   sphere1:
     enabled: true
-    display-name: "&#55C8FFОбычная сфера"
+    display-name: "&#C86BFFСфера сумерек"
     material: PAPER
     custom-model-data: 9001
     item-model: "voidspheres:sphere1"
@@ -312,7 +312,7 @@ talismans:
 
   sphere2:
     enabled: true
-    display-name: "&#C86BFFРедкая сфера"
+    display-name: "&#FF7847Сфера пламени"
     material: PAPER
     custom-model-data: 9002
     item-model: "voidspheres:sphere2"
@@ -329,7 +329,7 @@ talismans:
 
   sphere3:
     enabled: true
-    display-name: "<gradient:#FFE259:#FF7518>Легендарная сфера</gradient>"
+    display-name: "<gradient:#B388FF:#6A1BFF>Сфера бездны</gradient>"
     material: PAPER
     custom-model-data: 9003
     item-model: "voidspheres:sphere3"
