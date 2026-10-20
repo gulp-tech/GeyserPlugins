@@ -9,9 +9,10 @@ import java.util.Map;
 /** Один кастомный предмет из config.yml. */
 public final class CustomItem {
 
-    public enum Kind { TRAP, DUST, DISORIENT, LOM, POTION }
+    public enum Kind { TRAP, DUST, DISORIENT, LOM, POTION, ARMOR, GEAR }
 
     public record EffectDef(PotionEffectType type, int amplifier, int durationSeconds) {}
+    public record EnchantDef(String key, int level) {}
     public record RecipeDef(boolean enabled, List<String> shape, Map<Character, Material> ingredients) {}
 
     private final String id;
@@ -22,10 +23,14 @@ public final class CustomItem {
     private final List<String> lore;
     private final boolean glow;
     private final RecipeDef recipe;
+    private final List<EnchantDef> enchants;
+    private final String trimMaterial;
+    private final String trimPattern;
     private final org.bukkit.configuration.ConfigurationSection section;
 
     public CustomItem(String id, Kind kind, boolean enabled, String displayName, Material material,
                       List<String> lore, boolean glow, RecipeDef recipe,
+                      List<EnchantDef> enchants, String trimMaterial, String trimPattern,
                       org.bukkit.configuration.ConfigurationSection section) {
         this.id = id;
         this.kind = kind;
@@ -35,6 +40,9 @@ public final class CustomItem {
         this.lore = lore;
         this.glow = glow;
         this.recipe = recipe;
+        this.enchants = enchants;
+        this.trimMaterial = trimMaterial;
+        this.trimPattern = trimPattern;
         this.section = section;
     }
 
@@ -46,6 +54,9 @@ public final class CustomItem {
     public List<String> lore() { return lore; }
     public boolean glow() { return glow; }
     public RecipeDef recipe() { return recipe; }
+    public List<EnchantDef> enchants() { return enchants; }
+    public String trimMaterial() { return trimMaterial; }
+    public String trimPattern() { return trimPattern; }
 
     /** Значение из секции предмета в конфиге (radius, cooldown-seconds и т.д.). */
     public double num(String key, double def) {

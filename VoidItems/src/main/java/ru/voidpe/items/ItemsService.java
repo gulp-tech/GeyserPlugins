@@ -1,6 +1,7 @@
 package ru.voidpe.items;
 
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -25,9 +26,13 @@ import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.ShapedRecipe;
+import org.bukkit.inventory.meta.ArmorMeta;
 import org.bukkit.inventory.meta.BlockStateMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.PotionMeta;
+import org.bukkit.inventory.meta.trim.ArmorTrim;
+import org.bukkit.inventory.meta.trim.TrimMaterial;
+import org.bukkit.inventory.meta.trim.TrimPattern;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
@@ -170,6 +175,17 @@ public final class ItemsService implements Listener {
                     plugin.getConfig().getBoolean(path + ".recipe.enabled", false),
                     plugin.getConfig().getStringList(path + ".recipe.shape"),
                     ingredients);
+            List<CustomItem.EnchantDef> enchants = new ArrayList<>();
+            if (itemSection != null) {
+                for (Map<?, ?> raw : itemSection.getMapList("enchants")) {
+                    String key = String.valueOf(raw.get("type"));
+                    Object levelRaw = raw.get("level");
+                    int level = levelRaw instanceof Number ? ((Number) levelRaw).intValue() : 1;
+                    if (key != null && !"null".equals(key) && !key.isBlank()) {
+                        enchants.add(new CustomItem.EnchantDef(key, Math.max(1, level)));
+                    }
+                }
+            }
             items.put(id, new CustomItem(
                     id, kind,
                     plugin.getConfig().getBoolean(path + ".enabled", true),
@@ -177,7 +193,10 @@ public final class ItemsService implements Listener {
                     material,
                     plugin.getConfig().getStringList(path + ".lore"),
                     plugin.getConfig().getBoolean(path + ".glow", true),
-                    recipe, itemSection));
+                    recipe, enchants,
+                    plugin.getConfig().getString(path + ".trim-material", ""),
+                    plugin.getConfig().getString(path + ".trim-pattern", ""),
+                    itemSection));
         }
         plugin.getLogger().info("Загружено кастомных предметов: " + items.size());
     }
@@ -205,6 +224,34 @@ public final class ItemsService implements Listener {
         return type;
     }
 
+    private static Enchantment enchantment(String key) {
+        if (key == null || key.isBlank()) {
+            return null;
+        }
+        String normalized = key.toLowerCase(Locale.ROOT).replace("minecraft:", "");
+        Enchantment enchantment = Registry.ENCHANTMENT.get(NamespacedKey.minecraft(normalized));
+        if (enchantment == null) {
+            enchantment = Enchantment.getByName(key.toUpperCase(Locale.ROOT));
+        }
+        return enchantment;
+    }
+
+    private static TrimMaterial trimMaterial(String key) {
+        if (key == null || key.isBlank()) {
+            return null;
+        }
+        return Registry.TRIM_MATERIAL.get(NamespacedKey.minecraft(
+                key.toLowerCase(Locale.ROOT).replace("minecraft:", "")));
+    }
+
+    private static TrimPattern trimPattern(String key) {
+        if (key == null || key.isBlank()) {
+            return null;
+        }
+        return Registry.TRIM_PATTERN.get(NamespacedKey.minecraft(
+                key.toLowerCase(Locale.ROOT).replace("minecraft:", "")));
+    }
+
     // ------------------------------------------------------------------ предметы
     public ItemStack createItem(CustomItem item, int amount) {
         ItemStack stack = new ItemStack(item.material(), Math.max(1, amount));
@@ -215,9 +262,34 @@ public final class ItemsService implements Listener {
             lore.add(component(TextUtil.color(line)));
         }
         meta.lore(lore);
+        if (item.kind() == CustomItem.Kind.ARMOR || item.kind() == CustomItem.Kind.GEAR) {
+            Component name = meta.displayName();
+            if (name != null) {
+                meta.displayName(name.decoration(TextDecoration.ITALIC, false));
+            }
+            List<Component> fixedLore = new ArrayList<>();
+            for (Component line : lore) {
+                fixedLore.add(line.decoration(TextDecoration.ITALIC, false));
+            }
+            meta.lore(fixedLore);
+        }
         if (item.glow()) {
             meta.addEnchant(Enchantment.UNBREAKING, 1, true);
             meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+        }
+        for (CustomItem.EnchantDef enchantDef : item.enchants()) {
+            Enchantment enchantment = enchantment(enchantDef.key());
+            if (enchantment != null) {
+                meta.addEnchant(enchantment, enchantDef.level(), true);
+            }
+        }
+        if (meta instanceof ArmorMeta) {
+            ArmorMeta armorMeta = (ArmorMeta) meta;
+            TrimMaterial trimMaterial = trimMaterial(item.trimMaterial());
+            TrimPattern trimPattern = trimPattern(item.trimPattern());
+            if (trimMaterial != null && trimPattern != null) {
+                armorMeta.setTrim(new ArmorTrim(trimMaterial, trimPattern));
+            }
         }
         if (item.kind() == CustomItem.Kind.POTION && meta instanceof PotionMeta) {
             PotionMeta potion = (PotionMeta) meta;
@@ -328,8 +400,9 @@ public final class ItemsService implements Listener {
             return;
         }
         CustomItem item = byId(id);
-        if (item == null || item.kind() == CustomItem.Kind.POTION || item.kind() == CustomItem.Kind.LOM) {
-            return; // зелья пьются как обычно, лом работает при ломании блока
+        if (item == null || item.kind() == CustomItem.Kind.POTION || item.kind() == CustomItem.Kind.LOM
+                || item.kind() == CustomItem.Kind.ARMOR || item.kind() == CustomItem.Kind.GEAR) {
+            return; // зелья пьются как обычно, лом работает при ломании блока, броня и инструменты используются как обычные
         }
         event.setCancelled(true);
         if (isBanned(player.getLocation())) {
