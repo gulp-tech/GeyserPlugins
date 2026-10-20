@@ -1,0 +1,74 @@
+# BetterRTP языковой файл ru.yml — VoidPE
+Messages:
+  Prefix: '&bVoidPE &8▸ '
+  Success:
+    Paid: '&fВы телепортированы. Координаты: #FFD54A%x% %y% %z%'
+    Bypass: '&fВы телепортированы. Координаты: #FFD54A%x% %y% %z%'
+    Loading: '&fБезопасное место найдено. Прогрузка чанков...'
+    Teleport: '&aВы успешно телепортированы!'
+  Failed:
+    Price: '&cНедостаточно монет для RTP. &fНужно минимум #FFD54A%price%$&f.'
+    NotSafe: '&cБезопасное место не найдено. &fТелепортация отменена.'
+    Hunger: '&cНельзя телепортироваться. &fВы #FFD54Aголодны&f.'
+  Other:
+    Success: '&fИгрок #FFD54A%player% &fтелепортирован на #FFD54A%x% %y% %z%'
+    NotSafe: '&cБезопасное место не найдено. &fИгрок #FFD54A%player% &fне телепортирован.'
+    Biome: '&cБиом #FFD54A%biome% &cне существует. &fИспользуйте tab-подсказки.'
+  Reload: '&aКонфигурация RTP успешно перезагружена.'
+  NoPermission:
+    Basic: '&cНедостаточно прав.'
+    World: '&cНедостаточно прав для RTP в мире #FFD54A%world%&c.'
+  DisabledWorld: '&cRTP отключён в мире #FFD54A%world%&c.'
+  Cooldown: '&fПодождите ещё #FFD54A%time% &fперед следующим RTP.'
+  Locked: '&cВы израсходовали все доступные RTP.'
+  Invalid: '&cНеверный аргумент. &fИспользуйте: #FFD54A/%command% help'
+  NotOnline: '&cИгрок #FFD54A%player% &cне в сети.'
+  Delay: '&fТелепортация через #FFD54A%time% &fсек. Не двигайтесь.'
+  Moved: '&cВы сдвинулись. RTP отменён.'
+  NotExist: '&cМир #FFD54A%world% &cне существует.'
+  Already: '&cВы уже ожидаете телепортацию.'
+  Sign: '&aТабличка создана. &fКоманда: #FFD54A/rtp %command%'
+  Edit:
+    Error: '&cОшибка. Введены неверные значения.'
+    Set: '&aУспешно. &f#FFD54A%type% &fустановлен на #FFD54A%value%'
+    Remove: '&aУспешно. &fМир #FFD54A%world% &fудалён.'
+
+Help:
+  Location: ' &b/%command% location (имя_локации) &8- &frtp с определенным местоположением'
+  Prefix: ' &7[&bʀᴛᴘ&7] &fпомощь:'
+  Main: ' &b/%command% &8- &fтелепортирует в рандомное место'
+  Biome: ' &b/%command% biome (биом1, биом2...) &8- &fтелепортация в рандомное
+    место в указанном биоме'
+  Edit: ' &b/%command% edit (default/world) (аргументы...) &8- &fнастройка данных
+    плагина'
+  Help: ' &b/%command% help &8- &fсписок команд'
+  Info: ' &b/%command% info (world/particles/shapes/potion_effects) &8- &fинформация
+    о параметрах'
+  Player: ' &b/%command% player (ник) (мир) (биом1, биом2...) &8- &fтелепортация
+    игрока в рандомное место в указанном биоме и мире'
+  Reload: ' &b/%command% reload &8- &fперезагрузка плагина'
+  Settings: ' &b/%command% settings &8- &fgui и некоторые параметры'
+  Test: ' &b/%command% test &8- &fтестирование эффекта плагина после телепортации'
+  Version: ' &b/%command% version &8- &fтекущая версия плагина'
+  World: ' &b/%command% world (мир) (биом1, биом2...) &8- &fтелепортирует в рандомное
+    место в указанном биоме и мире'
+
+Usage:
+  Location: '&fиспользование: &b/%command% location (имя_локации)'
+  Player: '&fиспользование: &b/%command% player (ник) (мир) (биом1, биом2)'
+  World: '&fиспользование: &b/%command% world (ник) (биом1, биом2...)'
+  Biome: '&fиспользование: &b/%command% biome (биом1, биом2...)'
+  Edit:
+    PermissionGroup: '&fиспользование: &b/%command% edit permission_group (группа)
+      (мир) <max/min/useworldborder/center> (число)'
+    Location: '&fиспользование: &b/%command% edit location (имя_локации) (max/min/useworldborder/center)
+      (число)'
+    Worldtype: '&fиспользование: &b/%command% edit world_type (мир) (NETHER/NORMAL)'
+    Override: '&fиспользование: &b/%command% edit override (мир) (мир, к которому)'
+    BlacklistedBlocks: '&fиспользование: &b/%command% edit blacklistedblocks
+      (добавить/удалить) (block_id)'
+    Base: '&fиспользование: &b/%command% edit (default/world) (аргументы...)'
+    Default: '&fиспользование: &b/%command% edit default (max/min/useworldborder/center)
+      (число)'
+    World: '&fиспользование: &b/%command% edit world (мир) (max/min/useworldborder/center)
+      (число)'
