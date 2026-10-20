@@ -20,6 +20,11 @@ animation:
   open-sound: "block.chest.open"
   firework: true            # фейерверк при выигрыше
 
+# Поставленные кейсы: /cases set <кейс>, глядя на блок. Блок станет этим
+# материалом (ENDER_CHEST — сундук Края). Пусто ("") — блок не менять.
+placed-cases:
+  set-block: ENDER_CHEST
+
 messages:
   prefix: "&#C86BFFVoidPE &8» &f"
   no-permission: "&cТолько для админов."
@@ -28,6 +33,12 @@ messages:
   player-offline: "&cИгрок не в сети."
   case-not-found: "&cТакого кейса нет. Список: &f/cases list"
   already-opening: "&cПодожди, кейс уже открывается."
+  need-case: "&cНужен кейс: {case}&c. Его можно купить в магазине."
+  set-done: "&aКейс поставлен: {case}&a. Игроки открывают его кликом (нужен сам кейс)."
+  set-removed: "&aКейс убран."
+  not-a-case: "&cЭтот блок — не кейс."
+  no-target-block: "&cПосмотри на блок (до 6 блоков)."
+  case-protected: "&cЭтот кейс нельзя сломать."
   win: "&#FFD93DТы выбил: {prize}&r &#FFD93Dиз кейса {case}!"
   # Объявление на весь сервер (только призы с announce: true):
   win-broadcast: "&#FFD93DИгрок &f{player} &#FFD93Dвыбил {prize} &#FFD93Dиз кейса {case}!"

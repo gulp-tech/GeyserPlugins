@@ -5,16 +5,23 @@ import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.kyori.adventure.title.Title;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.Color;
 import org.bukkit.FireworkEffect;
 import org.bukkit.Material;
+import org.bukkit.block.Block;
+import org.bukkit.block.data.Directional;
 import org.bukkit.NamespacedKey;
 import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Firework;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockExplodeEvent;
+import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
@@ -64,11 +71,15 @@ public final class CaseService implements Listener {
     private final NamespacedKey idKey;
     private final Map<String, CaseDef> cases = new LinkedHashMap<>();
     private final Map<UUID, Session> sessions = new HashMap<>();
+    private final Map<String, String> placedCases = new LinkedHashMap<>(); // "world,x,y,z" -> id кейса
+    private final java.io.File placedFile;
 
     public CaseService(VoidCases plugin) {
         this.plugin = plugin;
         this.idKey = new NamespacedKey(plugin, "case_id");
+        this.placedFile = new java.io.File(plugin.getDataFolder(), "placed-cases.yml");
         load();
+        loadPlaced();
     }
 
     // ------------------------------------------------------------------ загрузка
@@ -128,6 +139,144 @@ public final class CaseService implements Listener {
 
     public List<CaseDef> all() {
         return new ArrayList<>(cases.values());
+    }
+
+    // ------------------------------------------------------------------ поставленные кейсы
+    private static String key(Location loc) {
+        return loc.getWorld().getName() + "," + loc.getBlockX() + "," + loc.getBlockY() + "," + loc.getBlockZ();
+    }
+
+    private void loadPlaced() {
+        placedCases.clear();
+        if (!placedFile.isFile()) {
+            return;
+        }
+        YamlConfiguration yaml = YamlConfiguration.loadConfiguration(placedFile);
+        for (String line : yaml.getStringList("cases")) {
+            String[] parts = line.split(",", -1);
+            if (parts.length == 5) {
+                placedCases.put(parts[0] + "," + parts[1] + "," + parts[2] + "," + parts[3], parts[4]);
+            }
+        }
+        plugin.getLogger().info("Поставленных кейсов: " + placedCases.size());
+    }
+
+    private void savePlaced() {
+        try {
+            YamlConfiguration yaml = new YamlConfiguration();
+            List<String> lines = new ArrayList<>();
+            for (Map.Entry<String, String> e : placedCases.entrySet()) {
+                lines.add(e.getKey() + "," + e.getValue());
+            }
+            yaml.set("cases", lines);
+            yaml.save(placedFile);
+        } catch (Throwable t) {
+            plugin.getLogger().warning("Не удалось сохранить поставленные кейсы: " + t.getMessage());
+        }
+    }
+
+    /** Вид кейса в этой точке или null. */
+    public String placedCaseAt(Location loc) {
+        return loc == null || loc.getWorld() == null ? null : placedCases.get(key(loc));
+    }
+
+    /** Поставить кейс на блок: блок становится сундуком Края (материал — в конфиге), точка сохраняется. */
+    public void setPlaced(Block block, CaseDef def, org.bukkit.block.BlockFace facing) {
+        placedCases.put(key(block.getLocation()), def.id());
+        String matName = plugin.getConfig().getString("placed-cases.set-block", "ENDER_CHEST");
+        Material material = matName == null || matName.isEmpty() ? null : Material.matchMaterial(matName);
+        if (material != null && material.isBlock()) {
+            block.setType(material);
+            if (block.getBlockData() instanceof Directional) {
+                Directional directional = (Directional) block.getBlockData();
+                try {
+                    directional.setFacing(facing);
+                    block.setBlockData(directional);
+                } catch (IllegalArgumentException ignored) {
+                }
+            }
+        }
+        savePlaced();
+    }
+
+    /** Убрать поставленный кейс в точке; вернёт id кейса или null, если там кейса нет. */
+    public String removePlaced(Location loc) {
+        String removed = placedCases.remove(key(loc));
+        if (removed != null) {
+            savePlaced();
+        }
+        return removed;
+    }
+
+    /** Списать один предмет-кейс указанного вида из инвентаря (включая руки). */
+    private boolean consumeCaseFromInventory(Player player, String caseId) {
+        ItemStack[] contents = player.getInventory().getContents();
+        for (int i = 0; i < contents.length; i++) {
+            ItemStack stack = contents[i];
+            if (caseId.equals(identify(stack))) {
+                stack.setAmount(stack.getAmount() - 1);
+                if (stack.getAmount() <= 0) {
+                    player.getInventory().setItem(i, null);
+                }
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** Клик по поставленному кейсу: списывает кейс-предмет из инвентаря и запускает рулетку. */
+    @EventHandler
+    public void onPlacedUse(PlayerInteractEvent event) {
+        if (event.getHand() != EquipmentSlot.HAND || event.getAction() != Action.RIGHT_CLICK_BLOCK) {
+            return;
+        }
+        Block block = event.getClickedBlock();
+        if (block == null) {
+            return;
+        }
+        String caseId = placedCaseAt(block.getLocation());
+        if (caseId == null) {
+            return;
+        }
+        event.setCancelled(true); // сам сундук не открываем — открывается рулетка
+        Player player = event.getPlayer();
+        if (sessions.containsKey(player.getUniqueId())) {
+            return; // рулетка уже крутится (возможно, её открыл onUse с кейсом в руке)
+        }
+        CaseDef def = byId(caseId);
+        if (def == null) {
+            return;
+        }
+        if (!consumeCaseFromInventory(player, caseId)) {
+            msg(player, "need-case", def, null);
+            return;
+        }
+        openCase(player, def);
+    }
+
+    // поставленный кейс нельзя сломать (админ убирает его командой /cases remove)
+    @EventHandler
+    public void onBreakPlaced(BlockBreakEvent event) {
+        if (placedCaseAt(event.getBlock().getLocation()) == null) {
+            return;
+        }
+        if (!event.getPlayer().hasPermission("voidcases.admin")) {
+            event.setCancelled(true);
+            msg(event.getPlayer(), "case-protected", null, null);
+            return;
+        }
+        removePlaced(event.getBlock().getLocation());
+        msg(event.getPlayer(), "set-removed", null, null);
+    }
+
+    @EventHandler
+    public void onExplodePlaced(EntityExplodeEvent event) {
+        event.blockList().removeIf(b -> placedCaseAt(b.getLocation()) != null);
+    }
+
+    @EventHandler
+    public void onExplodePlaced(BlockExplodeEvent event) {
+        event.blockList().removeIf(b -> placedCaseAt(b.getLocation()) != null);
     }
 
     // ------------------------------------------------------------------ предметы

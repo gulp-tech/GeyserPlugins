@@ -1,6 +1,7 @@
 package ru.voidpe.cases;
 
 import org.bukkit.Bukkit;
+import org.bukkit.block.Block;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -74,6 +75,43 @@ public final class VoidCases extends JavaPlugin implements CommandExecutor, TabC
             send(sender, "&aVoidCases перезагружен, кейсов: &f" + service.all().size());
             return true;
         }
+        if (sub.equals("set") || sub.equals("remove")) {
+            if (!admin(sender)) {
+                return true;
+            }
+            if (!(sender instanceof Player)) {
+                send(sender, "&cКоманда только для игроков.");
+                return true;
+            }
+            Player player = (Player) sender;
+            Block target = player.getTargetBlockExact(6);
+            if (target == null) {
+                send(sender, getConfig().getString("messages.no-target-block", "&cПосмотри на блок (до 6 блоков)."));
+                return true;
+            }
+            if (sub.equals("remove")) {
+                if (service.removePlaced(target.getLocation()) == null) {
+                    send(sender, getConfig().getString("messages.not-a-case", "&cЭтот блок — не кейс."));
+                } else {
+                    send(sender, getConfig().getString("messages.set-removed", "&aКейс убран."));
+                }
+                return true;
+            }
+            if (args.length < 2) {
+                send(sender, "&7Использование: &f/cases set <кейс> &8(смотри на блок)");
+                return true;
+            }
+            CaseService.CaseDef def = service.byId(args[1]);
+            if (def == null) {
+                send(sender, getConfig().getString("messages.case-not-found", "&cТакого кейса нет."));
+                return true;
+            }
+            service.setPlaced(target, def, player.getFacing().getOppositeFace());
+            String done = getConfig().getString("messages.set-done", "&aКейс поставлен: {case}")
+                    .replace("{case}", def.displayName());
+            send(sender, done);
+            return true;
+        }
         if (sub.equals("give")) {
             if (!admin(sender)) {
                 return true;
@@ -123,6 +161,8 @@ public final class VoidCases extends JavaPlugin implements CommandExecutor, TabC
     private void help(CommandSender sender) {
         send(sender, "&fКейсы VoidPE:");
         send(sender, "&7/cases give <игрок> <кейс> [кол-во] &8— выдать кейс (админ)");
+        send(sender, "&7/cases set <кейс> &8— поставить кейс на блок, на который смотришь");
+        send(sender, "&7/cases remove &8— убрать кейс с блока, на который смотришь");
         send(sender, "&7/cases list &8— список кейсов");
         send(sender, "&7/cases reload &8— перезагрузка (админ)");
         send(sender, "&7Открытие: держи кейс в руке и нажми ПКМ.");
@@ -132,7 +172,7 @@ public final class VoidCases extends JavaPlugin implements CommandExecutor, TabC
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
-            for (String sub : List.of("give", "list", "reload")) {
+            for (String sub : List.of("give", "list", "reload", "set", "remove")) {
                 if (sub.startsWith(args[0].toLowerCase())) {
                     result.add(sub);
                 }
@@ -141,6 +181,12 @@ public final class VoidCases extends JavaPlugin implements CommandExecutor, TabC
             for (Player player : Bukkit.getOnlinePlayers()) {
                 if (player.getName().toLowerCase().startsWith(args[1].toLowerCase())) {
                     result.add(player.getName());
+                }
+            }
+        } else if (args.length == 2 && args[0].equalsIgnoreCase("set")) {
+            for (String id : service.ids()) {
+                if (id.startsWith(args[1].toLowerCase())) {
+                    result.add(id);
                 }
             }
         } else if (args.length == 3 && args[0].equalsIgnoreCase("give")) {

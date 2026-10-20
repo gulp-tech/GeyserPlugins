@@ -7,7 +7,7 @@ description: "Донат-кейсы: титулы (LuckPerms) и осколки 
 softdepend: [LuckPerms, PlayerPoints]
 commands:
   cases:
-    description: "Кейсы: /cases give <игрок> <кейс> [кол-во] | /cases list | /cases reload"
+    description: "Кейсы: /cases give <игрок> <кейс> [кол-во] | /cases set <кейс> | /cases remove | /cases list | /cases reload"
     usage: /cases
     aliases: [case, кейсы]
 permissions:

@@ -6,7 +6,7 @@
 
     <groupId>ru.voidpe</groupId>
     <artifactId>VoidCases</artifactId>
-    <version>1.0.0</version>
+    <version>1.1.0</version>
     <packaging>jar</packaging>
     <name>VoidCases</name>
     <description>Донат-кейсы для Bedrock-сервера VoidPE: кейс титулов (LuckPerms) и кейс осколков (PlayerPoints), анимация-рулетка, объявления о выигрыше. Всё настраивается в config.yml.</description>
