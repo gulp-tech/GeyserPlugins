@@ -1,19 +1,47 @@
 # DeluxeMenus — раздел: сферы
 # Файл на сервере: plugins/DeluxeMenus/gui_menus/shop_spheres.yml
-# Покупки списывают осколки PlayerPoints (points take) только если хватает:
-# проверка click_requirement по %playerpoints_points% стоит на каждом товаре.
-# Цены меняются прямо в этом файле: output и points take должны совпадать.
+# Рамка — обычное ванильное чёрное стекло. Покупки списывают осколки
+# PlayerPoints только если хватает (click_requirement на каждом товаре).
+# Цены: output и points take в одном товаре должны совпадать.
 menu_title: '• Магазин: сферы'
 open_command: shopspheres
 register_command: true
-size: 27
+size: 45
 open_commands:
   - '[sound] ITEM_BOOK_PAGE_TURN'
 items:
 
+  'Рамка':
+    slots:
+    - 0
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
+    - 6
+    - 7
+    - 8
+    - 9
+    - 17
+    - 18
+    - 26
+    - 27
+    - 35
+    - 36
+    - 37
+    - 38
+    - 39
+    - 41
+    - 42
+    - 43
+    - 44
+    material: BLACK_STAINED_GLASS_PANE
+    display_name: ' '
+
   'Баланс':
     slots:
-    - 4
+    - 13
     material: PRISMARINE_SHARD
     display_name: '&#54C8FFТвои осколки'
     lore:
@@ -25,8 +53,11 @@ items:
 
   'Сфера сумерек':
     slots:
-    - 11
-    material: HEART_OF_THE_SEA
+    - 20
+    material: PAPER
+    item_model: voidspheres:sphere1
+    model_data_component:
+      floats: [9001.0]
     display_name: '&#C86BFFСфера сумерек'
     lore:
       - ''
@@ -57,8 +88,11 @@ items:
 
   'Сфера пламени':
     slots:
-    - 13
-    material: MAGMA_CREAM
+    - 22
+    material: PAPER
+    item_model: voidspheres:sphere2
+    model_data_component:
+      floats: [9002.0]
     display_name: '&#FF7847Сфера пламени'
     lore:
       - ''
@@ -89,9 +123,12 @@ items:
 
   'Сфера бездны':
     slots:
-    - 15
-    material: END_CRYSTAL
-    display_name: '<gradient:#B388FF:#6A1BFF>Сфера бездны</gradient>'
+    - 24
+    material: PAPER
+    item_model: voidspheres:sphere3
+    model_data_component:
+      floats: [9003.0]
+    display_name: '&#B388FFСфера бездны'
     lore:
       - ''
       - '&7Работает только в левой руке.'
@@ -116,13 +153,13 @@ items:
     click_commands:
       - '[console] points take %player_name% 8000'
       - '[console] sphere give %player_name% 3 1'
-      - '[message] &#7CFC00Покупка успешна: <gradient:#B388FF:#6A1BFF>Сфера бездны</gradient>'
+      - '[message] &#7CFC00Покупка успешна: &#B388FFСфера бездны'
       - '[sound] ENTITY_PLAYER_LEVELUP'
       - '[refresh]'
 
   'Назад':
     slots:
-    - 18
+    - 40
     material: ARROW
     display_name: '&fНазад'
     click_commands:
