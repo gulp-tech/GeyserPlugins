@@ -62,6 +62,18 @@ Bedrock-клиент сам отклоняет кастомные рецепты
 Установка расширения: jar в `plugins/Geyser-Spigot/extensions/`, плагин
 VoidEnchants — в `plugins/`, затем полный рестарт сервера.
 
+## VoidAuthSpawn — точка регистрации AuthMe
+
+Дополнение к **AuthMe**: когда зашедшему игроку ещё нужно регистрироваться
+(аккаунта в AuthMe нет), его телепортирует в точку из
+`VoidAuthSpawn/src/main/resources/config.yml` (секция `spawn:`).
+Точка ставится командой `/authspawn set` прямо с нужного места; есть также
+`/authspawn tp` (проверка) и `/authspawn reload`. Опционально: телепорт
+зарегистрированных, но не вошедших игроков (`teleport.not-logged-in`)
+и удержание у точки до регистрации (`hold.enabled`). Право
+`voidauthspawn.bypass` освобождает от телепорта. Jar ставится в `plugins/`
+рядом с AuthMe.
+
 ## VoidCombat — режим боя
 
 PvP-урон ставит обоих игроков в режим боя (по умолчанию 15 секунд, время видно
