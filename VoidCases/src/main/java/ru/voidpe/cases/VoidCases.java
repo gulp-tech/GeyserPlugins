@@ -217,7 +217,6 @@ public final class VoidCases extends JavaPlugin implements CommandExecutor, TabC
         send(sender, "&fКейсы VoidPE:");
         send(sender, "&7/cases give <игрок> <кейс> [кол-во] &8— выдать ВИРТУАЛЬНЫЙ ключ (админ)");
         send(sender, "&7/cases open <кейс> &8— открыть кейс ключом из любого места");
-        send(sender, "&7/cases keys &8— мои ключи");
         send(sender, "&7/cases set <кейс> &8— поставить кейс на блок, на который смотришь");
         send(sender, "&7/cases remove &8— убрать кейс с блока, на который смотришь");
         send(sender, "&7/cases list &8— список кейсов");

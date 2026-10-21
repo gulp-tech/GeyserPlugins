@@ -1,0 +1,415 @@
+# DeluxeMenus — раздел: талисманы
+# Файл на сервере: plugins/DeluxeMenus/gui_menus/shop_talismans.yml
+# Покупки списывают осколки PlayerPoints (points take) только если хватает:
+# проверка click_requirement по %playerpoints_points% стоит на каждом товаре.
+# Цены меняются прямо в этом файле: output и points take должны совпадать.
+menu_title: '• Магазин: талисманы'
+open_command: shoptalismans
+register_command: true
+size: 27
+open_commands:
+  - '[sound] ITEM_BOOK_PAGE_TURN'
+items:
+
+  'Баланс':
+    slots:
+    - 4
+    material: PRISMARINE_SHARD
+    display_name: '&#54C8FFТвои осколки'
+    lore:
+      - ''
+      - '&fБаланс: &#54C8FF%playerpoints_points% осколков'
+      - '&7Ими оплачиваются покупки в этом магазине.'
+    click_commands:
+      - '[sound] ITEM_BOOK_PAGE_TURN'
+
+  'Талисман воина':
+    slots:
+    - 9
+    material: TOTEM_OF_UNDYING
+    display_name: '&#FF5555Талисман воина'
+    lore:
+      - ''
+      - '&7Работает только в левой руке.'
+      - ''
+      - '&7Урон: &a+2'
+      - '&7Броня: &a+4'
+      - '&7Здоровье: &a+2'
+      - ''
+      - '&fЦена: &#54C8FF1000 осколков'
+      - '&7Твой баланс: &#54C8FF%playerpoints_points%'
+      - '&eНажми, чтобы купить'
+    click_requirement:
+      requirements:
+        shards:
+          type: '>='
+          input: '%playerpoints_points%'
+          output: '1000'
+      deny_commands:
+        - '[message] &#FF6B6BНе хватает осколков: нужно 1000, у тебя %playerpoints_points%.'
+        - '[sound] ENTITY_VILLAGER_NO'
+    click_commands:
+      - '[console] points take %player_name% 1000'
+      - '[console] talisman give %player_name% crusher 1'
+      - '[message] &#7CFC00Покупка успешна: &#FF5555Талисман воина'
+      - '[sound] ENTITY_PLAYER_LEVELUP'
+      - '[refresh]'
+
+  'Талисман берсерка':
+    slots:
+    - 10
+    material: TOTEM_OF_UNDYING
+    display_name: '&#FF7847Талисман берсерка'
+    lore:
+      - ''
+      - '&7Работает только в левой руке.'
+      - ''
+      - '&7Урон: &a+4'
+      - '&7Здоровье: &c-4'
+      - ''
+      - '&fЦена: &#54C8FF1400 осколков'
+      - '&7Твой баланс: &#54C8FF%playerpoints_points%'
+      - '&eНажми, чтобы купить'
+    click_requirement:
+      requirements:
+        shards:
+          type: '>='
+          input: '%playerpoints_points%'
+          output: '1400'
+      deny_commands:
+        - '[message] &#FF6B6BНе хватает осколков: нужно 1400, у тебя %playerpoints_points%.'
+        - '[sound] ENTITY_VILLAGER_NO'
+    click_commands:
+      - '[console] points take %player_name% 1400'
+      - '[console] talisman give %player_name% punisher 1'
+      - '[message] &#7CFC00Покупка успешна: &#FF7847Талисман берсерка'
+      - '[sound] ENTITY_PLAYER_LEVELUP'
+      - '[refresh]'
+
+  'Талисман героя':
+    slots:
+    - 11
+    material: TOTEM_OF_UNDYING
+    display_name: '<gradient:#FFE259:#FFA751>Талисман героя</gradient>'
+    lore:
+      - ''
+      - '&7Работает только в левой руке.'
+      - ''
+      - '&7Урон: &a+2'
+      - '&7Броня: &a+4'
+      - '&7Здоровье: &a+4'
+      - '&7Скорость: &a+10%'
+      - ''
+      - '&fЦена: &#54C8FF2500 осколков'
+      - '&7Твой баланс: &#54C8FF%playerpoints_points%'
+      - '&eНажми, чтобы купить'
+    click_requirement:
+      requirements:
+        shards:
+          type: '>='
+          input: '%playerpoints_points%'
+          output: '2500'
+      deny_commands:
+        - '[message] &#FF6B6BНе хватает осколков: нужно 2500, у тебя %playerpoints_points%.'
+        - '[sound] ENTITY_VILLAGER_NO'
+    click_commands:
+      - '[console] points take %player_name% 2500'
+      - '[console] talisman give %player_name% absolut 1'
+      - '[message] &#7CFC00Покупка успешна: <gradient:#FFE259:#FFA751>Талисман героя</gradient>'
+      - '[sound] ENTITY_PLAYER_LEVELUP'
+      - '[refresh]'
+
+  'Талисман убийцы':
+    slots:
+    - 12
+    material: TOTEM_OF_UNDYING
+    display_name: '&#7CFC00Талисман убийцы'
+    lore:
+      - ''
+      - '&7Работает только в левой руке.'
+      - ''
+      - '&7Урон: &a+3'
+      - '&7Скорость: &a+10%'
+      - '&7Здоровье: &c-4'
+      - ''
+      - '&fЦена: &#54C8FF1600 осколков'
+      - '&7Твой баланс: &#54C8FF%playerpoints_points%'
+      - '&eНажми, чтобы купить'
+    click_requirement:
+      requirements:
+        shards:
+          type: '>='
+          input: '%playerpoints_points%'
+          output: '1600'
+      deny_commands:
+        - '[message] &#FF6B6BНе хватает осколков: нужно 1600, у тебя %playerpoints_points%.'
+        - '[sound] ENTITY_VILLAGER_NO'
+    click_commands:
+      - '[console] points take %player_name% 1600'
+      - '[console] talisman give %player_name% cobra 1'
+      - '[message] &#7CFC00Покупка успешна: &#7CFC00Талисман убийцы'
+      - '[sound] ENTITY_PLAYER_LEVELUP'
+      - '[refresh]'
+
+  'Талисман ярости':
+    slots:
+    - 13
+    material: TOTEM_OF_UNDYING
+    display_name: '&#FF3D3DТалисман ярости'
+    lore:
+      - ''
+      - '&7Работает только в левой руке.'
+      - ''
+      - '&7Урон: &a+4'
+      - '&7Броня: &c-2'
+      - '&7Здоровье: &c-2'
+      - ''
+      - '&fЦена: &#54C8FF1500 осколков'
+      - '&7Твой баланс: &#54C8FF%playerpoints_points%'
+      - '&eНажми, чтобы купить'
+    click_requirement:
+      requirements:
+        shards:
+          type: '>='
+          input: '%playerpoints_points%'
+          output: '1500'
+      deny_commands:
+        - '[message] &#FF6B6BНе хватает осколков: нужно 1500, у тебя %playerpoints_points%.'
+        - '[sound] ENTITY_VILLAGER_NO'
+    click_commands:
+      - '[console] points take %player_name% 1500'
+      - '[console] talisman give %player_name% echidna 1'
+      - '[message] &#7CFC00Покупка успешна: &#FF3D3DТалисман ярости'
+      - '[sound] ENTITY_PLAYER_LEVELUP'
+      - '[refresh]'
+
+  'Талисман бегуна':
+    slots:
+    - 14
+    material: TOTEM_OF_UNDYING
+    display_name: '&#55E6FFТалисман бегуна'
+    lore:
+      - ''
+      - '&7Работает только в левой руке.'
+      - ''
+      - '&7Урон: &a+1'
+      - '&7Скорость: &a+20%'
+      - '&7Здоровье: &c-2'
+      - ''
+      - '&fЦена: &#54C8FF1300 осколков'
+      - '&7Твой баланс: &#54C8FF%playerpoints_points%'
+      - '&eНажми, чтобы купить'
+    click_requirement:
+      requirements:
+        shards:
+          type: '>='
+          input: '%playerpoints_points%'
+          output: '1300'
+      deny_commands:
+        - '[message] &#FF6B6BНе хватает осколков: нужно 1300, у тебя %playerpoints_points%.'
+        - '[sound] ENTITY_VILLAGER_NO'
+    click_commands:
+      - '[console] points take %player_name% 1300'
+      - '[console] talisman give %player_name% grani 1'
+      - '[message] &#7CFC00Покупка успешна: &#55E6FFТалисман бегуна'
+      - '[sound] ENTITY_PLAYER_LEVELUP'
+      - '[refresh]'
+
+  'Талисман демона':
+    slots:
+    - 15
+    material: TOTEM_OF_UNDYING
+    display_name: '&#B03060Талисман демона'
+    lore:
+      - ''
+      - '&7Работает только в левой руке.'
+      - ''
+      - '&7Урон: &a+3'
+      - '&7Здоровье: &a+4'
+      - '&7Броня: &c-4'
+      - ''
+      - '&fЦена: &#54C8FF1800 осколков'
+      - '&7Твой баланс: &#54C8FF%playerpoints_points%'
+      - '&eНажми, чтобы купить'
+    click_requirement:
+      requirements:
+        shards:
+          type: '>='
+          input: '%playerpoints_points%'
+          output: '1800'
+      deny_commands:
+        - '[message] &#FF6B6BНе хватает осколков: нужно 1800, у тебя %playerpoints_points%.'
+        - '[sound] ENTITY_VILLAGER_NO'
+    click_commands:
+      - '[console] points take %player_name% 1800'
+      - '[console] talisman give %player_name% satan 1'
+      - '[message] &#7CFC00Покупка успешна: &#B03060Талисман демона'
+      - '[sound] ENTITY_PLAYER_LEVELUP'
+      - '[refresh]'
+
+  'Талисман танка':
+    slots:
+    - 16
+    material: TOTEM_OF_UNDYING
+    display_name: '&#4DB8FFТалисман танка'
+    lore:
+      - ''
+      - '&7Работает только в левой руке.'
+      - ''
+      - '&7Броня: &a+6'
+      - '&7Здоровье: &a+4'
+      - '&7Скорость: &c-10%'
+      - ''
+      - '&fЦена: &#54C8FF1800 осколков'
+      - '&7Твой баланс: &#54C8FF%playerpoints_points%'
+      - '&eНажми, чтобы купить'
+    click_requirement:
+      requirements:
+        shards:
+          type: '>='
+          input: '%playerpoints_points%'
+          output: '1800'
+      deny_commands:
+        - '[message] &#FF6B6BНе хватает осколков: нужно 1800, у тебя %playerpoints_points%.'
+        - '[sound] ENTITY_VILLAGER_NO'
+    click_commands:
+      - '[console] points take %player_name% 1800'
+      - '[console] talisman give %player_name% sources 1'
+      - '[message] &#7CFC00Покупка успешна: &#4DB8FFТалисман танка'
+      - '[sound] ENTITY_PLAYER_LEVELUP'
+      - '[refresh]'
+
+  'Талисман стража':
+    slots:
+    - 17
+    material: TOTEM_OF_UNDYING
+    display_name: '&#7FB2FFТалисман стража'
+    lore:
+      - ''
+      - '&7Работает только в левой руке.'
+      - ''
+      - '&7Броня: &a+5'
+      - '&7Здоровье: &a+2'
+      - '&7Скорость: &c-5%'
+      - ''
+      - '&fЦена: &#54C8FF1500 осколков'
+      - '&7Твой баланс: &#54C8FF%playerpoints_points%'
+      - '&eНажми, чтобы купить'
+    click_requirement:
+      requirements:
+        shards:
+          type: '>='
+          input: '%playerpoints_points%'
+          output: '1500'
+      deny_commands:
+        - '[message] &#FF6B6BНе хватает осколков: нужно 1500, у тебя %playerpoints_points%.'
+        - '[sound] ENTITY_VILLAGER_NO'
+    click_commands:
+      - '[console] points take %player_name% 1500'
+      - '[console] talisman give %player_name% triton 1'
+      - '[message] &#7CFC00Покупка успешна: &#7FB2FFТалисман стража'
+      - '[sound] ENTITY_PLAYER_LEVELUP'
+      - '[refresh]'
+
+  'Талисман жизни':
+    slots:
+    - 18
+    material: TOTEM_OF_UNDYING
+    display_name: '&#FFC46BТалисман жизни'
+    lore:
+      - ''
+      - '&7Работает только в левой руке.'
+      - ''
+      - '&7Здоровье: &a+6'
+      - ''
+      - '&fЦена: &#54C8FF1600 осколков'
+      - '&7Твой баланс: &#54C8FF%playerpoints_points%'
+      - '&eНажми, чтобы купить'
+    click_requirement:
+      requirements:
+        shards:
+          type: '>='
+          input: '%playerpoints_points%'
+          output: '1600'
+      deny_commands:
+        - '[message] &#FF6B6BНе хватает осколков: нужно 1600, у тебя %playerpoints_points%.'
+        - '[sound] ENTITY_VILLAGER_NO'
+    click_commands:
+      - '[console] points take %player_name% 1600'
+      - '[console] talisman give %player_name% phoenix 1'
+      - '[message] &#7CFC00Покупка успешна: &#FFC46BТалисман жизни'
+      - '[sound] ENTITY_PLAYER_LEVELUP'
+      - '[refresh]'
+
+  'Талисман охотника':
+    slots:
+    - 19
+    material: TOTEM_OF_UNDYING
+    display_name: '&#C19A6BТалисман охотника'
+    lore:
+      - ''
+      - '&7Работает только в левой руке.'
+      - ''
+      - '&7Урон: &a+2'
+      - '&7Скорость: &a+10%'
+      - '&7Здоровье: &c-2'
+      - ''
+      - '&fЦена: &#54C8FF1200 осколков'
+      - '&7Твой баланс: &#54C8FF%playerpoints_points%'
+      - '&eНажми, чтобы купить'
+    click_requirement:
+      requirements:
+        shards:
+          type: '>='
+          input: '%playerpoints_points%'
+          output: '1200'
+      deny_commands:
+        - '[message] &#FF6B6BНе хватает осколков: нужно 1200, у тебя %playerpoints_points%.'
+        - '[sound] ENTITY_VILLAGER_NO'
+    click_commands:
+      - '[console] points take %player_name% 1200'
+      - '[console] talisman give %player_name% vepr 1'
+      - '[message] &#7CFC00Покупка успешна: &#C19A6BТалисман охотника'
+      - '[sound] ENTITY_PLAYER_LEVELUP'
+      - '[refresh]'
+
+  'Талисман странника':
+    slots:
+    - 20
+    material: TOTEM_OF_UNDYING
+    display_name: '&#C86BFFТалисман странника'
+    lore:
+      - ''
+      - '&7Работает только в левой руке.'
+      - ''
+      - '&7Урон: &a+1'
+      - '&7Здоровье: &a+2'
+      - '&7Скорость: &a+5%'
+      - ''
+      - '&fЦена: &#54C8FF900 осколков'
+      - '&7Твой баланс: &#54C8FF%playerpoints_points%'
+      - '&eНажми, чтобы купить'
+    click_requirement:
+      requirements:
+        shards:
+          type: '>='
+          input: '%playerpoints_points%'
+          output: '900'
+      deny_commands:
+        - '[message] &#FF6B6BНе хватает осколков: нужно 900, у тебя %playerpoints_points%.'
+        - '[sound] ENTITY_VILLAGER_NO'
+    click_commands:
+      - '[console] points take %player_name% 900'
+      - '[console] talisman give %player_name% harmony 1'
+      - '[message] &#7CFC00Покупка успешна: &#C86BFFТалисман странника'
+      - '[sound] ENTITY_PLAYER_LEVELUP'
+      - '[refresh]'
+
+  'Назад':
+    slots:
+    - 26
+    material: ARROW
+    display_name: '&fНазад'
+    click_commands:
+      - '[sound] ITEM_BOOK_PAGE_TURN'
+      - '[openguimenu] shop'

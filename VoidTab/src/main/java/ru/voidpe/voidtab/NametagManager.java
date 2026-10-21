@@ -68,8 +68,12 @@ public final class NametagManager {
         return "ft" + player.getUniqueId().toString().replace("-", "").substring(0, 14);
     }
 
-    /** Поставить/обновить значок устройства в нике игрока на всех бордах. */
     public void apply(Player player) {
+        apply(player, false);
+    }
+
+    /** Поставить/обновить значок устройства в нике игрока на всех бордах. */
+    public void apply(Player player, boolean forceNames) {
         if (!plugin.getConfig().getBoolean("nametag.enabled", true)) {
             return;
         }
@@ -118,7 +122,9 @@ public final class NametagManager {
         }
 
         // Bedrock (Geyser): неймтег над головой берётся из display/list имени — дублируем туда.
-        if (changed && plugin.getConfig().getBoolean("nametag.use-display-name", true)) {
+        // forceNames нужен после смены префикса LuckPerms: Geyser мог закэшировать
+        // старое имя, поэтому периодически пересылаем display/list name принудительно.
+        if ((changed || forceNames) && plugin.getConfig().getBoolean("nametag.use-display-name", true)) {
             Component name = Component.text(prefix).append(Component.text(player.getName()));
             player.displayName(name);
             String tabName = TextUtil.color(

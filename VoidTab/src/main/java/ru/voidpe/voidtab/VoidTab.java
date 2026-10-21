@@ -11,12 +11,15 @@ import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.EventPriority;
+import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -48,9 +51,10 @@ public final class VoidTab extends JavaPlugin implements Listener, CommandExecut
 
         startTask();
         // игроки, уже онлайн при /reload
+        hooks.refreshLuckPermsMeta();
         Bukkit.getOnlinePlayers().forEach(p -> {
             sidebar.update(p, true);
-            nametag.apply(p);
+            nametag.apply(p, true);
         });
         getLogger().info("VoidTab включён (Bedrock-only). Floodgate: " + (hooks.hasFloodgate() ? "найден, Java-игроки будут кикаться" : "НЕ найден — bedrock-only не сможет отличать Java, поставьте Floodgate!"));
     }
@@ -146,8 +150,15 @@ public final class VoidTab extends JavaPlugin implements Listener, CommandExecut
         }
         long interval = Math.max(10L, getConfig().getLong("update-interval-ticks", 40L));
         task = Bukkit.getScheduler().runTaskTimer(this, () -> {
+            // Префикс LuckPerms — единый источник. Перед каждым обновлением
+            // сбрасываем кэш LP, иначе после внешней смены префикса скорборд
+            // и ник могли показывать старое значение до перезахода.
+            if (getConfig().getBoolean("luckperms.refresh-cache", true)) {
+                hooks.refreshLuckPermsMeta();
+            }
             sidebar.updateAll();
-            Bukkit.getOnlinePlayers().forEach(p -> nametag.apply(p));
+            boolean forceNames = getConfig().getBoolean("luckperms.force-name-resend", true);
+            Bukkit.getOnlinePlayers().forEach(p -> nametag.apply(p, forceNames));
         }, interval, interval);
     }
 
@@ -164,8 +175,9 @@ public final class VoidTab extends JavaPlugin implements Listener, CommandExecut
         }
         long delay = Math.max(0L, getConfig().getLong("join-delay-ticks", 20L));
         Bukkit.getScheduler().runTaskLater(this, () -> {
+            hooks.refreshLuckPermsMeta(player.getUniqueId());
             sidebar.update(player, true);
-            nametag.apply(player);
+            nametag.apply(player, true);
             showJoinTitle(player);
             // в лог сервера: чем клиент представился и какой значок получил (диагностика устройств)
             getLogger().info("Устройство " + player.getName() + ": OS=" + hooks.deviceOs(player.getUniqueId())
@@ -218,6 +230,16 @@ public final class VoidTab extends JavaPlugin implements Listener, CommandExecut
         return !hooks.isBedrock(player.getUniqueId());
     }
 
+    /**
+     * Перед следующим сообщением в чат обновляем кэш LuckPerms: ChatEx сам
+     * читает префикс из LuckPerms на каждое сообщение, а эта инвалидация не
+     * даёт ему и скорборду залипнуть на старом значении.
+     */
+    @EventHandler(priority = EventPriority.LOWEST)
+    public void onChatRefreshLuckPerms(AsyncPlayerChatEvent event) {
+        hooks.refreshLuckPermsMeta(event.getPlayer().getUniqueId());
+    }
+
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
         sidebar.remove(event.getPlayer().getUniqueId());
@@ -240,6 +262,7 @@ public final class VoidTab extends JavaPlugin implements Listener, CommandExecut
                 return true;
             }
             java.util.UUID tu = target.getUniqueId();
+            hooks.refreshLuckPermsMeta(tu);
             sender.sendMessage(prefix + "VoidTab v" + getDescription().getVersion()
                     + " | Floodgate: " + (hooks.hasFloodgate() ? "&aда" : "&cНЕТ"));
             sender.sendMessage(prefix + "Игрок &f" + target.getName() + "&7: Floodgate OS=&b" + hooks.floodgateDeviceOs(tu)
@@ -255,11 +278,41 @@ public final class VoidTab extends JavaPlugin implements Listener, CommandExecut
                     + " &7| groupRaw=&b" + dbgRaw
                     + " &7| icons." + dbgRaw + "=&b" + getConfig().getString("icons." + dbgRaw, "<нет в конфиге>")
                     + " &7| rank-icon=&b" + getConfig().getBoolean("nametag.rank-icon", true));
+            sender.sendMessage(prefix + "LuckPerms сейчас: префикс=&b'" + hooks.luckPermsPrefix(tu)
+                    + "&7' | титул/суффикс=&b'" + hooks.luckPermsSuffix(tu) + "&7'");
             sender.sendMessage(prefix + "Все онлайн:");
             for (Player online : Bukkit.getOnlinePlayers()) {
                 sender.sendMessage(prefix + "&7- &f" + online.getName() + " &7-> &b" + sidebar.deviceIconName(online)
                         + " &7(" + hooks.deviceOs(online.getUniqueId()) + "/" + hooks.inputMode(online.getUniqueId()) + ")");
             }
+            return true;
+        }
+        if (args.length >= 1 && args[0].equalsIgnoreCase("refresh")) {
+            Player target = null;
+            if (args.length >= 2) {
+                if (!sender.hasPermission("voidtab.admin")) {
+                    sender.sendMessage(prefix + TextUtil.color(getConfig().getString("messages.no-permission", "&cНет прав.")));
+                    return true;
+                }
+                target = Bukkit.getPlayerExact(args[1]);
+                if (target == null) {
+                    sender.sendMessage(prefix + TextUtil.color(getConfig().getString("messages.player-not-found", "&cИгрок не найден.")));
+                    return true;
+                }
+            } else if (sender instanceof Player) {
+                target = (Player) sender;
+            }
+            hooks.refreshLuckPermsMeta();
+            if (target != null) {
+                sidebar.update(target, true);
+                nametag.apply(target, true);
+            } else {
+                Bukkit.getOnlinePlayers().forEach(online -> {
+                    sidebar.update(online, true);
+                    nametag.apply(online, true);
+                });
+            }
+            sender.sendMessage(prefix + TextUtil.color(getConfig().getString("messages.refreshed", "&aПрефикс, скорборд и ник обновлены.")));
             return true;
         }
         if (args.length >= 1 && args[0].equalsIgnoreCase("reload")) {
@@ -268,8 +321,12 @@ public final class VoidTab extends JavaPlugin implements Listener, CommandExecut
                 return true;
             }
             reloadConfig();
+            hooks.refreshLuckPermsMeta();
             startTask();
-            sidebar.updateAll();
+            Bukkit.getOnlinePlayers().forEach(online -> {
+                sidebar.update(online, true);
+                nametag.apply(online, true);
+            });
             sender.sendMessage(prefix + TextUtil.color(getConfig().getString("messages.reloaded", "&aКонфиг перезагружен.")));
             return true;
         }
@@ -310,14 +367,29 @@ public final class VoidTab extends JavaPlugin implements Listener, CommandExecut
             target.sendMessage(prefix + TextUtil.color(getConfig().getString(key, def)));
             return true;
         }
-        sender.sendMessage(prefix + "Использование: /voidtab <reload|toggle [игрок]|on|off>");
+        sender.sendMessage(prefix + "Использование: /voidtab <reload|refresh [игрок]|debug [игрок]|toggle [игрок]|on|off>");
         return true;
     }
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            return List.of("reload", "toggle", "on", "off");
+            List<String> subs = new ArrayList<>();
+            for (String sub : List.of("reload", "refresh", "debug", "toggle", "on", "off")) {
+                if (sub.startsWith(args[0].toLowerCase(java.util.Locale.ROOT))) {
+                    subs.add(sub);
+                }
+            }
+            return subs;
+        }
+        if (args.length == 2 && List.of("refresh", "debug", "toggle", "on", "off").contains(args[0].toLowerCase(java.util.Locale.ROOT))) {
+            List<String> names = new ArrayList<>();
+            for (Player online : Bukkit.getOnlinePlayers()) {
+                if (online.getName().toLowerCase(java.util.Locale.ROOT).startsWith(args[1].toLowerCase(java.util.Locale.ROOT))) {
+                    names.add(online.getName());
+                }
+            }
+            return names;
         }
         return List.of();
     }

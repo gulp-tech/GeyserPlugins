@@ -6,8 +6,7 @@ import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.kyori.adventure.title.Title;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
-import org.bukkit.Color;
-import org.bukkit.FireworkEffect;
+import org.bukkit.Particle;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.NamespacedKey;
@@ -15,7 +14,6 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.Firework;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -32,7 +30,6 @@ import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.FireworkMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -60,15 +57,23 @@ public final class CaseService implements Listener {
         @Override public Inventory getInventory() { return null; }
     }
 
-    /** Меню титулов: что можно выбить из кейса титулов и с каким шансом. */
+    /**
+     * Меню титулов: показывает, какие титулы уже есть у игрока, какой стоит
+     * сейчас, позволяет переставить имеющийся и убрать титул совсем.
+     * Владение титулами хранится в titles.yml; выигрыш из кейса записывается
+     * автоматически. Текущий титул дополнительно сверяется с суффиксом LP.
+     */
     public void openTitles(Player player) {
         CaseDef def = byId("titles");
         if (def == null) {
             msg(player, "case-not-found", null, null);
             return;
         }
+        syncTitleFromLuckPerms(player, def);
+        java.util.Set<String> owned = ownedTitles.getOrDefault(player.getUniqueId(), java.util.Set.of());
+        String active = activeTitles.get(player.getUniqueId());
         Inventory inv = Bukkit.createInventory(new TitlesHolder(), 27,
-                component(TextUtil.color("&#FFD93DТитулы &8• &fтолько из кейса")));
+                component(TextUtil.color("&#FFD93DТитулы &8• &fтвоя коллекция")));
         ItemStack filler = pane(false, " ");
         for (int slot = 0; slot < 27; slot++) {
             inv.setItem(slot, filler);
@@ -82,25 +87,250 @@ public final class CaseService implements Listener {
             if (slot > 16) {
                 break;
             }
+            String titleId = prize.id().toLowerCase(Locale.ROOT);
+            boolean has = owned.contains(titleId);
+            boolean isActive = titleId.equals(active);
             ItemStack item = prizeItem(prize);
             ItemMeta meta = item.getItemMeta();
             if (meta != null) {
                 double chance = total > 0 ? prize.weight() * 100.0 / total : 0;
                 List<Component> lore = new ArrayList<>();
-                lore.add(noItalic(component(TextUtil.color("&7Шанс: &f" + String.format(Locale.US, "%.1f", chance) + "%"))));
-                lore.add(noItalic(component(TextUtil.color("&7Выбивается только из: &f" + def.displayName()))));
-                lore.add(noItalic(component(TextUtil.color("&8Титул виден после ника в чате"))));
+                lore.add(noItalic(component(TextUtil.color("&7Шанс из кейса: &f" + String.format(Locale.US, "%.1f", chance) + "%"))));
+                if (isActive) {
+                    lore.add(noItalic(component(TextUtil.color("&aСейчас установлен"))));
+                    lore.add(noItalic(component(TextUtil.color("&7Чтобы снять, нажми «Убрать титул» ниже."))));
+                } else if (has) {
+                    lore.add(noItalic(component(TextUtil.color("&aЕсть у тебя"))));
+                    lore.add(noItalic(component(TextUtil.color("&eНажми, чтобы установить"))));
+                } else {
+                    lore.add(noItalic(component(TextUtil.color("&cНет у тебя"))));
+                    lore.add(noItalic(component(TextUtil.color("&7Выбивается только из: &f" + def.displayName()))));
+                }
+                lore.add(noItalic(component(TextUtil.color("&8Титул виден после ника в чате, TAB и скорборде"))));
                 meta.lore(lore);
+                meta.getPersistentDataContainer().set(titleKey, PersistentDataType.STRING, titleId);
                 item.setItemMeta(meta);
             }
             inv.setItem(slot++, item);
         }
-        inv.setItem(22, pane(true, "&#FFD93DКейс: " + def.displayName()));
+        ItemStack remove = new ItemStack(Material.BARRIER);
+        ItemMeta removeMeta = remove.getItemMeta();
+        if (removeMeta != null) {
+            removeMeta.displayName(noItalic(component(TextUtil.color("&#FF5555Убрать титул"))));
+            List<Component> lore = new ArrayList<>();
+            if (active == null) {
+                lore.add(noItalic(component(TextUtil.color("&7Сейчас титул не установлен."))));
+            } else {
+                PrizeDef activePrize = prizeById(def, active);
+                lore.add(noItalic(component(TextUtil.color("&7Сейчас стоит: &f" + (activePrize == null ? active : activePrize.name())))));
+                lore.add(noItalic(component(TextUtil.color("&eНажми, чтобы убрать титул совсем"))));
+            }
+            removeMeta.lore(lore);
+            removeMeta.getPersistentDataContainer().set(titleKey, PersistentDataType.STRING, "__remove__");
+            remove.setItemMeta(removeMeta);
+        }
+        inv.setItem(22, remove);
         player.openInventory(inv);
+    }
+
+    private PrizeDef prizeById(CaseDef def, String prizeId) {
+        if (def == null || prizeId == null) {
+            return null;
+        }
+        for (PrizeDef prize : def.prizes()) {
+            if (prize.id().equalsIgnoreCase(prizeId)) {
+                return prize;
+            }
+        }
+        return null;
+    }
+
+    // ------------------------------------------------------------ титулы игрока
+    private void loadTitles() {
+        ownedTitles.clear();
+        activeTitles.clear();
+        if (!titlesFile.isFile()) {
+            return;
+        }
+        YamlConfiguration yaml = YamlConfiguration.loadConfiguration(titlesFile);
+        ConfigurationSection root = yaml.getConfigurationSection("titles");
+        if (root == null) {
+            return;
+        }
+        for (String uuidText : root.getKeys(false)) {
+            try {
+                UUID uuid = UUID.fromString(uuidText);
+                java.util.Set<String> owned = new java.util.LinkedHashSet<>();
+                for (String id : yaml.getStringList("titles." + uuidText + ".owned")) {
+                    owned.add(id.toLowerCase(Locale.ROOT));
+                }
+                ownedTitles.put(uuid, owned);
+                String active = yaml.getString("titles." + uuidText + ".active", "");
+                if (active != null && !active.isBlank()) {
+                    activeTitles.put(uuid, active.toLowerCase(Locale.ROOT));
+                }
+            } catch (IllegalArgumentException ignored) {
+            }
+        }
+    }
+
+    private void saveTitles() {
+        try {
+            YamlConfiguration yaml = new YamlConfiguration();
+            for (Map.Entry<UUID, java.util.Set<String>> e : ownedTitles.entrySet()) {
+                yaml.set("titles." + e.getKey() + ".owned", new ArrayList<>(e.getValue()));
+            }
+            for (Map.Entry<UUID, String> e : activeTitles.entrySet()) {
+                yaml.set("titles." + e.getKey() + ".active", e.getValue());
+            }
+            yaml.save(titlesFile);
+        } catch (Throwable t) {
+            plugin.getLogger().warning("Не удалось сохранить титулы: " + t.getMessage());
+        }
+    }
+
+    private void addOwnedTitle(UUID uuid, String titleId) {
+        ownedTitles.computeIfAbsent(uuid, k -> new java.util.LinkedHashSet<>())
+                .add(titleId.toLowerCase(Locale.ROOT));
+    }
+
+    private void recordTitleWin(Player player, PrizeDef prize) {
+        addOwnedTitle(player.getUniqueId(), prize.id());
+        activeTitles.put(player.getUniqueId(), prize.id().toLowerCase(Locale.ROOT));
+        saveTitles();
+    }
+
+    private void setTitle(Player player, CaseDef def, PrizeDef prize) {
+        for (String cmd : prize.commands()) {
+            String prepared = cmd.replace("{player}", player.getName());
+            if (prepared.startsWith("/")) {
+                prepared = prepared.substring(1);
+            }
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), prepared);
+        }
+        recordTitleWin(player, prize);
+        msg(player, "title-set", def, prize);
+    }
+
+    private void removeTitle(Player player, CaseDef def) {
+        String active = activeTitles.get(player.getUniqueId());
+        PrizeDef activePrize = prizeById(def, active);
+        if (active == null && (luckPermsSuffix(player.getUniqueId()) == null
+                || luckPermsSuffix(player.getUniqueId()).isBlank())) {
+            msg(player, "title-none", def, null);
+            return;
+        }
+        int priority = activePrize == null ? 90 : titleSuffixPriority(activePrize);
+        Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
+                "lp user " + player.getName() + " meta removesuffix " + priority);
+        activeTitles.remove(player.getUniqueId());
+        saveTitles();
+        msg(player, "title-removed", def, activePrize);
+    }
+
+    /** Если титул ставили вручную/до обновления, подхватываем его из суффикса LuckPerms. */
+    private void syncTitleFromLuckPerms(Player player, CaseDef def) {
+        String suffix = luckPermsSuffix(player.getUniqueId());
+        if (suffix == null || suffix.isBlank()) {
+            if (activeTitles.remove(player.getUniqueId()) != null) {
+                saveTitles();
+            }
+            return;
+        }
+        for (PrizeDef prize : def.prizes()) {
+            String expected = titleSuffixValue(prize);
+            if (expected != null && suffix.trim().equals(expected.trim())) {
+                boolean changed = !prize.id().equalsIgnoreCase(activeTitles.get(player.getUniqueId()));
+                addOwnedTitle(player.getUniqueId(), prize.id());
+                activeTitles.put(player.getUniqueId(), prize.id().toLowerCase(Locale.ROOT));
+                if (changed || !ownedTitles.getOrDefault(player.getUniqueId(), java.util.Set.of())
+                        .contains(prize.id().toLowerCase(Locale.ROOT))) {
+                    saveTitles();
+                } else {
+                    saveTitles();
+                }
+                return;
+            }
+        }
+        // Суффикс есть, но это не титул из кейса (поставили вручную) — наш активный сбрасываем.
+        if (activeTitles.remove(player.getUniqueId()) != null) {
+            saveTitles();
+        }
+    }
+
+    private String titleSuffixValue(PrizeDef prize) {
+        for (String cmd : prize.commands()) {
+            java.util.regex.Matcher matcher = java.util.regex.Pattern
+                    .compile("(?i)meta\\s+setsuffix\\s+\\d+\\s+(.+)$")
+                    .matcher(cmd.replace("{player}", "player"));
+            if (matcher.find()) {
+                String value = matcher.group(1).trim();
+                if (value.length() >= 2 && value.startsWith("\"") && value.endsWith("\"")) {
+                    value = value.substring(1, value.length() - 1);
+                }
+                return value;
+            }
+        }
+        return null;
+    }
+
+    private int titleSuffixPriority(PrizeDef prize) {
+        for (String cmd : prize.commands()) {
+            java.util.regex.Matcher matcher = java.util.regex.Pattern
+                    .compile("(?i)meta\\s+setsuffix\\s+(\\d+)\\s+")
+                    .matcher(cmd.replace("{player}", "player"));
+            if (matcher.find()) {
+                try {
+                    return Integer.parseInt(matcher.group(1));
+                } catch (NumberFormatException ignored) {
+                }
+            }
+        }
+        return 90;
+    }
+
+    /** Действующий суффикс LuckPerms через мягкий reflection-хук (плагин работает и без LP). */
+    private String luckPermsSuffix(UUID uuid) {
+        try {
+            Object luckPerms = null;
+            for (Class<?> svc : Bukkit.getServicesManager().getKnownServices()) {
+                if (svc.getName().equals("net.luckperms.api.LuckPerms")) {
+                    org.bukkit.plugin.RegisteredServiceProvider<?> reg =
+                            Bukkit.getServicesManager().getRegistration(svc);
+                    if (reg != null) {
+                        luckPerms = reg.getProvider();
+                    }
+                }
+            }
+            if (luckPerms == null) {
+                return null;
+            }
+            Object userManager = luckPerms.getClass().getMethod("getUserManager").invoke(luckPerms);
+            Object user = userManager.getClass().getMethod("getUser", UUID.class).invoke(userManager, uuid);
+            if (user == null) {
+                return null;
+            }
+            Object cached = user.getClass().getMethod("getCachedData").invoke(user);
+            Object meta = null;
+            for (java.lang.reflect.Method method : cached.getClass().getMethods()) {
+                if (method.getName().equals("getMetaData") && method.getParameterCount() == 0) {
+                    meta = method.invoke(cached);
+                    break;
+                }
+            }
+            if (meta == null) {
+                return null;
+            }
+            Object value = meta.getClass().getMethod("getSuffix").invoke(meta);
+            return value == null ? null : String.valueOf(value);
+        } catch (Throwable t) {
+            return null;
+        }
     }
 
     private final VoidCases plugin;
     private final NamespacedKey idKey;
+    private final NamespacedKey titleKey;
     private final Map<String, CaseDef> cases = new LinkedHashMap<>();
     private final java.util.Set<UUID> opening = new java.util.HashSet<>();
     private final Map<UUID, Map<String, Integer>> keys = new HashMap<>(); // виртуальные ключи: игрок -> кейс -> кол-во
@@ -108,15 +338,21 @@ public final class CaseService implements Listener {
     private final Map<String, String> placedCases = new LinkedHashMap<>(); // "world,x,y,z" -> id кейса
     private final Map<String, Integer> placedOpeningCounts = new HashMap<>(); // открытых анимаций у поставленного кейса
     private final java.io.File placedFile;
+    private final java.io.File titlesFile;
+    private final Map<UUID, java.util.Set<String>> ownedTitles = new HashMap<>();
+    private final Map<UUID, String> activeTitles = new HashMap<>();
 
     public CaseService(VoidCases plugin) {
         this.plugin = plugin;
         this.idKey = new NamespacedKey(plugin, "case_id");
+        this.titleKey = new NamespacedKey(plugin, "title_id");
         this.placedFile = new java.io.File(plugin.getDataFolder(), "placed-cases.yml");
         this.keysFile = new java.io.File(plugin.getDataFolder(), "keys.yml");
+        this.titlesFile = new java.io.File(plugin.getDataFolder(), "titles.yml");
         load();
         loadPlaced();
         loadKeys();
+        loadTitles();
     }
 
     // ------------------------------------------------------------------ загрузка
@@ -424,10 +660,16 @@ public final class CaseService implements Listener {
         }
     }
 
-    /** Открыть поставленный кейс: списывает ВИРТУАЛЬНЫЙ ключ. */
+    /** Открыть поставленный кейс: списывает ВИРТУАЛЬНЫЙ ключ. Один блок — одно открытие за раз. */
     public void tryOpenPlaced(Player player, CaseDef def, Location blockLoc) {
         if (opening.contains(player.getUniqueId())) {
             msg(player, "already-opening", def, null);
+            return;
+        }
+        if (isPlacedOpening(blockLoc)) {
+            // Пока другой игрок крутит этот поставленный кейс, второй не откроет
+            // его и не потратит ключ впустую.
+            msg(player, "case-busy", def, null);
             return;
         }
         if (!takeKey(player.getUniqueId(), def.id())) {
@@ -725,6 +967,9 @@ public final class CaseService implements Listener {
             }
             Bukkit.dispatchCommand(Bukkit.getConsoleSender(), prepared);
         }
+        if (def.id().equalsIgnoreCase("titles")) {
+            recordTitleWin(player, prize); // меню /titles сразу покажет: титул есть и установлен
+        }
         msg(player, "win", def, prize);
         player.showTitle(Title.title(
                 noItalic(component(TextUtil.color(prize.name()))),
@@ -739,8 +984,8 @@ public final class CaseService implements Listener {
                 Bukkit.broadcast(broadcast);
             }
         }
-        if (plugin.getConfig().getBoolean("animation.firework", true)) {
-            launchFirework(player);
+        if (plugin.getConfig().getBoolean("animation.celebration", true)) {
+            celebrate(player, anchor);
         }
     }
 
@@ -759,19 +1004,19 @@ public final class CaseService implements Listener {
         return def.prizes().get(def.prizes().size() - 1);
     }
 
-    private void launchFirework(Player player) {
+    /**
+     * Праздничный финал БЕЗ сущности фейерверка: взрыв настоящего фейерверка
+     * наносил урон игрокам рядом с кейсом. Частицы и звук урона не наносят.
+     */
+    private void celebrate(Player player, Location anchor) {
         try {
-            Firework firework = player.getWorld().spawn(player.getLocation().add(0, 1, 0), Firework.class);
-            FireworkMeta meta = firework.getFireworkMeta();
-            meta.addEffect(FireworkEffect.builder()
-                    .withColor(Color.ORANGE, Color.YELLOW)
-                    .with(FireworkEffect.Type.BALL_LARGE)
-                    .flicker(true)
-                    .trail(true)
-                    .build());
-            meta.setPower(0);
-            firework.setFireworkMeta(meta);
-            firework.detonate();
+            Location loc = anchor == null ? player.getLocation().add(0, 1, 0) : anchor.clone().add(0, 0.35, 0);
+            if (loc.getWorld() == null) {
+                return;
+            }
+            loc.getWorld().spawnParticle(Particle.END_ROD, loc, 28, 0.35, 0.45, 0.35, 0.02);
+            loc.getWorld().spawnParticle(Particle.HAPPY_VILLAGER, loc, 18, 0.3, 0.3, 0.3, 0.01);
+            playSound(player, cfg("animation.celebration-sound", "entity.firework_rocket.launch"), 1.0f);
         } catch (Throwable ignored) {
         }
     }
@@ -779,9 +1024,46 @@ public final class CaseService implements Listener {
     // ------------------------------------------------------------------ защита меню титулов
     @EventHandler
     public void onClick(InventoryClickEvent event) {
-        if (event.getInventory().getHolder() instanceof TitlesHolder) {
-            event.setCancelled(true);
+        if (!(event.getInventory().getHolder() instanceof TitlesHolder)) {
+            return;
         }
+        event.setCancelled(true);
+        if (!(event.getWhoClicked() instanceof Player)) {
+            return;
+        }
+        ItemStack clicked = event.getCurrentItem();
+        if (clicked == null || !clicked.hasItemMeta()) {
+            return;
+        }
+        String titleId = clicked.getItemMeta().getPersistentDataContainer()
+                .get(titleKey, PersistentDataType.STRING);
+        if (titleId == null) {
+            return;
+        }
+        Player player = (Player) event.getWhoClicked();
+        CaseDef def = byId("titles");
+        if (def == null) {
+            return;
+        }
+        if (titleId.equals("__remove__")) {
+            removeTitle(player, def);
+            player.closeInventory();
+            openTitles(player);
+            return;
+        }
+        PrizeDef prize = prizeById(def, titleId);
+        if (prize == null) {
+            return;
+        }
+        syncTitleFromLuckPerms(player, def);
+        if (!ownedTitles.getOrDefault(player.getUniqueId(), java.util.Set.of())
+                .contains(prize.id().toLowerCase(Locale.ROOT))) {
+            msg(player, "title-not-owned", def, prize);
+            return;
+        }
+        setTitle(player, def, prize);
+        player.closeInventory();
+        openTitles(player);
     }
 
     @EventHandler

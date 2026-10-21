@@ -41,6 +41,14 @@ join-title:
 # Как часто обновлять скорборд, в тиках (20 тиков = 1 сек). 40 = раз в 2 сек.
 update-interval-ticks: 40
 
+# LuckPerms — единый источник префикса/титула. Перед каждым обновлением
+# VoidTab сбрасывает кэш метаданных LP и принудительно пересылает Bedrock
+# display/list name, поэтому смена префикса видна без перезахода игрока.
+# Ручное обновление одного игрока: /voidtab refresh <ник>
+luckperms:
+  refresh-cache: true
+  force-name-resend: true
+
 # Задержка перед первым показом после захода, в тиках (дать Floodgate/Geyser прогрузиться).
 join-delay-ticks: 20
 
@@ -221,6 +229,7 @@ hooks:
 messages:
   prefix: "&#FFB340VoidPE &8» &f"
   reloaded: "&aКонфиг перезагружен."
+  refreshed: "&aПрефикс, скорборд, TAB и ник обновлены."
   no-permission: "&cУ вас нет прав на эту команду."
   player-not-found: "&cИгрок не найден."
   shown: "&aСкорборд включён."

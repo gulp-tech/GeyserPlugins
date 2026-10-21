@@ -1,0 +1,108 @@
+# DeluxeMenus — главный донат-магазин
+# Файл на сервере: plugins/DeluxeMenus/gui_menus/shop.yml
+# Покупки списывают осколки PlayerPoints (points take) только если хватает:
+# проверка click_requirement по %playerpoints_points% стоит на каждом товаре.
+# Цены меняются прямо в этом файле: output и points take должны совпадать.
+menu_title: '• Донат-магазин'
+open_command: shop
+register_command: true
+size: 27
+open_commands:
+  - '[sound] ITEM_BOOK_PAGE_TURN'
+items:
+
+  'Баланс':
+    slots:
+    - 4
+    material: PRISMARINE_SHARD
+    display_name: '&#54C8FFТвои осколки'
+    lore:
+      - ''
+      - '&fБаланс: &#54C8FF%playerpoints_points% осколков'
+      - '&7Ими оплачиваются покупки в этом магазине.'
+    click_commands:
+      - '[sound] ITEM_BOOK_PAGE_TURN'
+
+  'Раздел предметы':
+    slots:
+    - 10
+    material: CHEST
+    display_name: '&#C86BFFКастомные предметы'
+    lore:
+      - ''
+      - '&7Капканы, пыль, око, лом спавнеров'
+      - '&7и изумрудная броня и инструменты.'
+      - ''
+      - '&eНажми, чтобы открыть раздел'
+    click_commands:
+      - '[sound] ITEM_BOOK_PAGE_TURN'
+      - '[openguimenu] shop_items'
+
+  'Раздел зелья':
+    slots:
+    - 11
+    material: POTION
+    display_name: '&#FF5555Зелья'
+    lore:
+      - ''
+      - '&7Особые зелья VoidItems: ярость,'
+      - '&7скорость, защита и боевое.'
+      - ''
+      - '&eНажми, чтобы открыть раздел'
+    click_commands:
+      - '[sound] ITEM_BOOK_PAGE_TURN'
+      - '[openguimenu] shop_potions'
+
+  'Раздел кирки':
+    slots:
+    - 12
+    material: NETHERITE_PICKAXE
+    display_name: '&#FFB340Кирки'
+    lore:
+      - ''
+      - '&7Кирки шахтёра I, II и III'
+      - '&7с Автоплавкой, Магнитом и Буром.'
+      - ''
+      - '&eНажми, чтобы открыть раздел'
+    click_commands:
+      - '[sound] ITEM_BOOK_PAGE_TURN'
+      - '[openguimenu] shop_pickaxes'
+
+  'Раздел талисманы':
+    slots:
+    - 13
+    material: TOTEM_OF_UNDYING
+    display_name: '&#FFD93DТалисманы'
+    lore:
+      - ''
+      - '&7Работают только в левой руке.'
+      - '&7У каждого свои плюсы и минусы.'
+      - ''
+      - '&eНажми, чтобы открыть раздел'
+    click_commands:
+      - '[sound] ITEM_BOOK_PAGE_TURN'
+      - '[openguimenu] shop_talismans'
+
+  'Раздел сферы':
+    slots:
+    - 14
+    material: HEART_OF_THE_SEA
+    display_name: '<gradient:#B388FF:#6A1BFF>Сферы</gradient>'
+    lore:
+      - ''
+      - '&7Сферы трёх уровней: сумерек,'
+      - '&7пламени и бездны. Тоже в левую руку.'
+      - ''
+      - '&eНажми, чтобы открыть раздел'
+    click_commands:
+      - '[sound] ITEM_BOOK_PAGE_TURN'
+      - '[openguimenu] shop_spheres'
+
+  'В главное меню':
+    slots:
+    - 18
+    material: ARROW
+    display_name: '&fВ главное меню'
+    click_commands:
+      - '[sound] ITEM_BOOK_PAGE_TURN'
+      - '[player] menu'

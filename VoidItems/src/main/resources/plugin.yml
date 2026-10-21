@@ -8,7 +8,7 @@ softdepend: [WorldGuard, WorldEdit, FastAsyncWorldEdit]
 commands:
   items:
     description: "Меню кастомных предметов (только админы): клик выдаёт предмет"
-    usage: /items
+    usage: /items [give <игрок> <id> [кол-во]]
     aliases: [fit, предметы]
 permissions:
   voiditems.admin:

@@ -144,8 +144,56 @@ public final class VoidItems extends JavaPlugin implements Listener, CommandExec
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         String prefix = TextUtil.color(getConfig().getString("messages.prefix", "&#C86BFFVoidPE &8» &f"));
+        // /items give <игрок> <id> [кол-во] — выдача из консоли (нужна донат-магазину DeluxeMenus).
+        if (args.length >= 1 && args[0].equalsIgnoreCase("give")) {
+            if (!sender.hasPermission("voiditems.admin")) {
+                sender.sendMessage(ItemsService.component(prefix + TextUtil.color(
+                        getConfig().getString("messages.no-permission", "&cТолько для админов."))));
+                return true;
+            }
+            if (args.length < 3) {
+                sender.sendMessage(ItemsService.component(prefix + TextUtil.color(
+                        "&fИспользование: &b/items give <игрок> <id> [кол-во]")));
+                return true;
+            }
+            Player target = Bukkit.getPlayerExact(args[1]);
+            if (target == null) {
+                sender.sendMessage(ItemsService.component(prefix + TextUtil.color(
+                        getConfig().getString("messages.player-not-found", "&cИгрок не найден."))));
+                return true;
+            }
+            CustomItem item = service.byId(args[2].toLowerCase(java.util.Locale.ROOT));
+            if (item == null) {
+                sender.sendMessage(ItemsService.component(prefix + TextUtil.color(
+                        getConfig().getString("messages.item-not-found", "&cТакого предмета нет: &f{item}")
+                                .replace("{item}", args[2]))));
+                return true;
+            }
+            int amount = 1;
+            if (args.length > 3) {
+                try {
+                    amount = Math.max(1, Math.min(64, Integer.parseInt(args[3])));
+                } catch (NumberFormatException ignored) {
+                }
+            }
+            Map<Integer, ItemStack> rest = target.getInventory().addItem(service.createItem(item, amount));
+            for (ItemStack drop : rest.values()) {
+                target.getWorld().dropItemNaturally(target.getLocation(), drop);
+            }
+            String received = getConfig().getString("messages.received", "&aВыдан предмет: {item}")
+                    .replace("{item}", item.displayName());
+            target.sendMessage(ItemsService.component(prefix + TextUtil.color(received)));
+            if (!sender.equals(target)) {
+                String given = getConfig().getString("messages.given", "&aИгроку &f{player} &aвыдано: {item} &7x{amount}")
+                        .replace("{player}", target.getName())
+                        .replace("{item}", item.displayName())
+                        .replace("{amount}", String.valueOf(amount));
+                sender.sendMessage(ItemsService.component(prefix + TextUtil.color(given)));
+            }
+            return true;
+        }
         if (!(sender instanceof Player)) {
-            sender.sendMessage(prefix + "Команда только для игроков.");
+            sender.sendMessage(prefix + "Команда только для игроков. Для выдачи: /items give <игрок> <id> [кол-во]");
             return true;
         }
         Player player = (Player) sender;
@@ -160,6 +208,25 @@ public final class VoidItems extends JavaPlugin implements Listener, CommandExec
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
-        return List.of();
+        List<String> result = new ArrayList<>();
+        if (!sender.hasPermission("voiditems.admin")) {
+            return result;
+        }
+        if (args.length == 1 && "give".startsWith(args[0].toLowerCase(java.util.Locale.ROOT))) {
+            result.add("give");
+        } else if (args.length == 2 && args[0].equalsIgnoreCase("give")) {
+            for (Player player : Bukkit.getOnlinePlayers()) {
+                if (player.getName().toLowerCase(java.util.Locale.ROOT).startsWith(args[1].toLowerCase(java.util.Locale.ROOT))) {
+                    result.add(player.getName());
+                }
+            }
+        } else if (args.length == 3 && args[0].equalsIgnoreCase("give")) {
+            for (CustomItem item : service.all()) {
+                if (item.id().startsWith(args[2].toLowerCase(java.util.Locale.ROOT))) {
+                    result.add(item.id());
+                }
+            }
+        }
+        return result;
     }
 }

@@ -11,7 +11,7 @@ commands:
     usage: /cases
     aliases: [case, кейсы]
   titles:
-    description: "Меню титулов, которые выбиваются из кейса титулов"
+    description: "Меню титулов из кейса титулов: установка имеющихся и снятие титула"
     usage: /titles
 permissions:
   voidcases.admin:

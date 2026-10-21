@@ -8,7 +8,7 @@ softdepend: [Vault, LuckPerms, PlayerPoints, PlaceholderAPI, Geyser-Spigot, floo
 commands:
   voidtab:
     description: Управление скорбордом VoidTab
-    usage: /voidtab <reload|toggle [игрок]|on|off>
+    usage: /voidtab <reload|refresh [игрок]|debug [игрок]|toggle [игрок]|on|off>
     aliases: [ftab, VoidTab]
 permissions:
   voidtab.admin:

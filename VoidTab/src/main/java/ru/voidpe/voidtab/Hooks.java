@@ -4,6 +4,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.RegisteredServiceProvider;
+import org.bukkit.entity.Player;
 
 import java.lang.reflect.Method;
 import java.util.UUID;
@@ -206,6 +207,81 @@ public final class Hooks {
             return null;
         } catch (Throwable t) {
             return null;
+        }
+    }
+
+    /**
+     * Сбросить кэш метаданных LuckPerms у всех онлайн-игроков и всех групп.
+     * После внешней правки префикса/суффикса (командой LP из консоли, кейсом,
+     * донатом) скорборд, TAB и ChatEx должны увидеть новое значение без
+     * перезахода игрока.
+     */
+    public void refreshLuckPermsMeta() {
+        if (luckPerms == null || lpGetUserManager == null) {
+            return;
+        }
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            refreshLuckPermsMeta(player.getUniqueId());
+        }
+        if (lpGetGroupManager == null) {
+            return;
+        }
+        try {
+            Object groupManager = lpGetGroupManager.invoke(luckPerms);
+            if (groupManager == null) {
+                return;
+            }
+            Method getAllGroups = findMethod(groupManager.getClass(), "getAllGroups");
+            Object groups = getAllGroups == null ? null : getAllGroups.invoke(groupManager);
+            if (groups instanceof Iterable) {
+                for (Object group : (Iterable<?>) groups) {
+                    invalidateCachedData(group);
+                }
+            }
+        } catch (Throwable ignored) {
+            // мягкий хук: если API изменился, обычное чтение префиксов всё равно работает
+        }
+    }
+
+    /** Сбросить кэш метаданных LuckPerms одного игрока. */
+    public void refreshLuckPermsMeta(UUID uuid) {
+        if (luckPerms == null || lpGetUserManager == null || uuid == null) {
+            return;
+        }
+        try {
+            Object userManager = lpGetUserManager.invoke(luckPerms);
+            if (userManager == null) {
+                return;
+            }
+            Method getUser = findMethod(userManager.getClass(), "getUser", UUID.class);
+            Object user = getUser == null ? null : getUser.invoke(userManager, uuid);
+            invalidateCachedData(user);
+        } catch (Throwable ignored) {
+            // см. выше
+        }
+    }
+
+    private void invalidateCachedData(Object holder) {
+        if (holder == null) {
+            return;
+        }
+        try {
+            Method getCachedData = findMethod(holder.getClass(), "getCachedData");
+            if (getCachedData == null) {
+                return;
+            }
+            Object cached = getCachedData.invoke(holder);
+            if (cached == null) {
+                return;
+            }
+            for (String name : new String[]{"invalidate", "invalidateMeta"}) {
+                Method method = findMethod(cached.getClass(), name);
+                if (method != null && method.getParameterCount() == 0) {
+                    method.invoke(cached);
+                }
+            }
+        } catch (Throwable ignored) {
+            // LuckPerms сам обновляет кэш при своих командах; это только страховка.
         }
     }
 

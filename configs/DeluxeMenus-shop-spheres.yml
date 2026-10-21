@@ -1,0 +1,130 @@
+# DeluxeMenus — раздел: сферы
+# Файл на сервере: plugins/DeluxeMenus/gui_menus/shop_spheres.yml
+# Покупки списывают осколки PlayerPoints (points take) только если хватает:
+# проверка click_requirement по %playerpoints_points% стоит на каждом товаре.
+# Цены меняются прямо в этом файле: output и points take должны совпадать.
+menu_title: '• Магазин: сферы'
+open_command: shopspheres
+register_command: true
+size: 27
+open_commands:
+  - '[sound] ITEM_BOOK_PAGE_TURN'
+items:
+
+  'Баланс':
+    slots:
+    - 4
+    material: PRISMARINE_SHARD
+    display_name: '&#54C8FFТвои осколки'
+    lore:
+      - ''
+      - '&fБаланс: &#54C8FF%playerpoints_points% осколков'
+      - '&7Ими оплачиваются покупки в этом магазине.'
+    click_commands:
+      - '[sound] ITEM_BOOK_PAGE_TURN'
+
+  'Сфера сумерек':
+    slots:
+    - 11
+    material: HEART_OF_THE_SEA
+    display_name: '&#C86BFFСфера сумерек'
+    lore:
+      - ''
+      - '&7Работает только в левой руке.'
+      - ''
+      - '&7Урон: &a+1'
+      - '&7Броня: &a+1'
+      - '&7Здоровье: &a+2'
+      - ''
+      - '&fЦена: &#54C8FF2000 осколков'
+      - '&7Твой баланс: &#54C8FF%playerpoints_points%'
+      - '&eНажми, чтобы купить'
+    click_requirement:
+      requirements:
+        shards:
+          type: '>='
+          input: '%playerpoints_points%'
+          output: '2000'
+      deny_commands:
+        - '[message] &#FF6B6BНе хватает осколков: нужно 2000, у тебя %playerpoints_points%.'
+        - '[sound] ENTITY_VILLAGER_NO'
+    click_commands:
+      - '[console] points take %player_name% 2000'
+      - '[console] sphere give %player_name% 1 1'
+      - '[message] &#7CFC00Покупка успешна: &#C86BFFСфера сумерек'
+      - '[sound] ENTITY_PLAYER_LEVELUP'
+      - '[refresh]'
+
+  'Сфера пламени':
+    slots:
+    - 13
+    material: MAGMA_CREAM
+    display_name: '&#FF7847Сфера пламени'
+    lore:
+      - ''
+      - '&7Работает только в левой руке.'
+      - ''
+      - '&7Урон: &a+2'
+      - '&7Броня: &a+2'
+      - '&7Здоровье: &a+4'
+      - ''
+      - '&fЦена: &#54C8FF4000 осколков'
+      - '&7Твой баланс: &#54C8FF%playerpoints_points%'
+      - '&eНажми, чтобы купить'
+    click_requirement:
+      requirements:
+        shards:
+          type: '>='
+          input: '%playerpoints_points%'
+          output: '4000'
+      deny_commands:
+        - '[message] &#FF6B6BНе хватает осколков: нужно 4000, у тебя %playerpoints_points%.'
+        - '[sound] ENTITY_VILLAGER_NO'
+    click_commands:
+      - '[console] points take %player_name% 4000'
+      - '[console] sphere give %player_name% 2 1'
+      - '[message] &#7CFC00Покупка успешна: &#FF7847Сфера пламени'
+      - '[sound] ENTITY_PLAYER_LEVELUP'
+      - '[refresh]'
+
+  'Сфера бездны':
+    slots:
+    - 15
+    material: END_CRYSTAL
+    display_name: '<gradient:#B388FF:#6A1BFF>Сфера бездны</gradient>'
+    lore:
+      - ''
+      - '&7Работает только в левой руке.'
+      - ''
+      - '&7Урон: &a+3'
+      - '&7Броня: &a+3'
+      - '&7Здоровье: &a+6'
+      - '&7Скорость: &a+5%'
+      - ''
+      - '&fЦена: &#54C8FF8000 осколков'
+      - '&7Твой баланс: &#54C8FF%playerpoints_points%'
+      - '&eНажми, чтобы купить'
+    click_requirement:
+      requirements:
+        shards:
+          type: '>='
+          input: '%playerpoints_points%'
+          output: '8000'
+      deny_commands:
+        - '[message] &#FF6B6BНе хватает осколков: нужно 8000, у тебя %playerpoints_points%.'
+        - '[sound] ENTITY_VILLAGER_NO'
+    click_commands:
+      - '[console] points take %player_name% 8000'
+      - '[console] sphere give %player_name% 3 1'
+      - '[message] &#7CFC00Покупка успешна: <gradient:#B388FF:#6A1BFF>Сфера бездны</gradient>'
+      - '[sound] ENTITY_PLAYER_LEVELUP'
+      - '[refresh]'
+
+  'Назад':
+    slots:
+    - 18
+    material: ARROW
+    display_name: '&fНазад'
+    click_commands:
+      - '[sound] ITEM_BOOK_PAGE_TURN'
+      - '[openguimenu] shop'

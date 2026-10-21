@@ -1,0 +1,145 @@
+# DeluxeMenus — раздел: зелья
+# Файл на сервере: plugins/DeluxeMenus/gui_menus/shop_potions.yml
+# Покупки списывают осколки PlayerPoints (points take) только если хватает:
+# проверка click_requirement по %playerpoints_points% стоит на каждом товаре.
+# Цены меняются прямо в этом файле: output и points take должны совпадать.
+menu_title: '• Магазин: зелья'
+open_command: shoppotions
+register_command: true
+size: 27
+open_commands:
+  - '[sound] ITEM_BOOK_PAGE_TURN'
+items:
+
+  'Баланс':
+    slots:
+    - 4
+    material: PRISMARINE_SHARD
+    display_name: '&#54C8FFТвои осколки'
+    lore:
+      - ''
+      - '&fБаланс: &#54C8FF%playerpoints_points% осколков'
+      - '&7Ими оплачиваются покупки в этом магазине.'
+    click_commands:
+      - '[sound] ITEM_BOOK_PAGE_TURN'
+
+  'Зелье ярости':
+    slots:
+    - 10
+    material: POTION
+    display_name: '&#FF5555Зелье ярости'
+    lore:
+      - ''
+      - '&7Сила III + Скорость III на 3 минуты.'
+      - ''
+      - '&fЦена: &#54C8FF150 осколков'
+      - '&7Твой баланс: &#54C8FF%playerpoints_points%'
+      - '&eНажми, чтобы купить'
+    click_requirement:
+      requirements:
+        shards:
+          type: '>='
+          input: '%playerpoints_points%'
+          output: '150'
+      deny_commands:
+        - '[message] &#FF6B6BНе хватает осколков: нужно 150, у тебя %playerpoints_points%.'
+        - '[sound] ENTITY_VILLAGER_NO'
+    click_commands:
+      - '[console] points take %player_name% 150'
+      - '[console] items give %player_name% pot_berserk 1'
+      - '[message] &#7CFC00Покупка успешна: &#FF5555Зелье ярости'
+      - '[sound] ENTITY_PLAYER_LEVELUP'
+      - '[refresh]'
+
+  'Боевое зелье':
+    slots:
+    - 12
+    material: POTION
+    display_name: '&#FF9A3DБоевое зелье'
+    lore:
+      - ''
+      - '&7Сила II + Скорость I на 3 минуты.'
+      - ''
+      - '&fЦена: &#54C8FF100 осколков'
+      - '&7Твой баланс: &#54C8FF%playerpoints_points%'
+      - '&eНажми, чтобы купить'
+    click_requirement:
+      requirements:
+        shards:
+          type: '>='
+          input: '%playerpoints_points%'
+          output: '100'
+      deny_commands:
+        - '[message] &#FF6B6BНе хватает осколков: нужно 100, у тебя %playerpoints_points%.'
+        - '[sound] ENTITY_VILLAGER_NO'
+    click_commands:
+      - '[console] points take %player_name% 100'
+      - '[console] items give %player_name% pot_warrior 1'
+      - '[message] &#7CFC00Покупка успешна: &#FF9A3DБоевое зелье'
+      - '[sound] ENTITY_PLAYER_LEVELUP'
+      - '[refresh]'
+
+  'Зелье скорости':
+    slots:
+    - 14
+    material: POTION
+    display_name: '&#55E6FFЗелье скорости'
+    lore:
+      - ''
+      - '&7Скорость III + Прыгучесть II на 3 минуты.'
+      - ''
+      - '&fЦена: &#54C8FF100 осколков'
+      - '&7Твой баланс: &#54C8FF%playerpoints_points%'
+      - '&eНажми, чтобы купить'
+    click_requirement:
+      requirements:
+        shards:
+          type: '>='
+          input: '%playerpoints_points%'
+          output: '100'
+      deny_commands:
+        - '[message] &#FF6B6BНе хватает осколков: нужно 100, у тебя %playerpoints_points%.'
+        - '[sound] ENTITY_VILLAGER_NO'
+    click_commands:
+      - '[console] points take %player_name% 100'
+      - '[console] items give %player_name% pot_runner 1'
+      - '[message] &#7CFC00Покупка успешна: &#55E6FFЗелье скорости'
+      - '[sound] ENTITY_PLAYER_LEVELUP'
+      - '[refresh]'
+
+  'Зелье защиты':
+    slots:
+    - 16
+    material: POTION
+    display_name: '&#8FB8FFЗелье защиты'
+    lore:
+      - ''
+      - '&7Сопротивление II + Огнестойкость на 3 минуты.'
+      - ''
+      - '&fЦена: &#54C8FF125 осколков'
+      - '&7Твой баланс: &#54C8FF%playerpoints_points%'
+      - '&eНажми, чтобы купить'
+    click_requirement:
+      requirements:
+        shards:
+          type: '>='
+          input: '%playerpoints_points%'
+          output: '125'
+      deny_commands:
+        - '[message] &#FF6B6BНе хватает осколков: нужно 125, у тебя %playerpoints_points%.'
+        - '[sound] ENTITY_VILLAGER_NO'
+    click_commands:
+      - '[console] points take %player_name% 125'
+      - '[console] items give %player_name% pot_tank 1'
+      - '[message] &#7CFC00Покупка успешна: &#8FB8FFЗелье защиты'
+      - '[sound] ENTITY_PLAYER_LEVELUP'
+      - '[refresh]'
+
+  'Назад':
+    slots:
+    - 18
+    material: ARROW
+    display_name: '&fНазад'
+    click_commands:
+      - '[sound] ITEM_BOOK_PAGE_TURN'
+      - '[openguimenu] shop'

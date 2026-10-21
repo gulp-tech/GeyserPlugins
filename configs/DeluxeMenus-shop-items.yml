@@ -1,0 +1,406 @@
+# DeluxeMenus — раздел: кастомные предметы
+# Файл на сервере: plugins/DeluxeMenus/gui_menus/shop_items.yml
+# Покупки списывают осколки PlayerPoints (points take) только если хватает:
+# проверка click_requirement по %playerpoints_points% стоит на каждом товаре.
+# Цены меняются прямо в этом файле: output и points take должны совпадать.
+menu_title: '• Магазин: предметы'
+open_command: shopitems
+register_command: true
+size: 27
+open_commands:
+  - '[sound] ITEM_BOOK_PAGE_TURN'
+items:
+
+  'Баланс':
+    slots:
+    - 4
+    material: PRISMARINE_SHARD
+    display_name: '&#54C8FFТвои осколки'
+    lore:
+      - ''
+      - '&fБаланс: &#54C8FF%playerpoints_points% осколков'
+      - '&7Ими оплачиваются покупки в этом магазине.'
+    click_commands:
+      - '[sound] ITEM_BOOK_PAGE_TURN'
+
+  'Капкан':
+    slots:
+    - 9
+    material: NETHERITE_SCRAP
+    display_name: '&#B388FFКапкан'
+    lore:
+      - ''
+      - '&7ПКМ: капкан появляется там, где ты стоишь.'
+      - '&7Клетка 3×3 держится 20 секунд.'
+      - ''
+      - '&fЦена: &#54C8FF300 осколков'
+      - '&7Твой баланс: &#54C8FF%playerpoints_points%'
+      - '&eНажми, чтобы купить'
+    click_requirement:
+      requirements:
+        shards:
+          type: '>='
+          input: '%playerpoints_points%'
+          output: '300'
+      deny_commands:
+        - '[message] &#FF6B6BНе хватает осколков: нужно 300, у тебя %playerpoints_points%.'
+        - '[sound] ENTITY_VILLAGER_NO'
+    click_commands:
+      - '[console] points take %player_name% 300'
+      - '[console] items give %player_name% trapka 1'
+      - '[message] &#7CFC00Покупка успешна: &#B388FFКапкан'
+      - '[sound] ENTITY_PLAYER_LEVELUP'
+      - '[refresh]'
+
+  'Пыль обнаружения':
+    slots:
+    - 10
+    material: GLOWSTONE_DUST
+    display_name: '&#FFE082Пыль обнаружения'
+    lore:
+      - ''
+      - '&7ПКМ: игроки в радиусе 15 теряют'
+      - '&7невидимость и подсвечиваются на 10 секунд.'
+      - ''
+      - '&fЦена: &#54C8FF150 осколков'
+      - '&7Твой баланс: &#54C8FF%playerpoints_points%'
+      - '&eНажми, чтобы купить'
+    click_requirement:
+      requirements:
+        shards:
+          type: '>='
+          input: '%playerpoints_points%'
+          output: '150'
+      deny_commands:
+        - '[message] &#FF6B6BНе хватает осколков: нужно 150, у тебя %playerpoints_points%.'
+        - '[sound] ENTITY_VILLAGER_NO'
+    click_commands:
+      - '[console] points take %player_name% 150'
+      - '[console] items give %player_name% dust 1'
+      - '[message] &#7CFC00Покупка успешна: &#FFE082Пыль обнаружения'
+      - '[sound] ENTITY_PLAYER_LEVELUP'
+      - '[refresh]'
+
+  'Око дезориентации':
+    slots:
+    - 11
+    material: ENDER_EYE
+    display_name: '&#8CE8FFОко дезориентации'
+    lore:
+      - ''
+      - '&7ПКМ: враги в радиусе 9 получают слепоту,'
+      - '&7тошноту и замедление III на 5 секунд.'
+      - ''
+      - '&fЦена: &#54C8FF250 осколков'
+      - '&7Твой баланс: &#54C8FF%playerpoints_points%'
+      - '&eНажми, чтобы купить'
+    click_requirement:
+      requirements:
+        shards:
+          type: '>='
+          input: '%playerpoints_points%'
+          output: '250'
+      deny_commands:
+        - '[message] &#FF6B6BНе хватает осколков: нужно 250, у тебя %playerpoints_points%.'
+        - '[sound] ENTITY_VILLAGER_NO'
+    click_commands:
+      - '[console] points take %player_name% 250'
+      - '[console] items give %player_name% dezorientation 1'
+      - '[message] &#7CFC00Покупка успешна: &#8CE8FFОко дезориентации'
+      - '[sound] ENTITY_PLAYER_LEVELUP'
+      - '[refresh]'
+
+  'Лом для спавнеров':
+    slots:
+    - 12
+    material: GOLDEN_PICKAXE
+    display_name: '&#FFB340Лом для спавнеров'
+    lore:
+      - ''
+      - '&7Сломай им спавнер — заберёшь его'
+      - '&7вместе с мобом. Лом одноразовый.'
+      - ''
+      - '&fЦена: &#54C8FF750 осколков'
+      - '&7Твой баланс: &#54C8FF%playerpoints_points%'
+      - '&eНажми, чтобы купить'
+    click_requirement:
+      requirements:
+        shards:
+          type: '>='
+          input: '%playerpoints_points%'
+          output: '750'
+      deny_commands:
+        - '[message] &#FF6B6BНе хватает осколков: нужно 750, у тебя %playerpoints_points%.'
+        - '[sound] ENTITY_VILLAGER_NO'
+    click_commands:
+      - '[console] points take %player_name% 750'
+      - '[console] items give %player_name% spawner_lom 1'
+      - '[message] &#7CFC00Покупка успешна: &#FFB340Лом для спавнеров'
+      - '[sound] ENTITY_PLAYER_LEVELUP'
+      - '[refresh]'
+
+  'Изумрудный шлем':
+    slots:
+    - 13
+    material: DIAMOND_HELMET
+    display_name: '&#2EE66BИзумрудный шлем'
+    lore:
+      - ''
+      - '&7Алмазный шлем: Защита III,'
+      - '&7изумрудная отделка. Докачка до V — наковальней.'
+      - ''
+      - '&fЦена: &#54C8FF400 осколков'
+      - '&7Твой баланс: &#54C8FF%playerpoints_points%'
+      - '&eНажми, чтобы купить'
+    click_requirement:
+      requirements:
+        shards:
+          type: '>='
+          input: '%playerpoints_points%'
+          output: '400'
+      deny_commands:
+        - '[message] &#FF6B6BНе хватает осколков: нужно 400, у тебя %playerpoints_points%.'
+        - '[sound] ENTITY_VILLAGER_NO'
+    click_commands:
+      - '[console] points take %player_name% 400'
+      - '[console] items give %player_name% emerald_helmet 1'
+      - '[message] &#7CFC00Покупка успешна: &#2EE66BИзумрудный шлем'
+      - '[sound] ENTITY_PLAYER_LEVELUP'
+      - '[refresh]'
+
+  'Изумрудный нагрудник':
+    slots:
+    - 14
+    material: DIAMOND_CHESTPLATE
+    display_name: '&#2EE66BИзумрудный нагрудник'
+    lore:
+      - ''
+      - '&7Алмазный нагрудник: Защита III,'
+      - '&7изумрудная отделка. Докачка до V — наковальней.'
+      - ''
+      - '&fЦена: &#54C8FF650 осколков'
+      - '&7Твой баланс: &#54C8FF%playerpoints_points%'
+      - '&eНажми, чтобы купить'
+    click_requirement:
+      requirements:
+        shards:
+          type: '>='
+          input: '%playerpoints_points%'
+          output: '650'
+      deny_commands:
+        - '[message] &#FF6B6BНе хватает осколков: нужно 650, у тебя %playerpoints_points%.'
+        - '[sound] ENTITY_VILLAGER_NO'
+    click_commands:
+      - '[console] points take %player_name% 650'
+      - '[console] items give %player_name% emerald_chestplate 1'
+      - '[message] &#7CFC00Покупка успешна: &#2EE66BИзумрудный нагрудник'
+      - '[sound] ENTITY_PLAYER_LEVELUP'
+      - '[refresh]'
+
+  'Изумрудные поножи':
+    slots:
+    - 15
+    material: DIAMOND_LEGGINGS
+    display_name: '&#2EE66BИзумрудные поножи'
+    lore:
+      - ''
+      - '&7Алмазные поножи: Защита III,'
+      - '&7изумрудная отделка. Докачка до V — наковальней.'
+      - ''
+      - '&fЦена: &#54C8FF550 осколков'
+      - '&7Твой баланс: &#54C8FF%playerpoints_points%'
+      - '&eНажми, чтобы купить'
+    click_requirement:
+      requirements:
+        shards:
+          type: '>='
+          input: '%playerpoints_points%'
+          output: '550'
+      deny_commands:
+        - '[message] &#FF6B6BНе хватает осколков: нужно 550, у тебя %playerpoints_points%.'
+        - '[sound] ENTITY_VILLAGER_NO'
+    click_commands:
+      - '[console] points take %player_name% 550'
+      - '[console] items give %player_name% emerald_leggings 1'
+      - '[message] &#7CFC00Покупка успешна: &#2EE66BИзумрудные поножи'
+      - '[sound] ENTITY_PLAYER_LEVELUP'
+      - '[refresh]'
+
+  'Изумрудные ботинки':
+    slots:
+    - 16
+    material: DIAMOND_BOOTS
+    display_name: '&#2EE66BИзумрудные ботинки'
+    lore:
+      - ''
+      - '&7Алмазные ботинки: Защита III,'
+      - '&7изумрудная отделка. Докачка до V — наковальней.'
+      - ''
+      - '&fЦена: &#54C8FF350 осколков'
+      - '&7Твой баланс: &#54C8FF%playerpoints_points%'
+      - '&eНажми, чтобы купить'
+    click_requirement:
+      requirements:
+        shards:
+          type: '>='
+          input: '%playerpoints_points%'
+          output: '350'
+      deny_commands:
+        - '[message] &#FF6B6BНе хватает осколков: нужно 350, у тебя %playerpoints_points%.'
+        - '[sound] ENTITY_VILLAGER_NO'
+    click_commands:
+      - '[console] points take %player_name% 350'
+      - '[console] items give %player_name% emerald_boots 1'
+      - '[message] &#7CFC00Покупка успешна: &#2EE66BИзумрудные ботинки'
+      - '[sound] ENTITY_PLAYER_LEVELUP'
+      - '[refresh]'
+
+  'Изумрудный меч':
+    slots:
+    - 17
+    material: DIAMOND_SWORD
+    display_name: '&#2EE66BИзумрудный меч'
+    lore:
+      - ''
+      - '&7Алмазный меч: Острота III.'
+      - ''
+      - '&fЦена: &#54C8FF500 осколков'
+      - '&7Твой баланс: &#54C8FF%playerpoints_points%'
+      - '&eНажми, чтобы купить'
+    click_requirement:
+      requirements:
+        shards:
+          type: '>='
+          input: '%playerpoints_points%'
+          output: '500'
+      deny_commands:
+        - '[message] &#FF6B6BНе хватает осколков: нужно 500, у тебя %playerpoints_points%.'
+        - '[sound] ENTITY_VILLAGER_NO'
+    click_commands:
+      - '[console] points take %player_name% 500'
+      - '[console] items give %player_name% emerald_sword 1'
+      - '[message] &#7CFC00Покупка успешна: &#2EE66BИзумрудный меч'
+      - '[sound] ENTITY_PLAYER_LEVELUP'
+      - '[refresh]'
+
+  'Изумрудная кирка':
+    slots:
+    - 18
+    material: DIAMOND_PICKAXE
+    display_name: '&#2EE66BИзумрудная кирка'
+    lore:
+      - ''
+      - '&7Алмазная кирка: Эффективность III.'
+      - '&7Кирки шахтёра сильнее — смотри раздел «Кирки».'
+      - ''
+      - '&fЦена: &#54C8FF450 осколков'
+      - '&7Твой баланс: &#54C8FF%playerpoints_points%'
+      - '&eНажми, чтобы купить'
+    click_requirement:
+      requirements:
+        shards:
+          type: '>='
+          input: '%playerpoints_points%'
+          output: '450'
+      deny_commands:
+        - '[message] &#FF6B6BНе хватает осколков: нужно 450, у тебя %playerpoints_points%.'
+        - '[sound] ENTITY_VILLAGER_NO'
+    click_commands:
+      - '[console] points take %player_name% 450'
+      - '[console] items give %player_name% emerald_pickaxe 1'
+      - '[message] &#7CFC00Покупка успешна: &#2EE66BИзумрудная кирка'
+      - '[sound] ENTITY_PLAYER_LEVELUP'
+      - '[refresh]'
+
+  'Изумрудный топор':
+    slots:
+    - 19
+    material: DIAMOND_AXE
+    display_name: '&#2EE66BИзумрудный топор'
+    lore:
+      - ''
+      - '&7Алмазный топор: Эффективность III.'
+      - ''
+      - '&fЦена: &#54C8FF400 осколков'
+      - '&7Твой баланс: &#54C8FF%playerpoints_points%'
+      - '&eНажми, чтобы купить'
+    click_requirement:
+      requirements:
+        shards:
+          type: '>='
+          input: '%playerpoints_points%'
+          output: '400'
+      deny_commands:
+        - '[message] &#FF6B6BНе хватает осколков: нужно 400, у тебя %playerpoints_points%.'
+        - '[sound] ENTITY_VILLAGER_NO'
+    click_commands:
+      - '[console] points take %player_name% 400'
+      - '[console] items give %player_name% emerald_axe 1'
+      - '[message] &#7CFC00Покупка успешна: &#2EE66BИзумрудный топор'
+      - '[sound] ENTITY_PLAYER_LEVELUP'
+      - '[refresh]'
+
+  'Изумрудная лопата':
+    slots:
+    - 20
+    material: DIAMOND_SHOVEL
+    display_name: '&#2EE66BИзумрудная лопата'
+    lore:
+      - ''
+      - '&7Алмазная лопата: Эффективность III.'
+      - ''
+      - '&fЦена: &#54C8FF300 осколков'
+      - '&7Твой баланс: &#54C8FF%playerpoints_points%'
+      - '&eНажми, чтобы купить'
+    click_requirement:
+      requirements:
+        shards:
+          type: '>='
+          input: '%playerpoints_points%'
+          output: '300'
+      deny_commands:
+        - '[message] &#FF6B6BНе хватает осколков: нужно 300, у тебя %playerpoints_points%.'
+        - '[sound] ENTITY_VILLAGER_NO'
+    click_commands:
+      - '[console] points take %player_name% 300'
+      - '[console] items give %player_name% emerald_shovel 1'
+      - '[message] &#7CFC00Покупка успешна: &#2EE66BИзумрудная лопата'
+      - '[sound] ENTITY_PLAYER_LEVELUP'
+      - '[refresh]'
+
+  'Изумрудная мотыга':
+    slots:
+    - 21
+    material: DIAMOND_HOE
+    display_name: '&#2EE66BИзумрудная мотыга'
+    lore:
+      - ''
+      - '&7Алмазная мотыга: Эффективность III.'
+      - ''
+      - '&fЦена: &#54C8FF250 осколков'
+      - '&7Твой баланс: &#54C8FF%playerpoints_points%'
+      - '&eНажми, чтобы купить'
+    click_requirement:
+      requirements:
+        shards:
+          type: '>='
+          input: '%playerpoints_points%'
+          output: '250'
+      deny_commands:
+        - '[message] &#FF6B6BНе хватает осколков: нужно 250, у тебя %playerpoints_points%.'
+        - '[sound] ENTITY_VILLAGER_NO'
+    click_commands:
+      - '[console] points take %player_name% 250'
+      - '[console] items give %player_name% emerald_hoe 1'
+      - '[message] &#7CFC00Покупка успешна: &#2EE66BИзумрудная мотыга'
+      - '[sound] ENTITY_PLAYER_LEVELUP'
+      - '[refresh]'
+
+  'Назад':
+    slots:
+    - 26
+    material: ARROW
+    display_name: '&fНазад'
+    click_commands:
+      - '[sound] ITEM_BOOK_PAGE_TURN'
+      - '[openguimenu] shop'

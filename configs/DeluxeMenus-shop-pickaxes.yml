@@ -1,0 +1,120 @@
+# DeluxeMenus — раздел: кирки
+# Файл на сервере: plugins/DeluxeMenus/gui_menus/shop_pickaxes.yml
+# Покупки списывают осколки PlayerPoints (points take) только если хватает:
+# проверка click_requirement по %playerpoints_points% стоит на каждом товаре.
+# Цены меняются прямо в этом файле: output и points take должны совпадать.
+menu_title: '• Магазин: кирки'
+open_command: shoppickaxes
+register_command: true
+size: 27
+open_commands:
+  - '[sound] ITEM_BOOK_PAGE_TURN'
+items:
+
+  'Баланс':
+    slots:
+    - 4
+    material: PRISMARINE_SHARD
+    display_name: '&#54C8FFТвои осколки'
+    lore:
+      - ''
+      - '&fБаланс: &#54C8FF%playerpoints_points% осколков'
+      - '&7Ими оплачиваются покупки в этом магазине.'
+    click_commands:
+      - '[sound] ITEM_BOOK_PAGE_TURN'
+
+  'Кирка шахтёра I':
+    slots:
+    - 11
+    material: NETHERITE_PICKAXE
+    display_name: '&#FFB340Кирка шахтёра &eI'
+    lore:
+      - ''
+      - '&7Эффективность V, Удача III, Прочность III, Починка.'
+      - '&7Автоплавка + Магнит.'
+      - ''
+      - '&fЦена: &#54C8FF1500 осколков'
+      - '&7Твой баланс: &#54C8FF%playerpoints_points%'
+      - '&eНажми, чтобы купить'
+    click_requirement:
+      requirements:
+        shards:
+          type: '>='
+          input: '%playerpoints_points%'
+          output: '1500'
+      deny_commands:
+        - '[message] &#FF6B6BНе хватает осколков: нужно 1500, у тебя %playerpoints_points%.'
+        - '[sound] ENTITY_VILLAGER_NO'
+    click_commands:
+      - '[console] points take %player_name% 1500'
+      - '[console] vench give %player_name% miner1'
+      - '[message] &#7CFC00Покупка успешна: &#FFB340Кирка шахтёра &eI'
+      - '[sound] ENTITY_PLAYER_LEVELUP'
+      - '[refresh]'
+
+  'Кирка шахтёра II':
+    slots:
+    - 13
+    material: NETHERITE_PICKAXE
+    display_name: '&#FFB340Кирка шахтёра &eII'
+    lore:
+      - ''
+      - '&7Эффективность VI, Удача IV, Прочность IV, Починка.'
+      - '&7Автоплавка + Магнит + Бур I.'
+      - ''
+      - '&fЦена: &#54C8FF3500 осколков'
+      - '&7Твой баланс: &#54C8FF%playerpoints_points%'
+      - '&eНажми, чтобы купить'
+    click_requirement:
+      requirements:
+        shards:
+          type: '>='
+          input: '%playerpoints_points%'
+          output: '3500'
+      deny_commands:
+        - '[message] &#FF6B6BНе хватает осколков: нужно 3500, у тебя %playerpoints_points%.'
+        - '[sound] ENTITY_VILLAGER_NO'
+    click_commands:
+      - '[console] points take %player_name% 3500'
+      - '[console] vench give %player_name% miner2'
+      - '[message] &#7CFC00Покупка успешна: &#FFB340Кирка шахтёра &eII'
+      - '[sound] ENTITY_PLAYER_LEVELUP'
+      - '[refresh]'
+
+  'Кирка шахтёра III':
+    slots:
+    - 15
+    material: NETHERITE_PICKAXE
+    display_name: '&#FFB340Кирка шахтёра &eIII'
+    lore:
+      - ''
+      - '&7Эффективность VII, Удача V, Прочность V, Починка.'
+      - '&7Автоплавка + Магнит + Бур II.'
+      - ''
+      - '&fЦена: &#54C8FF7000 осколков'
+      - '&7Твой баланс: &#54C8FF%playerpoints_points%'
+      - '&eНажми, чтобы купить'
+    click_requirement:
+      requirements:
+        shards:
+          type: '>='
+          input: '%playerpoints_points%'
+          output: '7000'
+      deny_commands:
+        - '[message] &#FF6B6BНе хватает осколков: нужно 7000, у тебя %playerpoints_points%.'
+        - '[sound] ENTITY_VILLAGER_NO'
+    click_commands:
+      - '[console] points take %player_name% 7000'
+      - '[console] vench give %player_name% miner3'
+      - '[message] &#7CFC00Покупка успешна: &#FFB340Кирка шахтёра &eIII'
+      - '[sound] ENTITY_PLAYER_LEVELUP'
+      - '[refresh]'
+
+  'Назад':
+    slots:
+    - 18
+    material: ARROW
+    display_name: '&fНазад'
+    click_commands:
+      - '[sound] ITEM_BOOK_PAGE_TURN'
+      - '[openguimenu] shop'
