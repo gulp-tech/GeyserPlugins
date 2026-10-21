@@ -6,7 +6,7 @@
 
     <groupId>ru.voidpe</groupId>
     <artifactId>VoidAuthSpawn</artifactId>
-    <version>1.0.0</version>
+    <version>1.1.0</version>
     <packaging>jar</packaging>
     <name>VoidAuthSpawn</name>
     <description>Дополнение к AuthMe для Bedrock-сервера VoidPE: если игроку надо регистрироваться, его телепортирует в точку из config.yml.</description>

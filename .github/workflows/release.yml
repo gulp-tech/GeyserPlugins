@@ -196,7 +196,7 @@ jobs:
             --notes "Bedrock-only сервер VoidPE (Purpur 26.2 + Geyser + Floodgate).
 
           **FaralTab-1.1.0.jar** — плагин скорборда в \`plugins/\` (нужны Vault, PlayerPoints, LuckPerms, Geyser, Floodgate).
-          **VoidAuthSpawn-1.0.0.jar** — дополнение к AuthMe в `plugins/` рядом с AuthMe: незарегистрированных телепортирует в точку регистрации (`/authspawn set`).
+          **VoidAuthSpawn-1.1.0.jar** — дополнение к AuthMe в `plugins/` рядом с AuthMe: незарегистрированных телепортирует в точку регистрации (`/authspawn set`).
           **VoidResourcePack.mcpack** — Bedrock-ресурспак с иконками в \`plugins/Geyser-Spigot/packs/\` + \`force-resource-packs: true\` в конфиге Geyser.
 
           Java-игроки кикаются плагином (bedrock-only), Java-заглушек нет."

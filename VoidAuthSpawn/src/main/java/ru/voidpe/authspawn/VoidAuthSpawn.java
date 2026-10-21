@@ -18,12 +18,17 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -37,6 +42,12 @@ import java.util.UUID;
  * ({@code teleport.not-logged-in}) и удержание у точки до регистрации
  * ({@code hold.enabled}).</p>
  *
+ * <p>После успешного {@code /login} (событие AuthMe {@code LoginEvent})
+ * зарегистрированного игрока возвращает на прежнее место: туда, где он
+ * появился при входе в этот раз, до всех телепортов к точке авторизации
+ * (секция {@code return-after-login:}). Место запоминается при входе и
+ * хранится в {@code return-locations.yml}, поэтому переживает рестарт.</p>
+ *
  * <p>Проверка идёт через официальный AuthMe API
  * ({@code fr.xephi.authme.api.v3.AuthMeApi#isRegistered}), с задержкой
  * после входа и несколькими повторными проверками: так телепорт нашего
@@ -49,6 +60,10 @@ public final class VoidAuthSpawn extends JavaPlugin implements Listener, Command
     private final Set<UUID> awaitingAuth = new HashSet<>();
     /** Кому уже показали сообщение о телепорте (чтобы не спамить при повторных проверках). */
     private final Set<UUID> messaged = new HashSet<>();
+    /** Прежнее место игрока (где появился при входе), куда вернуть после /login. */
+    private final Map<UUID, Location> returnLocations = new HashMap<>();
+    /** Кто зашёл ещё незарегистрированным (чтобы отличать /register от /login). */
+    private final Set<UUID> unregisteredAtJoin = new HashSet<>();
     private boolean warnedNoAuthMe;
     private boolean warnedNoWorld;
 
@@ -65,10 +80,22 @@ public final class VoidAuthSpawn extends JavaPlugin implements Listener, Command
                     + "незарегистрированных сможет только когда AuthMe будет установлен и включён.");
         } else {
             getLogger().info("AuthMe найден: незарегистрированные игроки будут телепортироваться в точку из config.yml.");
+            // LoginEvent существует только при установленном AuthMe — слушатель отдельным классом.
+            getServer().getPluginManager().registerEvents(new AuthMeReturnListener(this), this);
         }
+        loadReturnLocations();
     }
 
     // ------------------------------------------------------------- события
+
+    /** Запоминаем, где игрок появился при входе, — это и есть «прежнее место» для возврата после /login. */
+    @EventHandler(priority = EventPriority.LOWEST)
+    public void onJoinRecord(PlayerJoinEvent event) {
+        if (getConfig().getBoolean("enabled", true)
+                && getConfig().getBoolean("return-after-login.enabled", true)) {
+            recordReturnLocation(event.getPlayer());
+        }
+    }
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onJoin(PlayerJoinEvent event) {
@@ -114,6 +141,8 @@ public final class VoidAuthSpawn extends JavaPlugin implements Listener, Command
     public void onQuit(PlayerQuitEvent event) {
         awaitingAuth.remove(event.getPlayer().getUniqueId());
         messaged.remove(event.getPlayer().getUniqueId());
+        // returnLocations не чистим: прежнее место ещё пригодится после /login,
+        // а при следующем входе оно всё равно перезапишется.
     }
 
     // ------------------------------------------------------------- логика
@@ -185,6 +214,7 @@ public final class VoidAuthSpawn extends JavaPlugin implements Listener, Command
             return null;
         }
         if (!registered) {
+            unregisteredAtJoin.add(player.getUniqueId());
             return getConfig().getBoolean("teleport.unregistered", true);
         }
         if (getConfig().getBoolean("teleport.not-logged-in", false)) {
@@ -195,6 +225,164 @@ public final class VoidAuthSpawn extends JavaPlugin implements Listener, Command
             }
         }
         return false;
+    }
+
+    // ------------------------------------------------- возврат после /login
+
+    private void recordReturnLocation(Player player) {
+        Location join = player.getLocation().clone();
+        if (join.getWorld() == null) {
+            return;
+        }
+        UUID id = player.getUniqueId();
+        Location old = returnLocations.get(id);
+        Location point = spawnLocation();
+        // Если игрок вышел прямо у точки авторизации и зашёл обратно, не затираем
+        // настоящее прежнее место точкой: иначе возвращать будет некуда.
+        if (old != null && point != null && isNear(join, point, 2.0) && !isNear(old, point, 2.0)) {
+            return;
+        }
+        returnLocations.put(id, join);
+        saveReturnLocations();
+    }
+
+    /** Вызывается из AuthMeReturnListener по событию успешного входа AuthMe (LoginEvent). */
+    public void handleSuccessfulAuth(Player player) {
+        UUID id = player.getUniqueId();
+        boolean wasUnregistered = unregisteredAtJoin.remove(id);
+        boolean wasAwaiting = awaitingAuth.remove(id);
+        messaged.remove(id);
+        if (!getConfig().getBoolean("enabled", true)
+                || !getConfig().getBoolean("return-after-login.enabled", true)) {
+            return;
+        }
+        if (wasUnregistered && !getConfig().getBoolean("return-after-login.on-register", false)) {
+            return; // это была регистрация нового игрока, а не /login
+        }
+        if (player.hasPermission("voidauthspawn.bypass")) {
+            return;
+        }
+        Location back = returnLocations.get(id);
+        if (back == null) {
+            back = authMeLastLocation(player); // запасной вариант: сохранённое AuthMe место выхода
+        }
+        if (back == null || back.getWorld() == null) {
+            return;
+        }
+        final Location target = back.clone();
+        long delay = Math.max(1L, getConfig().getLong("return-after-login.delay-ticks", 10L));
+        Bukkit.getScheduler().runTaskLater(this, () -> {
+            if (player.isOnline()) {
+                doReturn(player, target, wasAwaiting);
+            }
+        }, delay);
+    }
+
+    private void doReturn(Player player, Location target, boolean wasAwaiting) {
+        Location point = spawnLocation();
+        // Прежнее место совпадает с самой точкой авторизации — возвращать некуда.
+        if (point != null && isNear(target, point, 2.0)) {
+            returnLocations.remove(player.getUniqueId());
+            saveReturnLocations();
+            return;
+        }
+        // По желанию: возвращать только тех, кто сейчас стоит у точки авторизации
+        // (или кого мы сами туда телепортировали).
+        if (getConfig().getBoolean("return-after-login.only-if-at-auth-point", false)
+                && !wasAwaiting
+                && (point == null || !isNear(player.getLocation(), point,
+                        getConfig().getDouble("return-after-login.auth-point-radius", 5.0)))) {
+            return;
+        }
+        if (isNear(player.getLocation(), target, 0.5)) {
+            returnLocations.remove(player.getUniqueId());
+            saveReturnLocations();
+            return; // игрок и так уже на прежнем месте
+        }
+        player.teleport(target);
+        returnLocations.remove(player.getUniqueId());
+        saveReturnLocations();
+        if (getConfig().getBoolean("return-after-login.play-sound", true)) {
+            String sound = getConfig().getString("teleport.sound", "minecraft:entity.enderman.teleport");
+            if (sound != null && !sound.isBlank()) {
+                player.playSound(target, sound, 0.7f, 1.0f);
+            }
+        }
+        send(player, msg("returned"));
+    }
+
+    private boolean isNear(Location a, Location b, double radius) {
+        return a.getWorld() != null && a.getWorld().equals(b.getWorld())
+                && a.distanceSquared(b) <= radius * radius;
+    }
+
+    private Location authMeLastLocation(Player player) {
+        try {
+            AuthMeApi api = AuthMeApi.getInstance();
+            return api == null ? null : api.getLastLocation(player);
+        } catch (NoClassDefFoundError | ExceptionInInitializerError | RuntimeException e) {
+            return null;
+        }
+    }
+
+    // ------------------------------------------ хранение прежних мест (файл)
+
+    private File returnFile() {
+        return new File(getDataFolder(), "return-locations.yml");
+    }
+
+    private void loadReturnLocations() {
+        if (!getConfig().getBoolean("return-after-login.save-to-file", true)) {
+            return;
+        }
+        File file = returnFile();
+        if (!file.exists()) {
+            return;
+        }
+        YamlConfiguration data = YamlConfiguration.loadConfiguration(file);
+        if (data.isConfigurationSection("locations")) {
+            for (String key : data.getConfigurationSection("locations").getKeys(false)) {
+                try {
+                    UUID id = UUID.fromString(key);
+                    String base = "locations." + key + ".";
+                    World world = Bukkit.getWorld(data.getString(base + "world", ""));
+                    if (world == null) {
+                        continue;
+                    }
+                    returnLocations.put(id, new Location(world,
+                            data.getDouble(base + "x"), data.getDouble(base + "y"), data.getDouble(base + "z"),
+                            (float) data.getDouble(base + "yaw"), (float) data.getDouble(base + "pitch")));
+                } catch (IllegalArgumentException ignored) {
+                    // битая запись — пропускаем
+                }
+            }
+        }
+        getLogger().info("Загружено прежних мест игроков: " + returnLocations.size());
+    }
+
+    private void saveReturnLocations() {
+        if (!getConfig().getBoolean("return-after-login.save-to-file", true)) {
+            return;
+        }
+        YamlConfiguration data = new YamlConfiguration();
+        for (Map.Entry<UUID, Location> e : returnLocations.entrySet()) {
+            Location loc = e.getValue();
+            if (loc.getWorld() == null) {
+                continue;
+            }
+            String base = "locations." + e.getKey() + ".";
+            data.set(base + "world", loc.getWorld().getName());
+            data.set(base + "x", round(loc.getX()));
+            data.set(base + "y", round(loc.getY()));
+            data.set(base + "z", round(loc.getZ()));
+            data.set(base + "yaw", round(loc.getYaw()));
+            data.set(base + "pitch", round(loc.getPitch()));
+        }
+        try {
+            data.save(returnFile());
+        } catch (IOException e) {
+            getLogger().warning("Не удалось сохранить return-locations.yml: " + e.getMessage());
+        }
     }
 
     private boolean authMePresent() {
