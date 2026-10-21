@@ -206,11 +206,21 @@ public final class VoidEnchants extends JavaPlugin implements Listener, TabCompl
 
     // ------------------------------------------------------------ добыча: автоплавка + магнит + бур
 
-    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    // ВАЖНО: приоритет MONITOR + ignoreCancelled. Защита региона может отменить событие
+    // на HIGHEST/MONITOR ПОСЛЕ обычного HIGH — если выдать дроп раньше (как было), блок
+    // остаётся на месте, а дроп уже у игрока = бесконечный дюп буром в чужих регионах.
+    // На MONITOR событие уже финальное: отменено — нас вообще не вызовут.
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onBlockBreak(BlockBreakEvent event) {
         Player player = event.getPlayer();
         ItemStack tool = player.getInventory().getItemInMainHand();
         boolean extra = drilling.contains(player.getUniqueId());
+        if (extra) {
+            // Дополнительный блок бура (синтетическое событие из expandDrill): дроп и
+            // разрушение делает сам expandDrill ПОСЛЕ проверки, что событие не отменила
+            // защита. Здесь ничего не выдаём — иначе дюп в защищённых регионах.
+            return;
+        }
         boolean hasCustom = autosmelt(tool) > 0 || magnet(tool) > 0 || drill(tool) > 0;
         if (!hasCustom) {
             return;
@@ -257,10 +267,33 @@ public final class VoidEnchants extends JavaPlugin implements Listener, TabCompl
                 }
                 BlockBreakEvent synthetic = new BlockBreakEvent(target, player);
                 Bukkit.getPluginManager().callEvent(synthetic);
+                // callEvent синхронный: к этому моменту отработали ВСЕ плагины всех
+                // приоритетов (включая защиту региона на HIGHEST/MONITOR). Отменено —
+                // блок не трогаем и НИЧЕГО не выдаём (раньше дроп выдавался раньше отмены).
                 if (synthetic.isCancelled()) {
                     continue; // защита региона/другого плагина — блок не трогаем
                 }
-                target.setType(Material.AIR, false);
+                boolean creative = player.getGameMode() == GameMode.CREATIVE;
+                if (!creative) {
+                    if (synthetic.isDropItems()) {
+                        boolean silk = hasEnchant(tool, "silk_touch");
+                        Collection<ItemStack> drops = target.getDrops(tool, player);
+                        target.setType(Material.AIR, false);
+                        deliver(player, target.getLocation(), tool, drops, silk);
+                        if (synthetic.getExpToDrop() > 0) {
+                            player.giveExp(synthetic.getExpToDrop());
+                        }
+                    } else {
+                        // дроп забрал другой плагин (кастомный дроп шахты) — блок ломаем,
+                        // дроп не дублируем, магнит подберёт выброшенное рядом.
+                        target.setType(Material.AIR, false);
+                        if (magnet(tool) > 0) {
+                            magnetSweep(player, target.getLocation());
+                        }
+                    }
+                } else {
+                    target.setType(Material.AIR, false);
+                }
                 if (getConfig().getBoolean("drill.damage-per-block", true)) {
                     damageTool(player, tool, getConfig().getDouble("drill.durability-multiplier", 1.3));
                     if (tool.getAmount() == 0) {
