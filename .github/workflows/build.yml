@@ -103,6 +103,20 @@ jobs:
             fi
           fi
 
+
+      - name: Собрать плагин VoidClans
+        working-directory: VoidClans
+        run: |
+          build() { mvn -B -DskipTests "$@" package > mvn.log 2>&1; }
+          if ! build -Dpurpur.version="$PURPUR_VERSION"; then
+            grep -E "\[ERROR\]|BUILD FAILURE|Could not resolve|Failed to read" mvn.log | head -20 | sed 's/%/%25/g; s/^/::error::/'
+            echo "Purpur API недоступна — собираем с Paper API (на Purpur работает так же)"
+            if ! build -Dapi.groupId=io.papermc.paper -Dapi.artifactId=paper-api -Dpurpur.version=26.2-R0.1-SNAPSHOT; then
+              grep -E "\[ERROR\]|BUILD FAILURE|Could not resolve|Failed to read" mvn.log | head -20 | sed 's/%/%25/g; s/^/::error::/'
+              exit 1
+            fi
+          fi
+
       - name: Собрать Bedrock ресурспак (.mcpack)
         run: python3 tools/build_mcpack.py
 
@@ -114,4 +128,5 @@ jobs:
             VoidTab/target/VoidTab-*.jar
             VoidTalismans/target/VoidTalismans-*.jar
             VoidCases/target/VoidCases-*.jar
+            VoidClans/target/VoidClans-*.jar
             VoidResourcePack.mcpack
