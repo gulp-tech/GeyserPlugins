@@ -286,7 +286,7 @@ talismans:
     recipe: {enabled: false, shape: [], ingredients: {}}
 
 # ------------------------------------------------------------
-  #  СФЕРЫ (FunTime): бумага с item-model voidspheres:sphere1-3 (и custom-model-data 9001-9003 про запас).
+  #  СФЕРЫ (FunTime): бумага с item-model voidspheres:sphere1-4 (и custom-model-data 9001-9004 про запас).
   #  Вид в Bedrock даёт отдельный пак VoidSpheres.mcpack +
   #  маппинг Geyser configs/Geyser-spheres-mapping.json.
   #  Работают ТОЛЬКО в левой руке (where: OFFHAND).
@@ -342,6 +342,24 @@ talismans:
       - {type: attack_damage, amount: 3.0, operation: ADD_NUMBER}
       - {type: armor, amount: 3.0, operation: ADD_NUMBER}
       - {type: max_health, amount: 6.0, operation: ADD_NUMBER}
+      - {type: movement_speed, amount: 0.05, operation: ADD_SCALAR}
+    recipe: {enabled: false, shape: [], ingredients: {}}
+
+  sphere4:
+    enabled: true
+    display-name: "<gradient:#16307E:#3D6BFF>Сфера пустоты</gradient>"
+    material: PAPER
+    custom-model-data: 9004
+    item-model: "voidspheres:sphere4"
+    glow: false
+    lore: ["{stats}"]
+    where: OFFHAND
+    permission: ""
+    effects: []
+    attributes:
+      - {type: attack_damage, amount: 4.0, operation: ADD_NUMBER}
+      - {type: armor, amount: 4.0, operation: ADD_NUMBER}
+      - {type: max_health, amount: 4.0, operation: ADD_NUMBER}
       - {type: movement_speed, amount: 0.05, operation: ADD_SCALAR}
     recipe: {enabled: false, shape: [], ingredients: {}}
 

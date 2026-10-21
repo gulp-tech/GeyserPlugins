@@ -157,6 +157,74 @@ items:
       - '[sound] ENTITY_PLAYER_LEVELUP'
       - '[refresh]'
 
+  'Сфера пустоты':
+    slots:
+    - 30
+    material: PAPER
+    item_model: voidspheres:sphere4
+    model_data_component:
+      floats: [9004.0]
+    display_name: '&#4D7CFEСфера пустоты'
+    lore:
+      - ''
+      - '&7Работает только в левой руке.'
+      - ''
+      - '&7Урон: &a+4'
+      - '&7Броня: &a+4'
+      - '&7Здоровье: &a+4'
+      - '&7Скорость: &a+5%'
+      - ''
+      - '&fЦена: &#54C8FF3500 осколков'
+      - '&7Твой баланс: &#54C8FF%playerpoints_points%'
+      - '&eНажми, чтобы купить'
+    click_requirement:
+      requirements:
+        shards:
+          type: '>='
+          input: '%playerpoints_points%'
+          output: '3500'
+      deny_commands:
+        - '[message] &#FF6B6BНе хватает осколков: нужно 3500, у тебя %playerpoints_points%.'
+        - '[sound] ENTITY_VILLAGER_NO'
+    click_commands:
+      - '[console] points take %player_name% 3500'
+      - '[console] sphere give %player_name% 4 1'
+      - '[message] &#7CFC00Покупка успешна: &#4D7CFEСфера пустоты'
+      - '[sound] ENTITY_PLAYER_LEVELUP'
+      - '[refresh]'
+
+  'Сфера пустоты за яйцо дракона':
+    slots:
+    - 32
+    material: DRAGON_EGG
+    display_name: '&#8E6BFFОбмен: яйцо дракона'
+    lore:
+      - ''
+      - '&7Отдай &fяйцо дракона&7 и получи'
+      - '&#4D7CFEСферу пустоты&7:'
+      - ''
+      - '&7Урон: &a+4'
+      - '&7Броня: &a+4'
+      - '&7Здоровье: &a+4'
+      - '&7Скорость: &a+5%'
+      - ''
+      - '&eНажми, чтобы обменять'
+    click_requirement:
+      requirements:
+        egg:
+          type: has item
+          material: DRAGON_EGG
+          amount: 1
+      deny_commands:
+        - '[message] &#FF6B6BДля обмена нужно яйцо дракона в инвентаре.'
+        - '[sound] ENTITY_VILLAGER_NO'
+    click_commands:
+      - '[console] clear %player_name% minecraft:dragon_egg 1'
+      - '[console] sphere give %player_name% 4 1'
+      - '[message] &#7CFC00Обмен завершён: &#4D7CFEСфера пустоты'
+      - '[sound] ENTITY_PLAYER_LEVELUP'
+      - '[refresh]'
+
   'Назад':
     slots:
     - 40

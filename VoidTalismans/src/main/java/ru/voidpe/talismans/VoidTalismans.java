@@ -234,7 +234,7 @@ public final class VoidTalismans extends JavaPlugin implements Listener, Command
         return true;
     }
 
-    /** Отдельная команда сфер: /sphere give <игрок> <уровень 1-3> [кол-во] | /sphere list. */
+    /** Отдельная команда сфер: /sphere give <игрок> <уровень 1-4> [кол-во] | /sphere list. */
     private boolean onSphereCommand(CommandSender sender, String prefix, String[] args) {
         if (!isAdmin(sender)) {
             sender.sendMessage(TalismanService.component(prefix + TextUtil.color(
@@ -291,7 +291,7 @@ public final class VoidTalismans extends JavaPlugin implements Listener, Command
                             .replace("{amount}", String.valueOf(amount)))));
             return true;
         }
-        sender.sendMessage(TalismanService.component(prefix + "&f/sphere give <игрок> <1|2|3> [кол-во] &7| &f/sphere list"));
+        sender.sendMessage(TalismanService.component(prefix + "&f/sphere give <игрок> <1|2|3|4> [кол-во] &7| &f/sphere list"));
         return true;
     }
 
