@@ -22,8 +22,13 @@ import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.enchantment.EnchantItemEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntityPickupItemEvent;
+import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryCloseEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.inventory.PrepareAnvilEvent;
 import org.bukkit.inventory.AnvilInventory;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.EnchantmentStorageMeta;
@@ -62,6 +67,16 @@ public final class VoidEnchants extends JavaPlugin implements Listener, TabCompl
 
     /** Игроки, у которых прямо сейчас обрабатываются дополнительные блоки бура (анти-рекурсия). */
     private final Set<UUID> drilling = new HashSet<>();
+
+    // Кастомная наковальня (меню для Bedrock): слоты в инвентаре 27.
+    private static final int COMBINE_LEFT = 10;
+    private static final int COMBINE_RIGHT = 12;
+    private static final int COMBINE_RESULT = 16;
+
+    /** Маркер меню кастомной наковальни. */
+    static final class CombineHolder implements InventoryHolder {
+        @Override public Inventory getInventory() { return null; }
+    }
 
     private static final Pattern HEX = Pattern.compile("&#([A-Fa-f0-9]{6})");
     private static final String[] ROMAN = {"", "I", "II", "III", "IV", "V"};
@@ -561,14 +576,31 @@ public final class VoidEnchants extends JavaPlugin implements Listener, TabCompl
             result = event.getResult() != null ? event.getResult().clone() : first.clone();
         }
 
-        // ванильные чары: равный уровень + равный = +1 (до капа из конфига)
+        result = buildCombinedResult(first, second, result);
+        if (result == null) {
+            return;
+        }
+
+        event.setResult(result);
+        inventory.setMaximumRepairCost(999);
+        inventory.setRepairCost(Math.max(1, getConfig().getInt("anvil.xp-cost", 8)));
+    }
+
+    /**
+     * Собрать результат объединения двух предметов: ванильные чары (равный
+     * уровень + равный = +1 до капа из конфига), кастомные чары и ремонт
+     * прочности для двух одинаковых инструментов. base — предмет-основа.
+     */
+    private ItemStack buildCombinedResult(ItemStack first, ItemStack second, ItemStack base) {
+        ItemStack result = base.clone();
+        Map<Enchantment, Integer> enchFirst = enchantsOf(first);
+        Map<Enchantment, Integer> enchSecond = enchantsOf(second);
         Set<Enchantment> all = new HashSet<>();
         all.addAll(enchFirst.keySet());
         all.addAll(enchSecond.keySet());
-        boolean bookResult = isBook(result);
         ItemMeta resultMeta = result.getItemMeta();
         if (resultMeta == null) {
-            return;
+            return null;
         }
         // сброс чар результата перед пересборкой
         if (resultMeta instanceof EnchantmentStorageMeta) {
@@ -600,7 +632,13 @@ public final class VoidEnchants extends JavaPlugin implements Listener, TabCompl
             }
         }
         result.setItemMeta(meta2);
+        if (!isBook(first) && !isBook(second) && first.getType() == second.getType()) {
+            applyAnvilRepair(result, first, second);
+        }
 
+        int aFirst = autosmelt(first), aSecond = autosmelt(second);
+        int mFirst = magnet(first), mSecond = magnet(second);
+        int dFirst = drill(first), dSecond = drill(second);
         // кастомные чары: одинаковый уровень объединяется в +1 (бур — до II), применимость проверяем
         int a = combine(aFirst, aSecond, 1);
         int m = combine(mFirst, mSecond, 1);
@@ -614,10 +652,226 @@ public final class VoidEnchants extends JavaPlugin implements Listener, TabCompl
             d = combine(dFirst, dSecond, 2);
         }
         setCustom(result, a, m, d);
+        return result;
+    }
 
-        event.setResult(result);
-        inventory.setMaximumRepairCost(999);
-        inventory.setRepairCost(Math.max(1, getConfig().getInt("anvil.xp-cost", 8)));
+    private int damageOf(ItemStack item) {
+        if (item == null || !item.hasItemMeta()) {
+            return 0;
+        }
+        ItemMeta meta = item.getItemMeta();
+        return meta instanceof Damageable ? ((Damageable) meta).getDamage() : 0;
+    }
+
+    /** Ремонт как у ванильной наковальни: прочности складываются + бонус 12%. */
+    private void applyAnvilRepair(ItemStack result, ItemStack first, ItemStack second) {
+        int max = result.getType().getMaxDurability();
+        ItemMeta meta = result.getItemMeta();
+        if (max <= 0 || !(meta instanceof Damageable)) {
+            return;
+        }
+        int left = Math.max(0, max - damageOf(first)) + Math.max(0, max - damageOf(second));
+        int combined = Math.min(max, left + (int) Math.floor(max * 0.12));
+        ((Damageable) meta).setDamage(max - combined);
+        result.setItemMeta(meta);
+    }
+
+    // ------------------------------------------------------------ кастомная наковальня (Bedrock)
+    // Обычная наковальня у Bedrock-игроков через Geyser НЕ умеет кастомные
+    // рецепты: клиент сам считает результат и показывает красный X, серверный
+    // PrepareAnvilEvent его не переубеждает (ограничение Geyser). Поэтому для
+    // кастомных чар — отдельное меню: результат считает сервер, Bedrock просто
+    // кладёт предметы в слоты сундука.
+
+    private ItemStack combinePane() {
+        ItemStack pane = new ItemStack(Material.BLACK_STAINED_GLASS_PANE);
+        ItemMeta meta = pane.getItemMeta();
+        if (meta != null) {
+            meta.displayName(comp(" "));
+            pane.setItemMeta(meta);
+        }
+        return pane;
+    }
+
+    private void openCombineMenu(Player player) {
+        Inventory inv = Bukkit.createInventory(new CombineHolder(), 27,
+                comp(getConfig().getString("combine-menu.title", "&#C86BFFКастомная наковальня")));
+        ItemStack pane = combinePane();
+        for (int i = 0; i < 27; i++) {
+            inv.setItem(i, pane);
+        }
+        ItemStack info = new ItemStack(Material.ANVIL);
+        ItemMeta infoMeta = info.getItemMeta();
+        if (infoMeta != null) {
+            infoMeta.displayName(comp(getConfig().getString("combine-menu.info-name", "&#C86BFFКастомная наковальня")));
+            List<Component> lore = new ArrayList<>();
+            for (String line : getConfig().getStringList("combine-menu.info-lore")) {
+                lore.add(comp(line.replace("{levels}", String.valueOf(Math.max(1, getConfig().getInt("anvil.xp-cost", 8))))));
+            }
+            infoMeta.lore(lore);
+            info.setItemMeta(infoMeta);
+        }
+        inv.setItem(4, info);
+        ItemStack plus = new ItemStack(Material.ARROW);
+        ItemMeta plusMeta = plus.getItemMeta();
+        if (plusMeta != null) {
+            plusMeta.displayName(comp("&7Результат — справа"));
+            plus.setItemMeta(plusMeta);
+        }
+        inv.setItem(14, plus);
+        inv.setItem(COMBINE_LEFT, null);
+        inv.setItem(COMBINE_RIGHT, null);
+        inv.setItem(COMBINE_RESULT, null);
+        player.openInventory(inv);
+    }
+
+    /** Результат для меню: только объединения, где есть кастомные чары и что-то реально меняется. */
+    private ItemStack combineForMenu(ItemStack first, ItemStack second) {
+        if (first == null || second == null || first.getType().isAir() || second.getType().isAir()) {
+            return null;
+        }
+        if (autosmelt(first) == 0 && magnet(first) == 0 && drill(first) == 0
+                && autosmelt(second) == 0 && magnet(second) == 0 && drill(second) == 0) {
+            return null; // чисто ванильные объединения делает обычная наковальня
+        }
+        boolean secondIsBook = second.getType() == Material.ENCHANTED_BOOK;
+        if (!secondIsBook && first.getType() != second.getType() && !isBook(first)) {
+            return null; // инструмент+книга, инструмент+такой же инструмент, книга+книга (и книга+инструмент)
+        }
+        ItemStack baseItem = isBook(first) && !isBook(second) ? second : first;
+        ItemStack result = buildCombinedResult(first, second, baseItem);
+        if (result == null) {
+            return null;
+        }
+        boolean same = enchantsOf(baseItem).equals(enchantsOf(result))
+                && autosmelt(baseItem) == autosmelt(result)
+                && magnet(baseItem) == magnet(result)
+                && drill(baseItem) == drill(result)
+                && damageOf(baseItem) == damageOf(result);
+        return same ? null : result;
+    }
+
+    private void refreshCombine(Inventory inv) {
+        inv.setItem(COMBINE_RESULT, combineForMenu(inv.getItem(COMBINE_LEFT), inv.getItem(COMBINE_RIGHT)));
+    }
+
+    private void consumeOne(Inventory inv, int slot) {
+        ItemStack item = inv.getItem(slot);
+        if (item == null) {
+            return;
+        }
+        if (item.getAmount() <= 1) {
+            inv.setItem(slot, null);
+        } else {
+            item.setAmount(item.getAmount() - 1);
+            inv.setItem(slot, item);
+        }
+    }
+
+    @EventHandler
+    public void onCombineClick(InventoryClickEvent event) {
+        if (!(event.getInventory().getHolder() instanceof CombineHolder)) {
+            return;
+        }
+        Inventory top = event.getInventory();
+        if (event.getClickedInventory() == top) {
+            int slot = event.getSlot();
+            if (slot == COMBINE_RESULT) {
+                event.setCancelled(true);
+                if (event.getWhoClicked() instanceof Player) {
+                    takeCombineResult((Player) event.getWhoClicked(), top);
+                }
+                return;
+            }
+            if (slot == COMBINE_LEFT || slot == COMBINE_RIGHT) {
+                if (event.getWhoClicked() instanceof Player) {
+                    Player clicker = (Player) event.getWhoClicked();
+                    Bukkit.getScheduler().runTask(this, () -> {
+                        if (clicker.isOnline()) {
+                            refreshCombine(top);
+                        }
+                    });
+                }
+                return;
+            }
+            event.setCancelled(true);
+            return;
+        }
+        // нижний инвентарь: обычный клик — можно, шифт-клик в меню запрещаем,
+        // чтобы предметы не разлетались по чужим слотам
+        if (event.isShiftClick()) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler
+    public void onCombineDrag(InventoryDragEvent event) {
+        if (!(event.getInventory().getHolder() instanceof CombineHolder)) {
+            return;
+        }
+        for (int raw : event.getRawSlots()) {
+            if (raw < event.getInventory().getSize() && raw != COMBINE_LEFT && raw != COMBINE_RIGHT) {
+                event.setCancelled(true);
+                return;
+            }
+        }
+        if (event.getWhoClicked() instanceof Player) {
+            Player clicker = (Player) event.getWhoClicked();
+            Inventory top = event.getInventory();
+            Bukkit.getScheduler().runTask(this, () -> {
+                if (clicker.isOnline()) {
+                    refreshCombine(top);
+                }
+            });
+        }
+    }
+
+    private void takeCombineResult(Player player, Inventory inv) {
+        ItemStack result = inv.getItem(COMBINE_RESULT);
+        if (result == null || result.getType().isAir()) {
+            return;
+        }
+        int cost = Math.max(0, getConfig().getInt("anvil.xp-cost", 8));
+        if (player.getGameMode() != GameMode.CREATIVE && player.getLevel() < cost) {
+            msg(player, "anvil-no-xp", "levels", String.valueOf(cost));
+            player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 0.8f, 1.0f);
+            return;
+        }
+        consumeOne(inv, COMBINE_LEFT);
+        consumeOne(inv, COMBINE_RIGHT);
+        if (player.getGameMode() != GameMode.CREATIVE) {
+            player.setLevel(player.getLevel() - cost);
+        }
+        Map<Integer, ItemStack> rest = player.getInventory().addItem(result.clone());
+        for (ItemStack drop : rest.values()) {
+            player.getWorld().dropItemNaturally(player.getLocation(), drop);
+        }
+        inv.setItem(COMBINE_RESULT, null);
+        refreshCombine(inv);
+        player.playSound(player.getLocation(), Sound.BLOCK_ANVIL_USE, 0.8f, 1.0f);
+        msg(player, "anvil-combined", "levels", String.valueOf(cost));
+    }
+
+    @EventHandler
+    public void onCombineClose(InventoryCloseEvent event) {
+        if (!(event.getInventory().getHolder() instanceof CombineHolder)) {
+            return;
+        }
+        if (!(event.getPlayer() instanceof Player)) {
+            return;
+        }
+        Player player = (Player) event.getPlayer();
+        for (int slot : new int[]{COMBINE_LEFT, COMBINE_RIGHT}) {
+            ItemStack item = event.getInventory().getItem(slot);
+            if (item != null && !item.getType().isAir()) {
+                Map<Integer, ItemStack> rest = player.getInventory().addItem(item);
+                for (ItemStack drop : rest.values()) {
+                    player.getWorld().dropItemNaturally(player.getLocation(), drop);
+                }
+                event.getInventory().setItem(slot, null);
+            }
+        }
+        event.getInventory().setItem(COMBINE_RESULT, null);
     }
 
     private int combine(int first, int second, int cap) {
@@ -695,6 +949,14 @@ public final class VoidEnchants extends JavaPlugin implements Listener, TabCompl
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        if (args.length >= 1 && args[0].equalsIgnoreCase("anvil")) {
+            if (!(sender instanceof Player)) {
+                sender.sendMessage("Только для игроков.");
+                return true;
+            }
+            openCombineMenu((Player) sender);
+            return true;
+        }
         if (!sender.hasPermission("voidenchants.admin")) {
             msg(sender, "no-permission");
             return true;
@@ -791,11 +1053,17 @@ public final class VoidEnchants extends JavaPlugin implements Listener, TabCompl
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> result = new ArrayList<>();
+        if (args.length == 1 && !sender.hasPermission("voidenchants.admin")) {
+            if ("anvil".startsWith(args[0].toLowerCase(Locale.ROOT))) {
+                result.add("anvil");
+            }
+            return result;
+        }
         if (!sender.hasPermission("voidenchants.admin")) {
             return result;
         }
         if (args.length == 1) {
-            for (String sub : new String[]{"give", "enchant", "reload", "help"}) {
+            for (String sub : new String[]{"anvil", "give", "enchant", "reload", "help"}) {
                 if (sub.startsWith(args[0].toLowerCase(Locale.ROOT))) result.add(sub);
             }
         } else if (args.length == 2 && args[0].equalsIgnoreCase("give")) {

@@ -62,7 +62,7 @@ items:
       - '&7руда, булыжник и песок не требуют печи.'
       - '&7Книга накладывается на инструмент на наковальне.'
       - ''
-      - '&fЦена: &#54C8FF750 осколков'
+      - '&fЦена: &#54C8FF488 осколков'
       - '&7Твой баланс: &#54C8FF%playerpoints_points%'
       - '&eНажми, чтобы купить'
     click_requirement:
@@ -70,12 +70,12 @@ items:
         shards:
           type: '>='
           input: '%playerpoints_points%'
-          output: '750'
+          output: '488'
       deny_commands:
-        - '[message] &#FF6B6BНе хватает осколков: нужно 750, у тебя %playerpoints_points%.'
+        - '[message] &#FF6B6BНе хватает осколков: нужно 488, у тебя %playerpoints_points%.'
         - '[sound] ENTITY_VILLAGER_NO'
     click_commands:
-      - '[console] points take %player_name% 750'
+      - '[console] points take %player_name% 488'
       - '[console] vench give %player_name% book_autosmelt'
       - '[message] &#7CFC00Покупка успешна: &#FF9A3DКнига: Автоплавка'
       - '[sound] ENTITY_PLAYER_LEVELUP'
@@ -92,7 +92,7 @@ items:
       - '&7а на топоре собирает дроп с убитых мобов.'
       - '&7Книга накладывается на инструмент на наковальне.'
       - ''
-      - '&fЦена: &#54C8FF750 осколков'
+      - '&fЦена: &#54C8FF488 осколков'
       - '&7Твой баланс: &#54C8FF%playerpoints_points%'
       - '&eНажми, чтобы купить'
     click_requirement:
@@ -100,12 +100,12 @@ items:
         shards:
           type: '>='
           input: '%playerpoints_points%'
-          output: '750'
+          output: '488'
       deny_commands:
-        - '[message] &#FF6B6BНе хватает осколков: нужно 750, у тебя %playerpoints_points%.'
+        - '[message] &#FF6B6BНе хватает осколков: нужно 488, у тебя %playerpoints_points%.'
         - '[sound] ENTITY_VILLAGER_NO'
     click_commands:
-      - '[console] points take %player_name% 750'
+      - '[console] points take %player_name% 488'
       - '[console] vench give %player_name% book_magnet'
       - '[message] &#7CFC00Покупка успешна: &#55E6FFКнига: Магнит'
       - '[sound] ENTITY_PLAYER_LEVELUP'
@@ -122,7 +122,7 @@ items:
       - '&7Две книги Бур I на наковальне дают Бур II.'
       - '&7Книга накладывается на инструмент на наковальне.'
       - ''
-      - '&fЦена: &#54C8FF1000 осколков'
+      - '&fЦена: &#54C8FF650 осколков'
       - '&7Твой баланс: &#54C8FF%playerpoints_points%'
       - '&eНажми, чтобы купить'
     click_requirement:
@@ -130,12 +130,12 @@ items:
         shards:
           type: '>='
           input: '%playerpoints_points%'
-          output: '1000'
+          output: '650'
       deny_commands:
-        - '[message] &#FF6B6BНе хватает осколков: нужно 1000, у тебя %playerpoints_points%.'
+        - '[message] &#FF6B6BНе хватает осколков: нужно 650, у тебя %playerpoints_points%.'
         - '[sound] ENTITY_VILLAGER_NO'
     click_commands:
-      - '[console] points take %player_name% 1000'
+      - '[console] points take %player_name% 650'
       - '[console] vench give %player_name% book_drill'
       - '[message] &#7CFC00Покупка успешна: &#FFD93DКнига: Бур I'
       - '[sound] ENTITY_PLAYER_LEVELUP'

@@ -61,7 +61,7 @@ items:
       - '&7Эффективность V, Удача III, Прочность III, Починка.'
       - '&7Автоплавка + Магнит.'
       - ''
-      - '&fЦена: &#54C8FF1500 осколков'
+      - '&fЦена: &#54C8FF975 осколков'
       - '&7Твой баланс: &#54C8FF%playerpoints_points%'
       - '&eНажми, чтобы купить'
     click_requirement:
@@ -69,12 +69,12 @@ items:
         shards:
           type: '>='
           input: '%playerpoints_points%'
-          output: '1500'
+          output: '975'
       deny_commands:
-        - '[message] &#FF6B6BНе хватает осколков: нужно 1500, у тебя %playerpoints_points%.'
+        - '[message] &#FF6B6BНе хватает осколков: нужно 975, у тебя %playerpoints_points%.'
         - '[sound] ENTITY_VILLAGER_NO'
     click_commands:
-      - '[console] points take %player_name% 1500'
+      - '[console] points take %player_name% 975'
       - '[console] vench give %player_name% miner1'
       - '[message] &#7CFC00Покупка успешна: &#FFB340Кирка шахтёра &eI'
       - '[sound] ENTITY_PLAYER_LEVELUP'
@@ -90,7 +90,7 @@ items:
       - '&7Эффективность VI, Удача IV, Прочность IV, Починка.'
       - '&7Автоплавка + Магнит + Бур I.'
       - ''
-      - '&fЦена: &#54C8FF3500 осколков'
+      - '&fЦена: &#54C8FF2275 осколков'
       - '&7Твой баланс: &#54C8FF%playerpoints_points%'
       - '&eНажми, чтобы купить'
     click_requirement:
@@ -98,12 +98,12 @@ items:
         shards:
           type: '>='
           input: '%playerpoints_points%'
-          output: '3500'
+          output: '2275'
       deny_commands:
-        - '[message] &#FF6B6BНе хватает осколков: нужно 3500, у тебя %playerpoints_points%.'
+        - '[message] &#FF6B6BНе хватает осколков: нужно 2275, у тебя %playerpoints_points%.'
         - '[sound] ENTITY_VILLAGER_NO'
     click_commands:
-      - '[console] points take %player_name% 3500'
+      - '[console] points take %player_name% 2275'
       - '[console] vench give %player_name% miner2'
       - '[message] &#7CFC00Покупка успешна: &#FFB340Кирка шахтёра &eII'
       - '[sound] ENTITY_PLAYER_LEVELUP'
@@ -119,7 +119,7 @@ items:
       - '&7Эффективность VII, Удача V, Прочность V, Починка.'
       - '&7Автоплавка + Магнит + Бур II.'
       - ''
-      - '&fЦена: &#54C8FF7000 осколков'
+      - '&fЦена: &#54C8FF4550 осколков'
       - '&7Твой баланс: &#54C8FF%playerpoints_points%'
       - '&eНажми, чтобы купить'
     click_requirement:
@@ -127,12 +127,12 @@ items:
         shards:
           type: '>='
           input: '%playerpoints_points%'
-          output: '7000'
+          output: '4550'
       deny_commands:
-        - '[message] &#FF6B6BНе хватает осколков: нужно 7000, у тебя %playerpoints_points%.'
+        - '[message] &#FF6B6BНе хватает осколков: нужно 4550, у тебя %playerpoints_points%.'
         - '[sound] ENTITY_VILLAGER_NO'
     click_commands:
-      - '[console] points take %player_name% 7000'
+      - '[console] points take %player_name% 4550'
       - '[console] vench give %player_name% miner3'
       - '[message] &#7CFC00Покупка успешна: &#FFB340Кирка шахтёра &eIII'
       - '[sound] ENTITY_PLAYER_LEVELUP'

@@ -67,7 +67,7 @@ items:
       - '&7Броня: &a+1'
       - '&7Здоровье: &a+2'
       - ''
-      - '&fЦена: &#54C8FF2000 осколков'
+      - '&fЦена: &#54C8FF1300 осколков'
       - '&7Твой баланс: &#54C8FF%playerpoints_points%'
       - '&eНажми, чтобы купить'
     click_requirement:
@@ -75,12 +75,12 @@ items:
         shards:
           type: '>='
           input: '%playerpoints_points%'
-          output: '2000'
+          output: '1300'
       deny_commands:
-        - '[message] &#FF6B6BНе хватает осколков: нужно 2000, у тебя %playerpoints_points%.'
+        - '[message] &#FF6B6BНе хватает осколков: нужно 1300, у тебя %playerpoints_points%.'
         - '[sound] ENTITY_VILLAGER_NO'
     click_commands:
-      - '[console] points take %player_name% 2000'
+      - '[console] points take %player_name% 1300'
       - '[console] sphere give %player_name% 1 1'
       - '[message] &#7CFC00Покупка успешна: &#C86BFFСфера сумерек'
       - '[sound] ENTITY_PLAYER_LEVELUP'
@@ -102,7 +102,7 @@ items:
       - '&7Броня: &a+2'
       - '&7Здоровье: &a+4'
       - ''
-      - '&fЦена: &#54C8FF4000 осколков'
+      - '&fЦена: &#54C8FF2600 осколков'
       - '&7Твой баланс: &#54C8FF%playerpoints_points%'
       - '&eНажми, чтобы купить'
     click_requirement:
@@ -110,12 +110,12 @@ items:
         shards:
           type: '>='
           input: '%playerpoints_points%'
-          output: '4000'
+          output: '2600'
       deny_commands:
-        - '[message] &#FF6B6BНе хватает осколков: нужно 4000, у тебя %playerpoints_points%.'
+        - '[message] &#FF6B6BНе хватает осколков: нужно 2600, у тебя %playerpoints_points%.'
         - '[sound] ENTITY_VILLAGER_NO'
     click_commands:
-      - '[console] points take %player_name% 4000'
+      - '[console] points take %player_name% 2600'
       - '[console] sphere give %player_name% 2 1'
       - '[message] &#7CFC00Покупка успешна: &#FF7847Сфера пламени'
       - '[sound] ENTITY_PLAYER_LEVELUP'
@@ -138,7 +138,7 @@ items:
       - '&7Здоровье: &a+6'
       - '&7Скорость: &a+5%'
       - ''
-      - '&fЦена: &#54C8FF8000 осколков'
+      - '&fЦена: &#54C8FF5200 осколков'
       - '&7Твой баланс: &#54C8FF%playerpoints_points%'
       - '&eНажми, чтобы купить'
     click_requirement:
@@ -146,12 +146,12 @@ items:
         shards:
           type: '>='
           input: '%playerpoints_points%'
-          output: '8000'
+          output: '5200'
       deny_commands:
-        - '[message] &#FF6B6BНе хватает осколков: нужно 8000, у тебя %playerpoints_points%.'
+        - '[message] &#FF6B6BНе хватает осколков: нужно 5200, у тебя %playerpoints_points%.'
         - '[sound] ENTITY_VILLAGER_NO'
     click_commands:
-      - '[console] points take %player_name% 8000'
+      - '[console] points take %player_name% 5200'
       - '[console] sphere give %player_name% 3 1'
       - '[message] &#7CFC00Покупка успешна: &#B388FFСфера бездны'
       - '[sound] ENTITY_PLAYER_LEVELUP'

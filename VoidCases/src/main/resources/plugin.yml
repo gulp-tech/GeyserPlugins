@@ -7,13 +7,17 @@ description: "Донат-кейсы: титулы (LuckPerms) и осколки 
 softdepend: [LuckPerms, PlayerPoints]
 commands:
   cases:
-    description: "Кейсы: /cases give <игрок> <кейс> [кол-во] | /cases set <кейс> | /cases remove | /cases list | /cases reload"
+    description: "Кейсы VoidPE"
     usage: /cases
     aliases: [case, кейсы]
+    permission: voidcases.use
   titles:
     description: "Меню титулов из кейса титулов: установка имеющихся и снятие титула"
     usage: /titles
 permissions:
+  voidcases.use:
+    description: Игровые команды кейсов (открытие и список)
+    default: true
   voidcases.admin:
     description: Выдача кейсов и перезагрузка VoidCases
     default: op

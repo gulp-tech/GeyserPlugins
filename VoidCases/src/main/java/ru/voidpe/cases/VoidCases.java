@@ -215,37 +215,44 @@ public final class VoidCases extends JavaPlugin implements CommandExecutor, TabC
 
     private void help(CommandSender sender) {
         send(sender, "&fКейсы VoidPE:");
-        send(sender, "&7/cases give <игрок> <кейс> [кол-во] &8— выдать ВИРТУАЛЬНЫЙ ключ (админ)");
         send(sender, "&7/cases open <кейс> &8— открыть кейс ключом из любого места");
-        send(sender, "&7/cases set <кейс> &8— поставить кейс на блок, на который смотришь");
-        send(sender, "&7/cases remove &8— убрать кейс с блока, на который смотришь");
         send(sender, "&7/cases list &8— список кейсов");
-        send(sender, "&7/cases reload &8— перезагрузка (админ)");
+        if (sender.hasPermission("voidcases.admin")) {
+            send(sender, "&7/cases give <игрок> <кейс> [кол-во] &8— выдать ВИРТУАЛЬНЫЙ ключ (админ)");
+            send(sender, "&7/cases set <кейс> &8— поставить кейс на блок, на который смотришь");
+            send(sender, "&7/cases remove &8— убрать кейс с блока, на который смотришь");
+            send(sender, "&7/cases reload &8— перезагрузка (админ)");
+        }
         send(sender, "&7Открытие: клик по поставленному кейсу или &f/cases open <кейс>&7. Ключи виртуальные!");
     }
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> result = new ArrayList<>();
+        boolean admin = sender.hasPermission("voidcases.admin");
         if (args.length == 1) {
-            for (String sub : List.of("give", "list", "reload", "set", "remove", "open", "keys")) {
+            List<String> subs = new java.util.ArrayList<>(List.of("open", "keys", "list"));
+            if (admin) {
+                subs.addAll(List.of("give", "set", "remove", "reload"));
+            }
+            for (String sub : subs) {
                 if (sub.startsWith(args[0].toLowerCase())) {
                     result.add(sub);
                 }
             }
-        } else if (args.length == 2 && args[0].equalsIgnoreCase("give")) {
+        } else if (args.length == 2 && admin && args[0].equalsIgnoreCase("give")) {
             for (Player player : Bukkit.getOnlinePlayers()) {
                 if (player.getName().toLowerCase().startsWith(args[1].toLowerCase())) {
                     result.add(player.getName());
                 }
             }
-        } else if (args.length == 2 && (args[0].equalsIgnoreCase("set") || args[0].equalsIgnoreCase("open"))) {
+        } else if (args.length == 2 && (args[0].equalsIgnoreCase("open") || (admin && args[0].equalsIgnoreCase("set")))) {
             for (String id : service.ids()) {
                 if (id.startsWith(args[1].toLowerCase())) {
                     result.add(id);
                 }
             }
-        } else if (args.length == 3 && args[0].equalsIgnoreCase("give")) {
+        } else if (args.length == 3 && admin && args[0].equalsIgnoreCase("give")) {
             for (String id : service.ids()) {
                 if (id.startsWith(args[2].toLowerCase())) {
                     result.add(id);

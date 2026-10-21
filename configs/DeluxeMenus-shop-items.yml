@@ -61,7 +61,7 @@ items:
       - '&7ПКМ: капкан появляется там, где ты стоишь.'
       - '&7Клетка 3×3 держится 20 секунд.'
       - ''
-      - '&fЦена: &#54C8FF300 осколков'
+      - '&fЦена: &#54C8FF195 осколков'
       - '&7Твой баланс: &#54C8FF%playerpoints_points%'
       - '&eНажми, чтобы купить'
     click_requirement:
@@ -69,12 +69,12 @@ items:
         shards:
           type: '>='
           input: '%playerpoints_points%'
-          output: '300'
+          output: '195'
       deny_commands:
-        - '[message] &#FF6B6BНе хватает осколков: нужно 300, у тебя %playerpoints_points%.'
+        - '[message] &#FF6B6BНе хватает осколков: нужно 195, у тебя %playerpoints_points%.'
         - '[sound] ENTITY_VILLAGER_NO'
     click_commands:
-      - '[console] points take %player_name% 300'
+      - '[console] points take %player_name% 195'
       - '[console] items give %player_name% trapka 1'
       - '[message] &#7CFC00Покупка успешна: &#B388FFКапкан'
       - '[sound] ENTITY_PLAYER_LEVELUP'
@@ -90,7 +90,7 @@ items:
       - '&7ПКМ: игроки в радиусе 15 теряют'
       - '&7невидимость и подсвечиваются на 10 секунд.'
       - ''
-      - '&fЦена: &#54C8FF150 осколков'
+      - '&fЦена: &#54C8FF98 осколков'
       - '&7Твой баланс: &#54C8FF%playerpoints_points%'
       - '&eНажми, чтобы купить'
     click_requirement:
@@ -98,12 +98,12 @@ items:
         shards:
           type: '>='
           input: '%playerpoints_points%'
-          output: '150'
+          output: '98'
       deny_commands:
-        - '[message] &#FF6B6BНе хватает осколков: нужно 150, у тебя %playerpoints_points%.'
+        - '[message] &#FF6B6BНе хватает осколков: нужно 98, у тебя %playerpoints_points%.'
         - '[sound] ENTITY_VILLAGER_NO'
     click_commands:
-      - '[console] points take %player_name% 150'
+      - '[console] points take %player_name% 98'
       - '[console] items give %player_name% dust 1'
       - '[message] &#7CFC00Покупка успешна: &#FFE082Пыль обнаружения'
       - '[sound] ENTITY_PLAYER_LEVELUP'
@@ -119,7 +119,7 @@ items:
       - '&7ПКМ: враги в радиусе 9 получают слепоту,'
       - '&7тошноту и замедление III на 5 секунд.'
       - ''
-      - '&fЦена: &#54C8FF250 осколков'
+      - '&fЦена: &#54C8FF163 осколков'
       - '&7Твой баланс: &#54C8FF%playerpoints_points%'
       - '&eНажми, чтобы купить'
     click_requirement:
@@ -127,12 +127,12 @@ items:
         shards:
           type: '>='
           input: '%playerpoints_points%'
-          output: '250'
+          output: '163'
       deny_commands:
-        - '[message] &#FF6B6BНе хватает осколков: нужно 250, у тебя %playerpoints_points%.'
+        - '[message] &#FF6B6BНе хватает осколков: нужно 163, у тебя %playerpoints_points%.'
         - '[sound] ENTITY_VILLAGER_NO'
     click_commands:
-      - '[console] points take %player_name% 250'
+      - '[console] points take %player_name% 163'
       - '[console] items give %player_name% dezorientation 1'
       - '[message] &#7CFC00Покупка успешна: &#8CE8FFОко дезориентации'
       - '[sound] ENTITY_PLAYER_LEVELUP'
@@ -148,7 +148,7 @@ items:
       - '&7Сломай им спавнер — заберёшь его'
       - '&7вместе с мобом. Лом одноразовый.'
       - ''
-      - '&fЦена: &#54C8FF750 осколков'
+      - '&fЦена: &#54C8FF488 осколков'
       - '&7Твой баланс: &#54C8FF%playerpoints_points%'
       - '&eНажми, чтобы купить'
     click_requirement:
@@ -156,12 +156,12 @@ items:
         shards:
           type: '>='
           input: '%playerpoints_points%'
-          output: '750'
+          output: '488'
       deny_commands:
-        - '[message] &#FF6B6BНе хватает осколков: нужно 750, у тебя %playerpoints_points%.'
+        - '[message] &#FF6B6BНе хватает осколков: нужно 488, у тебя %playerpoints_points%.'
         - '[sound] ENTITY_VILLAGER_NO'
     click_commands:
-      - '[console] points take %player_name% 750'
+      - '[console] points take %player_name% 488'
       - '[console] items give %player_name% spawner_lom 1'
       - '[message] &#7CFC00Покупка успешна: &#FFB340Лом для спавнеров'
       - '[sound] ENTITY_PLAYER_LEVELUP'

@@ -6,10 +6,14 @@ author: VoidPE
 description: 'Кастомные зачарования VoidPE: Автоплавка, Магнит, Бур I/II, кирки шахтёра, книги, умная наковальня.'
 commands:
   voidenchants:
-    description: Выдача кирок/книг и зачарование предметов VoidEnchants
-    usage: /voidenchants <give|enchant|reload>
+    description: Кастомные зачарования VoidPE
+    usage: /vench anvil
     aliases: [vench]
+    permission: voidenchants.use
 permissions:
+  voidenchants.use:
+    description: Кастомная наковальня /vench anvil
+    default: true
   voidenchants.admin:
     description: Админ-команды VoidEnchants (выдача, зачарование, перезагрузка)
     default: op
