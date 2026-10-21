@@ -234,7 +234,7 @@ public final class VoidTalismans extends JavaPlugin implements Listener, Command
         return true;
     }
 
-    /** Отдельная команда сфер: /sphere give <игрок> <уровень 1-4> [кол-во] | /sphere list. */
+    /** Отдельная команда сфер: /sphere give <игрок> <уровень 1-4> [кол-во] | /sphere exchange <игрок> | /sphere list. */
     private boolean onSphereCommand(CommandSender sender, String prefix, String[] args) {
         if (!isAdmin(sender)) {
             sender.sendMessage(TalismanService.component(prefix + TextUtil.color(
@@ -253,6 +253,79 @@ public final class VoidTalismans extends JavaPlugin implements Listener, Command
                 sb.append(t.id());
             }
             sender.sendMessage(TalismanService.component(prefix + "&f" + sb));
+            return true;
+        }
+        if (args.length >= 2 && args[0].equalsIgnoreCase("exchange")) {
+            // Обмен «яйцо дракона -> Сфера пустоты» одним атомарным действием:
+            // сначала проверяем и забираем яйцо, только потом выдаём сферу.
+            // (Раньше это делали две консольные команды в DeluxeMenus, и clear
+            // мог не сработать из-за Essentials — сфера выдавалась даром.)
+            Player target = Bukkit.getPlayerExact(args[1]);
+            if (target == null) {
+                sender.sendMessage(TalismanService.component(prefix + TextUtil.color(
+                        getConfig().getString("messages.player-not-found", "&cИгрок не найден."))));
+                return true;
+            }
+            org.bukkit.Material mat = org.bukkit.Material.matchMaterial(
+                    getConfig().getString("sphere-exchange.material", "DRAGON_EGG"));
+            String giveId = getConfig().getString("sphere-exchange.give", "sphere4");
+            Talisman t = giveId == null ? null : service.byId(giveId);
+            if (mat == null || t == null) {
+                sender.sendMessage(TalismanService.component(prefix + TextUtil.color(
+                        getConfig().getString("messages.not-found", "&cТакого предмета нет."))));
+                return true;
+            }
+            int need = Math.max(1, getConfig().getInt("sphere-exchange.amount", 1));
+            // считаем предметы: основная сетка инвентаря + левая рука
+            org.bukkit.inventory.PlayerInventory inv = target.getInventory();
+            org.bukkit.inventory.ItemStack[] contents = inv.getStorageContents();
+            org.bukkit.inventory.ItemStack off = inv.getItemInOffHand();
+            int have = 0;
+            for (org.bukkit.inventory.ItemStack it : contents) {
+                if (it != null && it.getType() == mat) {
+                    have += it.getAmount();
+                }
+            }
+            if (off != null && off.getType() == mat) {
+                have += off.getAmount();
+            }
+            if (have < need) {
+                target.sendMessage(TalismanService.component(prefix + TextUtil.color(
+                        getConfig().getString("messages.exchange-no-item",
+                                "&cДля обмена нужно: &fяйцо дракона&c. Сфера не выдана."))));
+                return true;
+            }
+            int left = need;
+            for (int i = 0; i < contents.length && left > 0; i++) {
+                org.bukkit.inventory.ItemStack it = contents[i];
+                if (it == null || it.getType() != mat) {
+                    continue;
+                }
+                int take = Math.min(left, it.getAmount());
+                it.setAmount(it.getAmount() - take);
+                inv.setItem(i, it.getAmount() <= 0 ? null : it);
+                left -= take;
+            }
+            if (left > 0 && off != null && off.getType() == mat) {
+                int take = Math.min(left, off.getAmount());
+                off.setAmount(off.getAmount() - take);
+                inv.setItemInOffHand(off.getAmount() <= 0 ? null : off);
+            }
+            java.util.Map<Integer, org.bukkit.inventory.ItemStack> rest =
+                    target.getInventory().addItem(service.createItem(t, 1));
+            for (org.bukkit.inventory.ItemStack drop : rest.values()) {
+                target.getWorld().dropItemNaturally(target.getLocation(), drop);
+            }
+            target.sendMessage(TalismanService.component(prefix + TextUtil.color(
+                    getConfig().getString("messages.exchange-success", "&aОбмен завершён! Ты получил: &f{talisman}&a!")
+                            .replace("{talisman}", t.displayName()))));
+            if (sender != target) {
+                sender.sendMessage(TalismanService.component(prefix + TextUtil.color(
+                        getConfig().getString("messages.given", "&aВыдано игроку {player}: &f{talisman} &7x{amount}")
+                                .replace("{player}", target.getName())
+                                .replace("{talisman}", t.displayName())
+                                .replace("{amount}", "1"))));
+            }
             return true;
         }
         if (args.length >= 3 && args[0].equalsIgnoreCase("give")) {
@@ -291,7 +364,7 @@ public final class VoidTalismans extends JavaPlugin implements Listener, Command
                             .replace("{amount}", String.valueOf(amount)))));
             return true;
         }
-        sender.sendMessage(TalismanService.component(prefix + "&f/sphere give <игрок> <1|2|3|4> [кол-во] &7| &f/sphere list"));
+        sender.sendMessage(TalismanService.component(prefix + "&f/sphere give <игрок> <1|2|3|4> [кол-во] &7| &f/sphere exchange <игрок> &7| &f/sphere list"));
         return true;
     }
 

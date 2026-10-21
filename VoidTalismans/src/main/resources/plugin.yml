@@ -11,7 +11,7 @@ commands:
     aliases: [tal]
   sphere:
     description: "Сферы: выдача по уровню"
-    usage: "/sphere give <игрок> <1|2|3> [кол-во]"
+    usage: "/sphere give <игрок> <1|2|3|4> [кол-во] | /sphere exchange <игрок>"
     aliases: [spheres]
 permissions:
   voidtalismans.admin:

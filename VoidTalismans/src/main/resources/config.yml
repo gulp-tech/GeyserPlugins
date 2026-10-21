@@ -74,6 +74,8 @@ messages:
   player-not-found: "&cИгрок не найден."
   not-found: "&cТакого талисмана нет. Список: &f/talisman list"
   received: "&aТы получил: &f{talisman}&a!"
+  exchange-no-item: "&cДля обмена нужно: &fяйцо дракона&c. Сфера не выдана."
+  exchange-success: "&aОбмен завершён! Ты получил: &f{talisman}&a!"
   given: "&aВыдано игроку {player}: &f{talisman} &7x{amount}"
   help:
     - "&f/talisman &7— меню талисманов и сфер"
@@ -93,6 +95,13 @@ messages:
 #         INVENTORY — в инвентаре | HOTBAR — в хотбаре.
 #  recipe — крафт на верстаке (enabled: true + shape + ingredients).
 # ------------------------------------------------------------
+# Обмен в магазине сфер: яйцо дракона -> сфера пустоты одной командой
+# /sphere exchange <игрок> (плагин сам проверяет и забирает яйцо).
+sphere-exchange:
+  material: DRAGON_EGG
+  amount: 1
+  give: sphere4
+
 talismans:
 
   crusher:
@@ -325,6 +334,7 @@ talismans:
       - {type: attack_damage, amount: 2.0, operation: ADD_NUMBER}
       - {type: armor, amount: 2.0, operation: ADD_NUMBER}
       - {type: max_health, amount: 4.0, operation: ADD_NUMBER}
+      - {type: movement_speed, amount: -0.03, operation: ADD_SCALAR}
     recipe: {enabled: false, shape: [], ingredients: {}}
 
   sphere3:

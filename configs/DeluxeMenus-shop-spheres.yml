@@ -101,6 +101,7 @@ items:
       - '&7Урон: &a+2'
       - '&7Броня: &a+2'
       - '&7Здоровье: &a+4'
+      - '&7Скорость: &c-3%'
       - ''
       - '&fЦена: &#54C8FF2600 осколков'
       - '&7Твой баланс: &#54C8FF%playerpoints_points%'
@@ -219,9 +220,7 @@ items:
         - '[message] &#FF6B6BДля обмена нужно яйцо дракона в инвентаре.'
         - '[sound] ENTITY_VILLAGER_NO'
     click_commands:
-      - '[console] clear %player_name% minecraft:dragon_egg 1'
-      - '[console] sphere give %player_name% 4 1'
-      - '[message] &#7CFC00Обмен завершён: &#4D7CFEСфера пустоты'
+      - '[console] sphere exchange %player_name%'
       - '[sound] ENTITY_PLAYER_LEVELUP'
       - '[refresh]'
 
