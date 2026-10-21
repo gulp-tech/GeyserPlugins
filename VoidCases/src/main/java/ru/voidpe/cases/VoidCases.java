@@ -32,6 +32,9 @@ public final class VoidCases extends JavaPlugin implements CommandExecutor, TabC
             getCommand("cases").setExecutor(this);
             getCommand("cases").setTabCompleter(this);
         }
+        if (getCommand("titles") != null) {
+            getCommand("titles").setExecutor(this);
+        }
         getLogger().info("VoidCases включён, кейсов: " + service.all().size());
     }
 
@@ -57,13 +60,28 @@ public final class VoidCases extends JavaPlugin implements CommandExecutor, TabC
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        if (command.getName().equalsIgnoreCase("titles")) {
+            if (sender instanceof Player) {
+                service.openTitles((Player) sender);
+            } else {
+                sender.sendMessage("Команда только для игроков.");
+            }
+            return true;
+        }
         if (args.length == 0) {
             help(sender);
             return true;
         }
         String sub = args[0].toLowerCase();
         if (sub.equals("list")) {
-            send(sender, "&fКейсы: &7" + String.join(", ", service.ids()));
+            if (service.all().isEmpty()) {
+                send(sender, "&cКейсы не загрузились — проверь config.yml (секция cases) и лог сервера.");
+                return true;
+            }
+            send(sender, "&fКейсы:");
+            for (CaseService.CaseDef def : service.all()) {
+                send(sender, "&7- &f" + def.id() + " &8— " + def.displayName());
+            }
             return true;
         }
         if (sub.equals("reload")) {

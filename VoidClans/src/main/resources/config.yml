@@ -16,6 +16,30 @@ settings:
   name-min: 3
   name-max: 16
   invite-expire-seconds: 120
+  home-warmup-seconds: 3    # прогрев телепорта домой (сек), 0 — мгновенно; движение отменяет
+
+# Прокачка клана: опыт за действия участников.
+leveling:
+  xp:
+    block-break: 1       # сломанный блок (не в креативе)
+    mob-kill: 2          # убийство моба
+    player-kill: 25      # убийство игрока
+    fish: 5              # пойманная рыба
+
+# Уровни клана: xp — сколько ВСЕГО опыта нужно для уровня,
+# members — слоты игроков, bank — лимит казны (-1 — без лимита),
+# homes — точек клан-дома. Уровень 1 — стартовый.
+levels:
+  1:  { xp: 0,     members: 5,  bank: 50000,   homes: 1 }
+  2:  { xp: 500,   members: 8,  bank: 100000,  homes: 1 }
+  3:  { xp: 1500,  members: 10, bank: 200000,  homes: 1 }
+  4:  { xp: 3000,  members: 12, bank: 350000,  homes: 1 }
+  5:  { xp: 5000,  members: 15, bank: 500000,  homes: 1 }
+  6:  { xp: 8000,  members: 18, bank: 750000,  homes: 1 }
+  7:  { xp: 12000, members: 20, bank: 1000000, homes: 1 }
+  8:  { xp: 18000, members: 23, bank: 1500000, homes: 1 }
+  9:  { xp: 26000, members: 26, bank: 2500000, homes: 1 }
+  10: { xp: 40000, members: 30, bank: -1,      homes: 2 }
 
 # Роли: priority — чем выше, тем главнее (кикать/менять роли можно
 # только игрокам с приоритетом ниже своего). permissions — права
@@ -85,7 +109,13 @@ messages:
   transfer-received: "&#FFD93DТы теперь лидер клана &f{clan}!"
   disband-confirm: "&cТочно распустить клан? Деньги банка вернутся лидеру. Подтверждение: &f/clan disband confirm"
   disbanded: "&7Клан &f{clan} &7распущен."
-  home-set: "&aДом клана установлен."
+  home-set: "&aДом клана №{index} установлен."
+  home-locked: "&cДом №2 ещё закрыт. Нужна прокачка клана (сейчас уровень {level})."
+  home-warmup: "&7Телепорт домой через &f{seconds} сек&7. Не двигайся!"
+  home-cancelled: "&cТелепорт отменён — ты двинулся."
+  bank-full: "&cКазна клана заполнена (лимит уровня). Прокачивай клан: &f/clan level"
+  levelup: "&#FFD93DКлан &f{clan} &aдостиг уровня &f{level}&a! Новые слоты и лимиты открыты."
+  levelup-homes: "&#7CFC00Открыта ВТОРАЯ точка дома клана! &f/clan home"
   home-none: "&cДом клана не установлен."
   home-teleport: "&aТелепорт домой…"
   chat-format: "&#8CE8FF[Клан] &f{player}&7: &f{message}"

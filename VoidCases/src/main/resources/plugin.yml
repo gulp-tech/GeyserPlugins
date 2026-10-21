@@ -10,6 +10,9 @@ commands:
     description: "Кейсы: /cases give <игрок> <кейс> [кол-во] | /cases set <кейс> | /cases remove | /cases list | /cases reload"
     usage: /cases
     aliases: [case, кейсы]
+  titles:
+    description: "Меню титулов, которые выбиваются из кейса титулов"
+    usage: /titles
 permissions:
   voidcases.admin:
     description: Выдача кейсов и перезагрузка VoidCases

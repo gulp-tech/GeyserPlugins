@@ -1,0 +1,15 @@
+name: VoidDrops
+version: '${project.version}'
+main: ru.voidpe.drops.VoidDrops
+api-version: '26.2'
+author: VoidPE
+description: "Монеты выпадают с мобов и игроков зачарованным золотым слитком; подбор начисляет монеты Vault, сумма — в actionbar."
+softdepend: [Vault]
+commands:
+  vdrops:
+    description: "VoidDrops: /vdrops reload — перезагрузка"
+    usage: /vdrops
+permissions:
+  voiddrops.admin:
+    description: Перезагрузка VoidDrops
+    default: op

@@ -14,7 +14,12 @@ import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.entity.EntityDeathEvent;
+import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.player.PlayerFishEvent;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
@@ -51,11 +56,16 @@ public final class ClanService implements Listener {
 
     public record RoleTemplate(String id, String name, int priority, List<String> defaultPerms) {}
 
+    public record LevelDef(int level, double xp, int members, double bank, int homes) {}
+
     static final class Clan {
         String name;
         UUID leader;
         double bank;
         String home = "";
+        String home2 = "";
+        int level = 1;
+        double xp = 0;
         final Map<UUID, String> members = new LinkedHashMap<>();
         final Map<String, Set<String>> rolePerms = new HashMap<>();
     }
@@ -81,6 +91,8 @@ public final class ClanService implements Listener {
     private final Map<String, RoleTemplate> roleTemplates = new LinkedHashMap<>();
     private final Map<UUID, Invite> invites = new HashMap<>();
     private final Map<UUID, String> nameCache = new HashMap<>();
+    private final Map<Integer, LevelDef> levels = new LinkedHashMap<>();
+    private final Map<UUID, BukkitRunnable> homeWarmups = new HashMap<>();
 
     public ClanService(VoidClans plugin) {
         this.plugin = plugin;
@@ -111,6 +123,57 @@ public final class ClanService implements Listener {
         if (!roleTemplates.containsKey("member")) {
             roleTemplates.put("member", new RoleTemplate("member", "Боец", 10, List.of()));
         }
+        levels.clear();
+        ConfigurationSection levelsSection = plugin.getConfig().getConfigurationSection("levels");
+        if (levelsSection != null) {
+            for (String key : levelsSection.getKeys(false)) {
+                try {
+                    int lvl = Integer.parseInt(key);
+                    levels.put(lvl, new LevelDef(lvl,
+                            levelsSection.getDouble(key + ".xp", 0),
+                            levelsSection.getInt(key + ".members", 20),
+                            levelsSection.getDouble(key + ".bank", -1),
+                            levelsSection.getInt(key + ".homes", 1)));
+                } catch (NumberFormatException ignored) {
+                }
+            }
+        }
+        if (!levels.containsKey(1)) {
+            levels.put(1, new LevelDef(1, 0, plugin.getConfig().getInt("settings.max-members", 20), -1, 1));
+        }
+    }
+
+    public LevelDef levelDef(int level) {
+        LevelDef def = levels.get(level);
+        if (def != null) {
+            return def;
+        }
+        int best = 1;
+        for (int key : levels.keySet()) {
+            if (key <= level && key > best) {
+                best = key;
+            }
+        }
+        return levels.get(best);
+    }
+
+    public int maxMembers(Clan clan) {
+        return levelDef(clan.level).members();
+    }
+
+    /** Лимит казны уровня; -1 — без лимита. */
+    public double bankCap(Clan clan) {
+        return levelDef(clan.level).bank();
+    }
+
+    public int homesAllowed(Clan clan) {
+        return Math.max(1, levelDef(clan.level).homes());
+    }
+
+    /** Опыт до следующего уровня или -1, если максимум. */
+    public double xpToNext(Clan clan) {
+        LevelDef next = levels.get(clan.level + 1);
+        return next == null ? -1 : Math.max(0, next.xp() - clan.xp);
     }
 
     public List<RoleTemplate> rolesSorted() {
@@ -145,6 +208,9 @@ public final class ClanService implements Listener {
                 }
                 clan.bank = cs.getDouble("bank", 0);
                 clan.home = cs.getString("home", "");
+                clan.home2 = cs.getString("home2", "");
+                clan.level = Math.max(1, cs.getInt("level", 1));
+                clan.xp = cs.getDouble("xp", 0);
                 ConfigurationSection members = cs.getConfigurationSection("members");
                 if (members != null) {
                     for (String uuid : members.getKeys(false)) {
@@ -191,6 +257,9 @@ public final class ClanService implements Listener {
                 yaml.set(path + ".leader", String.valueOf(clan.leader));
                 yaml.set(path + ".bank", clan.bank);
                 yaml.set(path + ".home", clan.home);
+                yaml.set(path + ".home2", clan.home2);
+                yaml.set(path + ".level", clan.level);
+                yaml.set(path + ".xp", clan.xp);
                 for (Map.Entry<UUID, String> m : clan.members.entrySet()) {
                     yaml.set(path + ".members." + m.getKey(), m.getValue());
                 }
@@ -370,8 +439,7 @@ public final class ClanService implements Listener {
             msg(player, "target-in-clan");
             return;
         }
-        int maxMembers = plugin.getConfig().getInt("settings.max-members", 20);
-        if (clan.members.size() >= maxMembers) {
+        if (clan.members.size() >= maxMembers(clan)) {
             msg(player, "full");
             return;
         }
@@ -397,8 +465,7 @@ public final class ClanService implements Listener {
             msg(player, "clan-not-found");
             return;
         }
-        int maxMembers = plugin.getConfig().getInt("settings.max-members", 20);
-        if (clan.members.size() >= maxMembers) {
+        if (clan.members.size() >= maxMembers(clan)) {
             msg(player, "full");
             return;
         }
@@ -626,6 +693,11 @@ public final class ClanService implements Listener {
             msg(player, "no-money", "{amount}", fmt(amount));
             return;
         }
+        double cap = bankCap(clan);
+        if (cap >= 0 && clan.bank + amount > cap) {
+            msg(player, "bank-full", "{bank-cap}", fmt(cap), "{level}", String.valueOf(clan.level));
+            return;
+        }
         if (!vault.withdraw(player, amount)) {
             msg(player, "no-money", "{amount}", fmt(amount));
             return;
@@ -668,6 +740,10 @@ public final class ClanService implements Listener {
 
     // ------------------------------------------------------------------ дом и чат
     public void setHome(Player player) {
+        setHome(player, 1);
+    }
+
+    public void setHome(Player player, int index) {
         Clan clan = clanOf(player.getUniqueId());
         if (clan == null) {
             msg(player, "not-in-clan");
@@ -677,37 +753,178 @@ public final class ClanService implements Listener {
             msg(player, "no-permission");
             return;
         }
+        if (index == 2 && homesAllowed(clan) < 2) {
+            msg(player, "home-locked", "{level}", String.valueOf(clan.level));
+            return;
+        }
         Location loc = player.getLocation();
-        clan.home = loc.getWorld().getName() + "," + loc.getX() + "," + loc.getY() + "," + loc.getZ()
+        String value = loc.getWorld().getName() + "," + loc.getX() + "," + loc.getY() + "," + loc.getZ()
                 + "," + loc.getYaw() + "," + loc.getPitch();
+        if (index == 2) {
+            clan.home2 = value;
+        } else {
+            clan.home = value;
+        }
         saveData();
-        msg(player, "home-set");
+        msg(player, "home-set", "{index}", String.valueOf(index));
     }
 
     public void home(Player player) {
+        home(player, 1);
+    }
+
+    /** Телепорт домой с прогревом 3 секунды (нельзя двигаться). */
+    public void home(Player player, int index) {
         Clan clan = clanOf(player.getUniqueId());
         if (clan == null) {
             msg(player, "not-in-clan");
             return;
         }
-        if (clan.home == null || clan.home.isEmpty()) {
+        if (index == 2 && homesAllowed(clan) < 2) {
+            msg(player, "home-locked", "{level}", String.valueOf(clan.level));
+            return;
+        }
+        String stored = index == 2 ? clan.home2 : clan.home;
+        if (stored == null || stored.isEmpty()) {
             msg(player, "home-none");
             return;
         }
+        final Location target;
         try {
-            String[] parts = clan.home.split(",");
+            String[] parts = stored.split(",");
             World world = Bukkit.getWorld(parts[0]);
             if (world == null) {
                 msg(player, "home-none");
                 return;
             }
-            Location loc = new Location(world,
+            target = new Location(world,
                     Double.parseDouble(parts[1]), Double.parseDouble(parts[2]), Double.parseDouble(parts[3]),
                     Float.parseFloat(parts[4]), Float.parseFloat(parts[5]));
-            player.teleport(loc);
-            msg(player, "home-teleport");
         } catch (Throwable t) {
             msg(player, "home-none");
+            return;
+        }
+        if (homeWarmups.containsKey(player.getUniqueId())) {
+            return;
+        }
+        final Location start = player.getLocation().clone();
+        int seconds = Math.max(0, plugin.getConfig().getInt("settings.home-warmup-seconds", 3));
+        msg(player, "home-warmup", "{seconds}", String.valueOf(seconds));
+        BukkitRunnable task = new BukkitRunnable() {
+            int left = seconds;
+
+            @Override
+            public void run() {
+                if (!player.isOnline() || player.isDead()
+                        || player.getLocation().getBlockX() != start.getBlockX()
+                        || player.getLocation().getBlockY() != start.getBlockY()
+                        || player.getLocation().getBlockZ() != start.getBlockZ()
+                        || !player.getWorld().equals(start.getWorld())) {
+                    homeWarmups.remove(player.getUniqueId());
+                    if (player.isOnline()) {
+                        msg(player, "home-cancelled");
+                    }
+                    cancel();
+                    return;
+                }
+                if (left <= 0) {
+                    homeWarmups.remove(player.getUniqueId());
+                    player.teleport(target);
+                    msg(player, "home-teleport");
+                    cancel();
+                    return;
+                }
+                player.sendActionBar(comp(TextUtil.color("&#C86BFFТелепорт домой: &f" + left + " сек")));
+                left--;
+            }
+        };
+        homeWarmups.put(player.getUniqueId(), task);
+        task.runTaskTimer(plugin, 0L, 20L);
+    }
+
+    // ------------------------------------------------------------------ прокачка клана
+    /** Начислить клану опыт за действие (ключ из leveling.xp в конфиге) и проверить повышение. */
+    public void addXp(Clan clan, String action) {
+        double amount = plugin.getConfig().getDouble("leveling.xp." + action, 0);
+        if (amount <= 0 || clan == null) {
+            return;
+        }
+        clan.xp += amount;
+        boolean leveled = false;
+        boolean homesUnlocked = false;
+        while (true) {
+            LevelDef next = levels.get(clan.level + 1);
+            if (next == null || clan.xp < next.xp()) {
+                break;
+            }
+            int beforeHomes = homesAllowed(clan);
+            clan.level++;
+            leveled = true;
+            if (homesAllowed(clan) > beforeHomes) {
+                homesUnlocked = true;
+            }
+        }
+        saveData();
+        if (leveled) {
+            for (UUID member : clan.members.keySet()) {
+                Player online = Bukkit.getPlayer(member);
+                if (online != null) {
+                    msg(online, "levelup", "{clan}", clan.name, "{level}", String.valueOf(clan.level));
+                    if (homesUnlocked) {
+                        msg(online, "levelup-homes");
+                    }
+                }
+            }
+        }
+    }
+
+    @EventHandler
+    public void onBlockBreakXp(BlockBreakEvent event) {
+        Player player = event.getPlayer();
+        if (player.getGameMode() == org.bukkit.GameMode.CREATIVE) {
+            return;
+        }
+        Clan clan = clanOf(player.getUniqueId());
+        if (clan != null) {
+            addXp(clan, "block-break");
+        }
+    }
+
+    @EventHandler
+    public void onMobKillXp(EntityDeathEvent event) {
+        if (event.getEntity() instanceof Player) {
+            return;
+        }
+        Player killer = event.getEntity().getKiller();
+        if (killer == null) {
+            return;
+        }
+        Clan clan = clanOf(killer.getUniqueId());
+        if (clan != null) {
+            addXp(clan, "mob-kill");
+        }
+    }
+
+    @EventHandler
+    public void onPlayerKillXp(PlayerDeathEvent event) {
+        Player killer = event.getEntity().getKiller();
+        if (killer == null || killer.equals(event.getEntity())) {
+            return;
+        }
+        Clan clan = clanOf(killer.getUniqueId());
+        if (clan != null) {
+            addXp(clan, "player-kill");
+        }
+    }
+
+    @EventHandler
+    public void onFishXp(PlayerFishEvent event) {
+        if (event.getState() != PlayerFishEvent.State.CAUGHT_FISH) {
+            return;
+        }
+        Clan clan = clanOf(event.getPlayer().getUniqueId());
+        if (clan != null) {
+            addXp(clan, "fish");
         }
     }
 
@@ -739,7 +956,10 @@ public final class ClanService implements Listener {
         sendRaw(player, "&#FFD93DКлан &f" + clan.name);
         sendRaw(player, "&7Лидер: &f" + nameOf(clan.leader));
         sendRaw(player, "&7Участников: &f" + clan.members.size()
-                + "&7/&f" + plugin.getConfig().getInt("settings.max-members", 20));
+                + "&7/&f" + maxMembers(clan));
+        double toNext = xpToNext(clan);
+        sendRaw(player, "&7Уровень клана: &f" + clan.level
+                + (toNext < 0 ? " &8(максимум)" : "&7, опыт: &f" + fmt(clan.xp) + "&7/&f" + fmt(levelDef(clan.level + 1).xp())));
         sendRaw(player, "&7Банк: &f" + fmt(clan.bank) + " монет");
         StringBuilder members = new StringBuilder();
         for (Map.Entry<UUID, String> m : clan.members.entrySet()) {
@@ -834,12 +1054,13 @@ public final class ClanService implements Listener {
         }
         String key = clanKeyOf(player.getUniqueId());
         ClanHolder holder = new ClanHolder("clan", key);
-        Inventory inv = Bukkit.createInventory(holder, 27, comp(title("title", "Клан") + " &8• &f" + clan.name));
+        Inventory inv = Bukkit.createInventory(holder, 27, comp(title("title", "Клан") + TextUtil.color(" &8• &f") + clan.name));
         fill(inv);
         inv.setItem(0, btn(Material.BOOK, "&#FFD93D" + clan.name,
                 "&7Лидер: &f" + nameOf(clan.leader),
                 "&7Участников: &f" + clan.members.size(),
                 "&7Банк: &f" + fmt(clan.bank) + " монет",
+                "&7Уровень: &f" + clan.level + " &7(опыт: &f" + fmt(clan.xp) + "&7)",
                 "&7Твоя роль: &f" + roleName(roleIdOf(clan, player.getUniqueId()))));
         inv.setItem(2, btn(Material.GOLD_INGOT, "&#FFD93DБанк клана",
                 "&7Баланс: &f" + fmt(clan.bank), "&7Клик — внести или снять монеты"));
@@ -855,6 +1076,11 @@ public final class ClanService implements Listener {
         inv.setItem(12, btn(Material.NAME_TAG, "&#FF9A3DРоли и права",
                 "&7Кто что может делать в клане"));
         inv.setItem(14, btn(Material.PAPER, "&#8CE8FFКлан-чат", "&7Команда: &f/clan c <текст>"));
+        double toNext = xpToNext(clan);
+        inv.setItem(16, btn(Material.EXPERIENCE_BOTTLE, "&#FFD93DПрокачка клана",
+                "&7Уровень: &f" + clan.level,
+                toNext < 0 ? "&7Максимальный уровень" : "&7До след. уровня: &f" + fmt(toNext) + " опыта",
+                "&7Опыт: блоки, мобы, убийства, рыбалка"));
         if (clan.leader.equals(player.getUniqueId())) {
             inv.setItem(26, btn(Material.TNT, "&#FF5555Распустить клан", "&7Команда: &f/clan disband"));
         } else {
@@ -882,7 +1108,7 @@ public final class ClanService implements Listener {
             return;
         }
         ClanHolder holder = new ClanHolder("bank", clanKeyOf(player.getUniqueId()));
-        Inventory inv = Bukkit.createInventory(holder, 27, comp(title("title", "Клан") + " &8• &fБанк"));
+        Inventory inv = Bukkit.createInventory(holder, 27, comp(title("title", "Клан") + TextUtil.color(" &8• &fБанк")));
         fill(inv);
         inv.setItem(4, btn(Material.GOLD_BLOCK, "&#FFD93DБанк клана", "&7Баланс: &f" + fmt(clan.bank) + " монет"));
         List<Integer> amounts = plugin.getConfig().getIntegerList("menu.amounts");
@@ -915,7 +1141,7 @@ public final class ClanService implements Listener {
             return;
         }
         ClanHolder holder = new ClanHolder("members", clanKeyOf(player.getUniqueId()));
-        Inventory inv = Bukkit.createInventory(holder, 54, comp(title("title", "Клан") + " &8• &fУчастники"));
+        Inventory inv = Bukkit.createInventory(holder, 54, comp(title("title", "Клан") + TextUtil.color(" &8• &fУчастники")));
         fill(inv);
         int slot = 0;
         for (Map.Entry<UUID, String> m : clan.members.entrySet()) {
@@ -941,7 +1167,7 @@ public final class ClanService implements Listener {
         }
         ClanHolder holder = new ClanHolder("member", clanKeyOf(player.getUniqueId()));
         holder.target = target;
-        Inventory inv = Bukkit.createInventory(holder, 27, comp(title("title", "Клан") + " &8• &f" + nameOf(target)));
+        Inventory inv = Bukkit.createInventory(holder, 27, comp(title("title", "Клан") + TextUtil.color(" &8• &f") + nameOf(target)));
         fill(inv);
         inv.setItem(4, head(target, "&f" + nameOf(target), "&7Роль: &f" + roleName(roleIdOf(clan, target))));
         int slot = 10;
@@ -980,7 +1206,7 @@ public final class ClanService implements Listener {
             return;
         }
         ClanHolder holder = new ClanHolder("roles", clanKeyOf(player.getUniqueId()));
-        Inventory inv = Bukkit.createInventory(holder, 27, comp(title("title", "Клан") + " &8• &fРоли"));
+        Inventory inv = Bukkit.createInventory(holder, 27, comp(title("title", "Клан") + TextUtil.color(" &8• &fРоли")));
         fill(inv);
         int slot = 10;
         for (RoleTemplate role : rolesSorted()) {
@@ -1006,7 +1232,7 @@ public final class ClanService implements Listener {
         }
         ClanHolder holder = new ClanHolder("roleperms", clanKeyOf(player.getUniqueId()));
         holder.roleId = roleId;
-        Inventory inv = Bukkit.createInventory(holder, 27, comp(title("title", "Клан") + " &8• &f" + stripColor(template.name())));
+        Inventory inv = Bukkit.createInventory(holder, 27, comp(title("title", "Клан") + TextUtil.color(" &8• &f") + stripColor(template.name())));
         fill(inv);
         int slot = 10;
         for (String perm : ALL_PERMS) {
@@ -1036,7 +1262,7 @@ public final class ClanService implements Listener {
             return;
         }
         ClanHolder holder = new ClanHolder("invite", clanKeyOf(player.getUniqueId()));
-        Inventory inv = Bukkit.createInventory(holder, 54, comp(title("title", "Клан") + " &8• &fПригласить"));
+        Inventory inv = Bukkit.createInventory(holder, 54, comp(title("title", "Клан") + TextUtil.color(" &8• &fПригласить")));
         fill(inv);
         int slot = 0;
         for (Player online : Bukkit.getOnlinePlayers()) {
@@ -1055,7 +1281,7 @@ public final class ClanService implements Listener {
 
     private void openTop(Player player) {
         ClanHolder holder = new ClanHolder("top", clanKeyOf(player.getUniqueId()));
-        Inventory inv = Bukkit.createInventory(holder, 54, comp(title("title-none", "Кланы") + " &8• &fТоп"));
+        Inventory inv = Bukkit.createInventory(holder, 54, comp(title("title-none", "Кланы") + TextUtil.color(" &8• &fТоп")));
         fill(inv);
         List<Clan> sorted = new ArrayList<>(clans.values());
         sorted.sort(Comparator.comparingDouble((Clan c) -> c.bank).reversed());
@@ -1081,6 +1307,74 @@ public final class ClanService implements Listener {
             }
         }
         return null;
+    }
+
+    private void openLevels(Player player) {
+        Clan clan = clanOf(player.getUniqueId());
+        if (clan == null) {
+            openNone(player);
+            return;
+        }
+        ClanHolder holder = new ClanHolder("levels", clanKeyOf(player.getUniqueId()));
+        Inventory inv = Bukkit.createInventory(holder, 54, comp(title("title", "Клан") + TextUtil.color(" &8• &fПрокачка")));
+        fill(inv);
+        List<Integer> sorted = new ArrayList<>(levels.keySet());
+        java.util.Collections.sort(sorted);
+        int slot = 0;
+        for (int lvl : sorted) {
+            if (slot >= 53) {
+                break;
+            }
+            LevelDef def = levels.get(lvl);
+            boolean current = clan.level == lvl;
+            boolean unlocked = clan.level >= lvl;
+            inv.setItem(slot++, btn(unlocked ? Material.EXPERIENCE_BOTTLE : Material.GLASS_BOTTLE,
+                    (current ? "&#7CFC00" : unlocked ? "&#FFD93D" : "&8") + "Уровень " + lvl,
+                    "&7Нужно опыта: &f" + fmt(def.xp()),
+                    "&7Слотов игроков: &f" + def.members(),
+                    "&7Лимит казны: &f" + (def.bank() < 0 ? "без лимита" : fmt(def.bank())),
+                    "&7Точек дома: &f" + def.homes(),
+                    current ? "&#7CFC00Текущий уровень клана" : unlocked ? "&7Открыто" : "&8Ещё не открыто"));
+        }
+        inv.setItem(53, btn(Material.ARROW, "&fНазад"));
+        player.openInventory(inv);
+    }
+
+    private void openHomes(Player player) {
+        Clan clan = clanOf(player.getUniqueId());
+        if (clan == null) {
+            openNone(player);
+            return;
+        }
+        ClanHolder holder = new ClanHolder("homes", clanKeyOf(player.getUniqueId()));
+        Inventory inv = Bukkit.createInventory(holder, 27, comp(title("title", "Клан") + TextUtil.color(" &8• &fДома клана")));
+        fill(inv);
+        boolean two = homesAllowed(clan) >= 2;
+        inv.setItem(11, btn(Material.ENDER_PEARL, "&#C86BFFДом 1",
+                clan.home == null || clan.home.isEmpty() ? "&7Не установлен" : "&7Клик — телепорт (3 сек)"));
+        inv.setItem(15, two
+                ? btn(Material.END_CRYSTAL, "&#FF9A3DДом 2",
+                        clan.home2 == null || clan.home2.isEmpty() ? "&7Не установлен" : "&7Клик — телепорт (3 сек)")
+                : btn(Material.BARRIER, "&8Дом 2 закрыт",
+                        "&7Откроется на уровне: &f" + firstLevelWithHomes(2)));
+        if (hasPerm(clan, player.getUniqueId(), "sethome")) {
+            inv.setItem(20, btn(Material.COMPASS, "&fПоставить дом 1 сюда"));
+            if (two) {
+                inv.setItem(24, btn(Material.COMPASS, "&fПоставить дом 2 сюда"));
+            }
+        }
+        inv.setItem(26, btn(Material.ARROW, "&fНазад"));
+        player.openInventory(inv);
+    }
+
+    private int firstLevelWithHomes(int homes) {
+        int best = -1;
+        for (LevelDef def : levels.values()) {
+            if (def.homes() >= homes && (best < 0 || def.level() < best)) {
+                best = def.level();
+            }
+        }
+        return best;
     }
 
     // ------------------------------------------------------------------ клики меню
@@ -1129,11 +1423,21 @@ public final class ClanService implements Listener {
             } else if (slot == 6 && hasPerm(clan, player.getUniqueId(), "invite")) {
                 openInvite(player);
             } else if (slot == 8) {
-                player.closeInventory();
-                home(player);
+                if (homesAllowed(clan) >= 2) {
+                    openHomes(player);
+                } else {
+                    player.closeInventory();
+                    home(player, 1);
+                }
             } else if (slot == 10 && hasPerm(clan, player.getUniqueId(), "sethome")) {
-                setHome(player);
-                openMain(player);
+                if (homesAllowed(clan) >= 2) {
+                    openHomes(player);
+                } else {
+                    setHome(player, 1);
+                    openMain(player);
+                }
+            } else if (slot == 16) {
+                openLevels(player);
             } else if (slot == 12) {
                 openRoles(player);
             } else if (slot == 22 && !clan.leader.equals(player.getUniqueId())) {
@@ -1142,6 +1446,30 @@ public final class ClanService implements Listener {
             } else if (slot == 26 && clan.leader.equals(player.getUniqueId())) {
                 player.closeInventory();
                 disband(player, false);
+            }
+            return;
+        }
+        if (holder.view.equals("levels")) {
+            if (slot == 53) {
+                openMain(player);
+            }
+            return;
+        }
+        if (holder.view.equals("homes")) {
+            if (slot == 26) {
+                openMain(player);
+            } else if (slot == 11) {
+                player.closeInventory();
+                home(player, 1);
+            } else if (slot == 15 && homesAllowed(clan) >= 2) {
+                player.closeInventory();
+                home(player, 2);
+            } else if (slot == 20 && hasPerm(clan, player.getUniqueId(), "sethome")) {
+                setHome(player, 1);
+                openHomes(player);
+            } else if (slot == 24 && homesAllowed(clan) >= 2 && hasPerm(clan, player.getUniqueId(), "sethome")) {
+                setHome(player, 2);
+                openHomes(player);
             }
             return;
         }

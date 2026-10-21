@@ -45,57 +45,110 @@ messages:
 
 cases:
 
-  # ---------------- Кейс титулов (привилегии LuckPerms) ----------------
-  # parent set ставит титул основным. Группы LP: поменяй под свои названия.
-  titles:
-    display-name: "&#FFD93DКейс титулов"
-    material: NAME_TAG
+  # ---------------- Кейс доната (привилегии LuckPerms) ----------------
+  # parent set ставит привилегию основной. Группы LP: поменяй под свои.
+  donate:
+    display-name: "&#FFD93DКейс доната"
+    material: NETHER_STAR
     item-lore:
       - "&7ПКМ — открыть кейс"
-      - "&7Внутри: титул от Странника до Императора"
+      - "&7Внутри: привилегия от Странника до Императора"
     prizes:
       - id: strannik
-        name: "&7Титул: Странник"
+        name: "&7Привилегия: Странник"
         material: LEATHER_HELMET
         weight: 300
         announce: false
         commands: ["lp user {player} parent set strannik"]
       - id: geroy
-        name: "&#55E6FFТитул: Герой"
+        name: "&#55E6FFПривилегия: Герой"
         material: IRON_HELMET
         weight: 220
         announce: false
         commands: ["lp user {player} parent set geroy"]
       - id: rycar
-        name: "&#8CE8FFТитул: Рыцарь"
+        name: "&#8CE8FFПривилегия: Рыцарь"
         material: GOLDEN_HELMET
         weight: 160
         announce: false
         commands: ["lp user {player} parent set rycar"]
       - id: baron
-        name: "&#7CFC00Титул: Барон"
+        name: "&#7CFC00Привилегия: Барон"
         material: DIAMOND_HELMET
         weight: 110
         announce: true
         commands: ["lp user {player} parent set baron"]
       - id: lord
-        name: "&#C86BFFТитул: Лорд"
+        name: "&#C86BFFПривилегия: Лорд"
         material: DIAMOND_CHESTPLATE
         weight: 70
         announce: true
         commands: ["lp user {player} parent set lord"]
       - id: knyaz
-        name: "&#FF9A3DТитул: Князь"
+        name: "&#FF9A3DПривилегия: Князь"
         material: NETHERITE_HELMET
         weight: 35
         announce: true
         commands: ["lp user {player} parent set knyaz"]
       - id: imperator
-        name: "<gradient:#FFD93D:#FF5555>Титул: Император</gradient>"
+        name: "<gradient:#FFD93D:#FF5555>Привилегия: Император</gradient>"
         material: DRAGON_HEAD
         weight: 10
         announce: true
         commands: ["lp user {player} parent set imperator"]
+
+  # ---------------- Кейс титулов (выбиваются ТОЛЬКО отсюда) ----------------
+  # Титул — суффикс после ника в чате (LuckPerms meta setsuffix).
+  # Посмотреть все титулы: /titles
+  titles:
+    display-name: "&#C86BFFКейс титулов"
+    material: NAME_TAG
+    item-lore:
+      - "&7ПКМ — открыть кейс"
+      - "&7Внутри: титул после ника. Меню: &f/titles"
+    prizes:
+      - id: vezunchik
+        name: "&#7CFC00Титул: Везунчик"
+        material: PAPER
+        weight: 300
+        announce: false
+        commands: ['lp user {player} meta setsuffix 90 " &a[Везунчик]"']
+      - id: ohotnik
+        name: "&#8CE8FFТитул: Охотник"
+        material: BOW
+        weight: 220
+        announce: false
+        commands: ['lp user {player} meta setsuffix 90 " &#8CE8FF[Охотник]"']
+      - id: bogach
+        name: "&#FFD93DТитул: Богач"
+        material: GOLD_INGOT
+        weight: 160
+        announce: false
+        commands: ['lp user {player} meta setsuffix 90 " &#FFD93D[Богач]"']
+      - id: groza
+        name: "&#55E6FFТитул: Гроза"
+        material: LIGHTNING_ROD
+        weight: 110
+        announce: true
+        commands: ['lp user {player} meta setsuffix 90 " &#55E6FF[Гроза]"']
+      - id: prizrak
+        name: "&#C86BFFТитул: Призрак"
+        material: PHANTOM_MEMBRANE
+        weight: 70
+        announce: true
+        commands: ['lp user {player} meta setsuffix 90 " &#C86BFF[Призрак]"']
+      - id: legenda
+        name: "&#FF9A3DТитул: Легенда"
+        material: NETHERITE_SWORD
+        weight: 35
+        announce: true
+        commands: ['lp user {player} meta setsuffix 90 " &#FF9A3D[Легенда]"']
+      - id: mif
+        name: "<gradient:#FFD93D:#FF5555>Титул: Миф</gradient>"
+        material: ENCHANTED_GOLDEN_APPLE
+        weight: 10
+        announce: true
+        commands: ['lp user {player} meta setsuffix 90 " &#FF5555[Миф]"']
 
   # ---------------- Кейс осколков (PlayerPoints) ----------------
   shards:

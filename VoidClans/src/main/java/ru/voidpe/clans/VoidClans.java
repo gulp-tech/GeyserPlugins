@@ -132,8 +132,20 @@ public final class VoidClans extends JavaPlugin implements CommandExecutor, TabC
                         send(player, "&7Банк клана &f" + clan.name + "&7: &f" + ClanService.fmt(clan.bank) + " монет");
                     }
                 }
-                case "sethome" -> service.setHome(player);
-                case "home" -> service.home(player);
+                case "sethome" -> service.setHome(player, args.length > 1 && args[1].equals("2") ? 2 : 1);
+                case "level" -> {
+                    ClanService.Clan clan = service.clanOf(player.getUniqueId());
+                    if (clan == null) {
+                        service.msg(player, "not-in-clan");
+                    } else {
+                        double toNext = service.xpToNext(clan);
+                        send(player, "&7Клан &f" + clan.name + "&7: уровень &f" + clan.level
+                                + "&7, опыт &f" + ClanService.fmt(clan.xp)
+                                + (toNext < 0 ? " &7(максимум)" : "&7, до след. уровня: &f" + ClanService.fmt(toNext)));
+                        send(player, "&7Опыт даётся за: блоки, мобов, убийства игроков, рыбалку.");
+                    }
+                }
+                case "home" -> service.home(player, args.length > 1 && args[1].equals("2") ? 2 : 1);
                 case "info" -> service.info(player, args.length > 1 ? args[1] : null);
                 case "list", "top" -> service.top(player);
                 case "c", "chat" -> {
@@ -200,7 +212,8 @@ public final class VoidClans extends JavaPlugin implements CommandExecutor, TabC
         send(player, "&f/clan bank &7— баланс банка");
         send(player, "&f/clan role <игрок> <роль> &7— выдать роль; &f/clan setperm <роль> <право> &7— настроить права роли");
         send(player, "&f/clan kick <игрок> &7— кикнуть; &f/clan transfer <игрок> &7— передать лидерство");
-        send(player, "&f/clan home &7/ &f/clan sethome &7— дом клана");
+        send(player, "&f/clan home [1|2] &7/ &f/clan sethome [1|2] &7— дом клана (2-й дом — за прокачку)");
+        send(player, "&f/clan level &7— уровень и опыт клана");
         send(player, "&f/clan c <текст> &7— клан-чат");
         send(player, "&f/clan info [клан] &7— информация; &f/clan top &7— топ кланов");
         send(player, "&f/clan leave &7— выйти; &f/clan disband &7— распустить (лидер)");
@@ -215,7 +228,7 @@ public final class VoidClans extends JavaPlugin implements CommandExecutor, TabC
         Player player = (Player) sender;
         if (args.length == 1) {
             for (String sub : List.of("help", "create", "invite", "accept", "deny", "leave", "kick", "role",
-                    "setperm", "transfer", "disband", "deposit", "withdraw", "bank", "sethome", "home",
+                    "setperm", "transfer", "disband", "deposit", "withdraw", "bank", "sethome", "home", "level",
                     "info", "top", "c", "reload")) {
                 if (sub.startsWith(args[0].toLowerCase())) {
                     result.add(sub);

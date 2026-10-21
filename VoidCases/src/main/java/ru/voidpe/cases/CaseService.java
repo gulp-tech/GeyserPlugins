@@ -53,6 +53,50 @@ public final class CaseService implements Listener {
     public record CaseDef(String id, String displayName, Material material,
                           List<String> itemLore, List<PrizeDef> prizes) {}
 
+    /** Маркер меню титулов. */
+    static final class TitlesHolder implements InventoryHolder {
+        @Override public Inventory getInventory() { return null; }
+    }
+
+    /** Меню титулов: что можно выбить из кейса титулов и с каким шансом. */
+    public void openTitles(Player player) {
+        CaseDef def = byId("titles");
+        if (def == null) {
+            msg(player, "case-not-found", null, null);
+            return;
+        }
+        Inventory inv = Bukkit.createInventory(new TitlesHolder(), 27,
+                component(TextUtil.color("&#FFD93DТитулы &8• &fтолько из кейса")));
+        ItemStack filler = pane(Material.BLACK_STAINED_GLASS_PANE, " ");
+        for (int slot = 0; slot < 27; slot++) {
+            inv.setItem(slot, filler);
+        }
+        int total = 0;
+        for (PrizeDef prize : def.prizes()) {
+            total += prize.weight();
+        }
+        int slot = 10;
+        for (PrizeDef prize : def.prizes()) {
+            if (slot > 16) {
+                break;
+            }
+            ItemStack item = prizeItem(prize);
+            ItemMeta meta = item.getItemMeta();
+            if (meta != null) {
+                double chance = total > 0 ? prize.weight() * 100.0 / total : 0;
+                List<Component> lore = new ArrayList<>();
+                lore.add(noItalic(component(TextUtil.color("&7Шанс: &f" + String.format(Locale.US, "%.1f", chance) + "%"))));
+                lore.add(noItalic(component(TextUtil.color("&7Выбивается только из: &f" + def.displayName()))));
+                lore.add(noItalic(component(TextUtil.color("&8Титул виден после ника в чате"))));
+                meta.lore(lore);
+                item.setItemMeta(meta);
+            }
+            inv.setItem(slot++, item);
+        }
+        inv.setItem(22, pane(Material.YELLOW_STAINED_GLASS_PANE, "&#FFD93DКейс: " + def.displayName()));
+        player.openInventory(inv);
+    }
+
     /** Маркер инвентаря рулетки. */
     static final class CaseHolder implements InventoryHolder {
         final String caseId;
@@ -98,22 +142,28 @@ public final class CaseService implements Listener {
                 continue;
             }
             List<PrizeDef> prizes = new ArrayList<>();
-            ConfigurationSection prizesSection = plugin.getConfig().getConfigurationSection(path + ".prizes");
-            if (prizesSection != null) {
-                for (String prizeId : prizesSection.getKeys(false)) {
-                    String pp = path + ".prizes." + prizeId;
-                    Material prizeMaterial = Material.matchMaterial(plugin.getConfig().getString(pp + ".material", "PAPER"));
-                    if (prizeMaterial == null) {
-                        continue;
-                    }
-                    prizes.add(new PrizeDef(
-                            prizeId,
-                            plugin.getConfig().getString(pp + ".name", prizeId),
-                            prizeMaterial,
-                            Math.max(1, plugin.getConfig().getInt(pp + ".weight", 100)),
-                            plugin.getConfig().getBoolean(pp + ".announce", false),
-                            plugin.getConfig().getStringList(pp + ".commands")));
+            for (Map<?, ?> raw : plugin.getConfig().getMapList(path + ".prizes")) {
+                String prizeId = String.valueOf(raw.get("id"));
+                Material prizeMaterial = Material.matchMaterial(String.valueOf(raw.get("material")));
+                if (prizeMaterial == null) {
+                    plugin.getLogger().warning("Кейс " + id + ", приз " + prizeId + ": неизвестный материал");
+                    continue;
                 }
+                int weight = raw.get("weight") instanceof Number ? ((Number) raw.get("weight")).intValue() : 100;
+                boolean announce = Boolean.TRUE.equals(raw.get("announce"));
+                List<String> commands = new ArrayList<>();
+                if (raw.get("commands") instanceof List) {
+                    for (Object cmd : (List<?>) raw.get("commands")) {
+                        commands.add(String.valueOf(cmd));
+                    }
+                }
+                prizes.add(new PrizeDef(
+                        prizeId,
+                        raw.get("name") == null ? prizeId : String.valueOf(raw.get("name")),
+                        prizeMaterial,
+                        Math.max(1, weight),
+                        announce,
+                        commands));
             }
             if (prizes.isEmpty()) {
                 plugin.getLogger().warning("Кейс " + id + ": нет призов, пропускаю");
@@ -480,14 +530,16 @@ public final class CaseService implements Listener {
     // ------------------------------------------------------------------ защита рулетки
     @EventHandler
     public void onClick(InventoryClickEvent event) {
-        if (event.getInventory().getHolder() instanceof CaseHolder) {
+        if (event.getInventory().getHolder() instanceof CaseHolder
+                || event.getInventory().getHolder() instanceof TitlesHolder) {
             event.setCancelled(true);
         }
     }
 
     @EventHandler
     public void onDrag(InventoryDragEvent event) {
-        if (event.getInventory().getHolder() instanceof CaseHolder) {
+        if (event.getInventory().getHolder() instanceof CaseHolder
+                || event.getInventory().getHolder() instanceof TitlesHolder) {
             event.setCancelled(true);
         }
     }

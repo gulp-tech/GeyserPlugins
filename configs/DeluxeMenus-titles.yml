@@ -1,0 +1,122 @@
+# DeluxeMenus — меню титулов VoidPE
+# Файл в: plugins/DeluxeMenus/gui_menus/titles.yml
+# Открытие: /titles (кнопка в главном меню: [player] titles)
+# Титулы НЕ продаются и НЕ выдаются командами — они выбиваются
+# ТОЛЬКО из кейса титулов (открывается предметом «Кейс титулов»
+# или у поставленного кейса на спавне: /cases set titles).
+menu_title: '• Титулы'
+open_command: titles
+register_command: true
+size: 27
+open_commands:
+  - '[sound] ITEM_BOOK_PAGE_TURN'
+items:
+
+  'Титул Везунчик':
+    slots:
+    - 10
+    material: NAME_TAG
+    display_name: '&#7CFC00[Везунчик]'
+    lore:
+      - ''
+      - '&fТитул после ника в чате.'
+      - '&7Шанс из кейса: &#7CFC0033.1%'
+      - ''
+      - '&#FFD93DВыбивается только из кейса титулов!'
+
+  'Титул Охотник':
+    slots:
+    - 11
+    material: NAME_TAG
+    display_name: '&#8CE8FF[Охотник]'
+    lore:
+      - ''
+      - '&fТитул после ника в чате.'
+      - '&7Шанс из кейса: &#8CE8FF24.3%'
+      - ''
+      - '&#FFD93DВыбивается только из кейса титулов!'
+
+  'Титул Богач':
+    slots:
+    - 12
+    material: NAME_TAG
+    display_name: '&#FFD93D[Богач]'
+    lore:
+      - ''
+      - '&fТитул после ника в чате.'
+      - '&7Шанс из кейса: &#FFD93D17.7%'
+      - ''
+      - '&#FFD93DВыбивается только из кейса титулов!'
+
+  'Титул Гроза':
+    slots:
+    - 13
+    material: NAME_TAG
+    display_name: '&#C86BFF[Гроза]'
+    lore:
+      - ''
+      - '&fТитул после ника в чате.'
+      - '&7Шанс из кейса: &#C86BFF12.1%'
+      - ''
+      - '&#FFD93DВыбивается только из кейса титулов!'
+
+  'Титул Призрак':
+    slots:
+    - 14
+    material: NAME_TAG
+    display_name: '&#B8B8FF[Призрак]'
+    lore:
+      - ''
+      - '&fТитул после ника в чате.'
+      - '&7Шанс из кейса: &#B8B8FF7.7%'
+      - ''
+      - '&#FFD93DВыбивается только из кейса титулов!'
+
+  'Титул Легенда':
+    slots:
+    - 15
+    material: NAME_TAG
+    display_name: '&#FF9A3D[Легенда]'
+    lore:
+      - ''
+      - '&fТитул после ника в чате.'
+      - '&7Шанс из кейса: &#FF9A3D3.9%'
+      - ''
+      - '&#FFD93DВыбивается только из кейса титулов!'
+
+  'Титул Миф':
+    slots:
+    - 16
+    material: NAME_TAG
+    display_name: '<gradient:#C86BFF:#FF7847>[Миф]</gradient>'
+    lore:
+      - ''
+      - '&fТитул после ника в чате.'
+      - '&7Шанс из кейса: &#FF78471.1%'
+      - ''
+      - '&#FFD93DВыбивается только из кейса титулов!'
+
+  'Как получить':
+    slots:
+    - 22
+    material: ENDER_CHEST
+    display_name: '&#FFD93DКак получить титул?'
+    lore:
+      - ''
+      - '&f1. Купи &bКейс титулов &fв донат-магазине.'
+      - '&f2. Открой его предметом в руке'
+      - '&f   или у кейса на спавне.'
+      - '&f3. Титул сам встанет после ника в чате.'
+      - ''
+      - '&7Других способов получить титул нет.'
+    click_commands:
+      - '[sound] ITEM_BOOK_PAGE_TURN'
+
+  'Назад в меню':
+    slots:
+    - 18
+    material: ARROW
+    display_name: '&fНазад'
+    click_commands:
+      - '[sound] ITEM_BOOK_PAGE_TURN'
+      - '[player] menu'
