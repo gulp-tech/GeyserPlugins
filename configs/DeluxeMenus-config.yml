@@ -1,0 +1,62 @@
+# DeluxeMenus 1.14.1-Release main configuration file
+#
+# A full wiki on how to use this plugin can be found at:
+# [https://wiki.helpch.at/helpchat-plugins/deluxemenus](https://wiki.helpch.at/helpchat-plugins/deluxemenus)
+#
+# Куда класть этот файл: plugins/DeluxeMenus/config.yml
+# Файлы меню лежат рядом: plugins/DeluxeMenus/gui_menus/*.yml
+# После замены: /dm reload (или полный рестарт сервера).
+
+check_updates: true
+
+debug: LOW
+
+use_admin_commands_in_menus_list: false
+
+menus_list_page_size: 10
+
+metas_list_page_size: 15
+
+gui_menus:
+
+  keys:
+
+    file: keys.yml
+
+  menu:
+
+    file: menu.yml
+
+  titles:
+
+    file: titles.yml
+
+  events:
+
+    file: events.yml
+
+  # --------- Донат-магазин VoidPE (разделы за осколки) ---------
+
+  shop:
+
+    file: shop.yml
+
+  shop_items:
+
+    file: shop_items.yml
+
+  shop_potions:
+
+    file: shop_potions.yml
+
+  shop_pickaxes:
+
+    file: shop_pickaxes.yml
+
+  shop_talismans:
+
+    file: shop_talismans.yml
+
+  shop_spheres:
+
+    file: shop_spheres.yml
