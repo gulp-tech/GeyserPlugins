@@ -139,6 +139,17 @@ public final class SidebarManager {
         }
     }
 
+    /** Титул игрока (суффикс LuckPerms из кейса титулов) без начального пробела. */
+    public String titleName(Player player) {
+        if (plugin.hooks().hasLuckPerms()) {
+            String suffix = plugin.hooks().luckPermsSuffix(player.getUniqueId());
+            if (suffix != null && !suffix.isBlank()) {
+                return suffix.trim();
+            }
+        }
+        return plugin.getConfig().getString("defaults.no-title", "&7Нет");
+    }
+
     private String renderTitle(Player player) {
         // Заголовок — маленькая картинка VoidPE из ресурспака: полоса глифов \uE010..\uE017,
         // высота ровно одна строка, как обычный текст, только текстурой.
@@ -235,17 +246,6 @@ public final class SidebarManager {
         String playtime = plugin.getConfig().getString("playtime.format", "{h}ч {m}м")
                 .replace("{h}", String.valueOf(hours))
                 .replace("{m}", String.valueOf(minutes));
-
-    /** Титул игрока (суффикс LuckPerms из кейса титулов) без начального пробела. */
-    public String titleName(Player player) {
-        if (plugin.hooks().hasLuckPerms()) {
-            String suffix = plugin.hooks().luckPermsSuffix(player.getUniqueId());
-            if (suffix != null && !suffix.isBlank()) {
-                return suffix.trim();
-            }
-        }
-        return plugin.getConfig().getString("defaults.no-title", "&7Нет");
-    }
 
         text = text.replace("{device_icon}", deviceIconChar(player));
         text = text.replace("{device}", deviceName(player));
