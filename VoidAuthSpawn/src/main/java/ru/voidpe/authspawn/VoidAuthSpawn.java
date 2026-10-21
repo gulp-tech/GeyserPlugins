@@ -48,6 +48,11 @@ import java.util.UUID;
  * (секция {@code return-after-login:}). Место запоминается при входе и
  * хранится в {@code return-locations.yml}, поэтому переживает рестарт.</p>
  *
+ * <p>Кроме того, зарегистрированного игрока телепортирует на прежнее место
+ * <b>сразу при входе</b>, не дожидаясь {@code /login}
+ * (секция {@code teleport-on-join:}), а место выхода авторизованного
+ * игрока запоминается при его выходе из игры.</p>
+ *
  * <p>Проверка идёт через официальный AuthMe API
  * ({@code fr.xephi.authme.api.v3.AuthMeApi#isRegistered}), с задержкой
  * после входа и несколькими повторными проверками: так телепорт нашего
@@ -110,6 +115,17 @@ public final class VoidAuthSpawn extends JavaPlugin implements Listener, Command
             final int attempt = i;
             Bukkit.getScheduler().runTaskLater(this, () -> checkPlayer(player, attempt), delay + interval * i);
         }
+        // Сразу при входе вернуть зарегистрированного игрока на прежнее место,
+        // не дожидаясь /login. Несколько попыток: AuthMe может телепортировать
+        // игрока к своему спавну чуть позже нас — вернём обратно.
+        if (getConfig().getBoolean("teleport-on-join.enabled", true)) {
+            long jDelay = Math.max(1L, getConfig().getLong("teleport-on-join.delay-ticks", 1L));
+            int jTimes = Math.max(1, getConfig().getInt("teleport-on-join.repeat-times", 3));
+            long jInterval = Math.max(1L, getConfig().getLong("teleport-on-join.repeat-interval-ticks", 10L));
+            for (int i = 0; i < jTimes; i++) {
+                Bukkit.getScheduler().runTaskLater(this, () -> tryJoinRestore(player), jDelay + jInterval * i);
+            }
+        }
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -139,10 +155,35 @@ public final class VoidAuthSpawn extends JavaPlugin implements Listener, Command
 
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
-        awaitingAuth.remove(event.getPlayer().getUniqueId());
-        messaged.remove(event.getPlayer().getUniqueId());
-        // returnLocations не чистим: прежнее место ещё пригодится после /login,
-        // а при следующем входе оно всё равно перезапишется.
+        Player player = event.getPlayer();
+        awaitingAuth.remove(player.getUniqueId());
+        messaged.remove(player.getUniqueId());
+        // Запоминаем, где авторизованный игрок вышел из игры: при следующем
+        // входе это и будет его «прежнее место». Если игрок вышел, так и не
+        // войдя (стоял у точки авторизации), старое место не затираем.
+        if (getConfig().getBoolean("enabled", true)
+                && getConfig().getBoolean("return-after-login.enabled", true)
+                && wasAuthenticated(player)) {
+            Location quit = player.getLocation().clone();
+            Location point = spawnLocation();
+            if (quit.getWorld() != null && (point == null || !isNear(quit, point, 2.0))) {
+                returnLocations.put(player.getUniqueId(), quit);
+                saveReturnLocations();
+            }
+        }
+    }
+
+    /** Был ли игрок авторизован в AuthMe (если AuthMe нет/не готов — считаем, что да). */
+    private boolean wasAuthenticated(Player player) {
+        if (!authMePresent()) {
+            return true;
+        }
+        try {
+            AuthMeApi api = AuthMeApi.getInstance();
+            return api == null || api.isAuthenticated(player);
+        } catch (NoClassDefFoundError | ExceptionInInitializerError | RuntimeException e) {
+            return true;
+        }
     }
 
     // ------------------------------------------------------------- логика
@@ -218,6 +259,11 @@ public final class VoidAuthSpawn extends JavaPlugin implements Listener, Command
             return getConfig().getBoolean("teleport.unregistered", true);
         }
         if (getConfig().getBoolean("teleport.not-logged-in", false)) {
+            if (getConfig().getBoolean("teleport-on-join.enabled", true)) {
+                // Игрока сразу при входе вернули на прежнее место — не надо
+                // следом уводить его к точке авторизации, телепорты будут драться.
+                return false;
+            }
             try {
                 return !api.isAuthenticated(player);
             } catch (RuntimeException e) {
@@ -237,9 +283,13 @@ public final class VoidAuthSpawn extends JavaPlugin implements Listener, Command
         UUID id = player.getUniqueId();
         Location old = returnLocations.get(id);
         Location point = spawnLocation();
-        // Если игрок вышел прямо у точки авторизации и зашёл обратно, не затираем
-        // настоящее прежнее место точкой: иначе возвращать будет некуда.
-        if (old != null && point != null && isNear(join, point, 2.0) && !isNear(old, point, 2.0)) {
+        if (point != null && isNear(join, point, 2.0)) {
+            // Появился прямо у точки авторизации (например, AuthMe сам ставит
+            // сюда спавн невошедших). Настоящее прежнее место не затираем
+            // точкой; если его ещё нет — потом подберём место выхода из AuthMe.
+            if (old == null || isNear(old, point, 2.0)) {
+                return;
+            }
             return;
         }
         returnLocations.put(id, join);
@@ -262,10 +312,7 @@ public final class VoidAuthSpawn extends JavaPlugin implements Listener, Command
         if (player.hasPermission("voidauthspawn.bypass")) {
             return;
         }
-        Location back = returnLocations.get(id);
-        if (back == null) {
-            back = authMeLastLocation(player); // запасной вариант: сохранённое AuthMe место выхода
-        }
+        Location back = resolvePrevious(player);
         if (back == null || back.getWorld() == null) {
             return;
         }
@@ -314,6 +361,85 @@ public final class VoidAuthSpawn extends JavaPlugin implements Listener, Command
     private boolean isNear(Location a, Location b, double radius) {
         return a.getWorld() != null && a.getWorld().equals(b.getWorld())
                 && a.distanceSquared(b) <= radius * radius;
+    }
+
+    /**
+     * Прежнее место игрока по приоритету: наше хранилище (место выхода/появления),
+     * затем сохранённое AuthMe место выхода. Места у самой точки авторизации
+     * пропускаются — возвращать туда бессмысленно.
+     */
+    private Location resolvePrevious(Player player) {
+        Location point = spawnLocation();
+        Location stored = returnLocations.get(player.getUniqueId());
+        if (stored != null && stored.getWorld() != null && (point == null || !isNear(stored, point, 2.0))) {
+            return stored;
+        }
+        Location fromAuthMe = authMeLastLocation(player);
+        if (fromAuthMe != null && fromAuthMe.getWorld() != null && (point == null || !isNear(fromAuthMe, point, 2.0))) {
+            returnLocations.put(player.getUniqueId(), fromAuthMe.clone());
+            saveReturnLocations();
+            return fromAuthMe;
+        }
+        return stored; // может совпадать с точкой — вызывающий код это проверит
+    }
+
+    /**
+     * Сразу при входе: зарегистрированного, но ещё не вошедшего игрока
+     * телепортируем на прежнее место, не дожидаясь, пока он напишет /login.
+     */
+    private void tryJoinRestore(Player player) {
+        if (!player.isOnline() || !getConfig().getBoolean("enabled", true)
+                || !getConfig().getBoolean("teleport-on-join.enabled", true)) {
+            return;
+        }
+        if (player.hasPermission("voidauthspawn.bypass") || !authMePresent()) {
+            return;
+        }
+        AuthMeApi api;
+        try {
+            api = AuthMeApi.getInstance();
+        } catch (NoClassDefFoundError | ExceptionInInitializerError e) {
+            return;
+        }
+        if (api == null) {
+            return; // AuthMe ещё не готов — будет следующая попытка
+        }
+        boolean registered;
+        boolean authenticated;
+        try {
+            registered = api.isRegistered(player.getName());
+            authenticated = registered && api.isAuthenticated(player);
+        } catch (RuntimeException e) {
+            return;
+        }
+        if (!registered) {
+            unregisteredAtJoin.add(player.getUniqueId());
+            return; // незарегистрированных ведёт отдельный поток к точке регистрации
+        }
+        if (authenticated) {
+            return; // уже вошёл (например, по сессии) — возврат после /login не нужен
+        }
+        Location target = resolvePrevious(player);
+        if (target == null || target.getWorld() == null) {
+            return;
+        }
+        Location point = spawnLocation();
+        if (point != null && isNear(target, point, 2.0)) {
+            return; // прежнее место — сама точка авторизации
+        }
+        if (isNear(player.getLocation(), target, 1.0)) {
+            return; // игрок уже появился на прежнем месте
+        }
+        player.teleport(target.clone());
+        if (getConfig().getBoolean("teleport-on-join.play-sound", true)) {
+            String sound = getConfig().getString("teleport.sound", "minecraft:entity.enderman.teleport");
+            if (sound != null && !sound.isBlank()) {
+                player.playSound(target, sound, 0.7f, 1.0f);
+            }
+        }
+        if (messaged.add(player.getUniqueId())) {
+            send(player, msg("returned-on-join"));
+        }
     }
 
     private Location authMeLastLocation(Player player) {
