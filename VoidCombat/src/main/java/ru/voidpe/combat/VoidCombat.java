@@ -1,6 +1,6 @@
 package ru.voidpe.combat;
 
-import io.papermc.paper.event.player.PlayerElytraBoostEvent;
+import com.destroystokyo.paper.event.player.PlayerElytraBoostEvent;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
