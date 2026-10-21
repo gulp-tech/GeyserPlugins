@@ -109,6 +109,12 @@ groups:
       - warps
       - points
       - menu
+      - shop
+      - shopitems
+      - shoppotions
+      - shoppickaxes
+      - shoptalismans
+      - shopspheres
     #The list of commands that will be made visible only in tabcomplete
     tabcomplete:
       - spawn
@@ -152,6 +158,12 @@ groups:
       - warps
       - points
       - menu
+      - shop
+      - shopitems
+      - shoppotions
+      - shoppickaxes
+      - shoptalismans
+      - shopspheres
     #If a player is in two groups, the group with the higher priority number is used
     #The minimum value is 0
     priority: 0
