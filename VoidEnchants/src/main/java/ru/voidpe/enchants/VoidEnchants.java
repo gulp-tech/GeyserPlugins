@@ -18,6 +18,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.enchantment.EnchantItemEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
@@ -26,7 +27,10 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.inventory.PrepareAnvilEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.AnvilInventory;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
@@ -72,6 +76,10 @@ public final class VoidEnchants extends JavaPlugin implements Listener, TabCompl
     private static final int COMBINE_LEFT = 10;
     private static final int COMBINE_RIGHT = 12;
     private static final int COMBINE_RESULT = 16;
+    private static final int COMBINE_VANILLA = 22;
+
+    /** Где игрок открыл Bedrock-наковальню через физический блок наковальни. */
+    private final Map<UUID, Location> lastAnvilLocation = new HashMap<>();
 
     /** Маркер меню кастомной наковальни. */
     static final class CombineHolder implements InventoryHolder {
@@ -719,6 +727,18 @@ public final class VoidEnchants extends JavaPlugin implements Listener, TabCompl
             plus.setItemMeta(plusMeta);
         }
         inv.setItem(14, plus);
+        ItemStack vanilla = new ItemStack(Material.ANVIL);
+        ItemMeta vanillaMeta = vanilla.getItemMeta();
+        if (vanillaMeta != null) {
+            vanillaMeta.displayName(comp(getConfig().getString("combine-menu.vanilla-name", "&fОбычная наковальня")));
+            List<Component> vanillaLore = new ArrayList<>();
+            for (String line : getConfig().getStringList("combine-menu.vanilla-lore")) {
+                vanillaLore.add(comp(line));
+            }
+            vanillaMeta.lore(vanillaLore);
+            vanilla.setItemMeta(vanillaMeta);
+        }
+        inv.setItem(COMBINE_VANILLA, vanilla);
         inv.setItem(COMBINE_LEFT, null);
         inv.setItem(COMBINE_RIGHT, null);
         inv.setItem(COMBINE_RESULT, null);
@@ -768,6 +788,57 @@ public final class VoidEnchants extends JavaPlugin implements Listener, TabCompl
         }
     }
 
+    /**
+     * Физическая наковальня для Bedrock: обычное нажатие открывает серверное
+     * Bedrock-меню объединения, потому что нативный экран Bedrock показывает
+     * красный X на кастомных книгах. Приседание (если включено в конфиге)
+     * оставляет обычную наковальню для переименования и ванильных дел.
+     */
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onPhysicalAnvil(PlayerInteractEvent event) {
+        if (!getConfig().getBoolean("bedrock-anvil.enabled", true)) {
+            return;
+        }
+        if (event.getHand() != EquipmentSlot.HAND || event.getAction() != Action.RIGHT_CLICK_BLOCK) {
+            return;
+        }
+        Block block = event.getClickedBlock();
+        if (block == null) {
+            return;
+        }
+        Material type = block.getType();
+        if (type != Material.ANVIL && type != Material.CHIPPED_ANVIL && type != Material.DAMAGED_ANVIL) {
+            return;
+        }
+        Player player = event.getPlayer();
+        if (getConfig().getBoolean("bedrock-anvil.sneak-opens-vanilla", true) && player.isSneaking()) {
+            return; // обычная наковальня: переименование и полностью ванильные объединения
+        }
+        event.setCancelled(true);
+        lastAnvilLocation.put(player.getUniqueId(), block.getLocation().clone());
+        Bukkit.getScheduler().runTask(this, () -> {
+            if (player.isOnline()) {
+                openCombineMenu(player);
+            }
+        });
+    }
+
+    /** Открыть обычную наковальню из Bedrock-меню (кнопка снизу по центру). */
+    private void openVanillaAnvil(Player player) {
+        Location location = lastAnvilLocation.getOrDefault(player.getUniqueId(), player.getLocation());
+        player.closeInventory(); // обработчик закрытия вернёт входные предметы
+        Bukkit.getScheduler().runTask(this, () -> {
+            if (player.isOnline()) {
+                player.openAnvil(location, true);
+            }
+        });
+    }
+
+    @EventHandler
+    public void onCombineQuit(PlayerQuitEvent event) {
+        lastAnvilLocation.remove(event.getPlayer().getUniqueId());
+    }
+
     @EventHandler
     public void onCombineClick(InventoryClickEvent event) {
         if (!(event.getInventory().getHolder() instanceof CombineHolder)) {
@@ -780,6 +851,13 @@ public final class VoidEnchants extends JavaPlugin implements Listener, TabCompl
                 event.setCancelled(true);
                 if (event.getWhoClicked() instanceof Player) {
                     takeCombineResult((Player) event.getWhoClicked(), top);
+                }
+                return;
+            }
+            if (slot == COMBINE_VANILLA) {
+                event.setCancelled(true);
+                if (event.getWhoClicked() instanceof Player) {
+                    openVanillaAnvil((Player) event.getWhoClicked());
                 }
                 return;
             }

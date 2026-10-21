@@ -146,6 +146,10 @@ jobs:
             fi
           fi
 
+      - name: Собрать Geyser extension VoidAnvil
+        working-directory: VoidAnvilExtension
+        run: ./gradlew --no-daemon clean build
+
       - name: Собрать Bedrock ресурспак (.mcpack)
         run: python3 tools/build_mcpack.py
 
@@ -161,8 +165,9 @@ jobs:
           CLN=$(ls VoidClans/target/VoidClans-*.jar | head -1)
           DRP=$(ls VoidDrops/target/VoidDrops-*.jar | head -1)
           CMB=$(ls VoidCombat/target/VoidCombat-*.jar | head -1)
+          ANV=$(ls VoidAnvilExtension/build/libs/VoidAnvilExtension-*.jar | head -1)
           echo "Файлы релиза: $JAR + $TAL + $ITM + VoidResourcePack.mcpack"
-          gh release create "${{ inputs.tag || github.ref_name }}" "$JAR" "$TAL" "$ITM" "$ENC" "$CAS" "$CLN" "$DRP" "$CMB" VoidResourcePack.mcpack VoidSpheres.mcpack \
+          gh release create "${{ inputs.tag || github.ref_name }}" "$JAR" "$TAL" "$ITM" "$ENC" "$CAS" "$CLN" "$DRP" "$CMB" "$ANV" VoidResourcePack.mcpack VoidSpheres.mcpack \
             --target "$GITHUB_SHA" \
             --title "VoidPE ${{ inputs.tag || github.ref_name }} — FaralTab + ресурспак" \
             --notes "Bedrock-only сервер VoidPE (Purpur 26.2 + Geyser + Floodgate).

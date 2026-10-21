@@ -143,6 +143,10 @@ jobs:
             fi
           fi
 
+      - name: Собрать Geyser extension VoidAnvil
+        working-directory: VoidAnvilExtension
+        run: ./gradlew --no-daemon clean build
+
       - name: Собрать Bedrock ресурспак (.mcpack)
         run: python3 tools/build_mcpack.py
 
@@ -157,4 +161,5 @@ jobs:
             VoidClans/target/VoidClans-*.jar
             VoidDrops/target/VoidDrops-*.jar
             VoidCombat/target/VoidCombat-*.jar
+            VoidAnvilExtension/build/libs/VoidAnvilExtension-*.jar
             VoidResourcePack.mcpack
