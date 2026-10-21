@@ -154,10 +154,10 @@ jobs:
           code=$?
           cat gradle.log
           if [ "$code" -ne 0 ]; then
-            grep -E "FAILURE|What went wrong|Execution failed|error:|Could not|Caused by|Exception" gradle.log | head -40 | sed 's/%/%25/g; s//%0D/g; s/
-/%0A/g; s/^/::error::/'
-            tail -30 gradle.log | sed 's/%/%25/g; s//%0D/g; s/
-/%0A/g; s/^/::error::/'
+            grep -E "FAILURE|What went wrong|Execution failed|error:|Could not|Caused by|Exception" gradle.log | head -40 | sed 's/%/%25/g; s/
+/%0D/g; s/\n/%0A/g; s/^/::error::/'
+            tail -30 gradle.log | sed 's/%/%25/g; s/
+/%0D/g; s/\n/%0A/g; s/^/::error::/'
             exit "$code"
           fi
 
