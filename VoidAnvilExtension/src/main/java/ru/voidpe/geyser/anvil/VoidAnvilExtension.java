@@ -10,7 +10,6 @@ import org.geysermc.geyser.api.event.lifecycle.GeyserPostInitializeEvent;
 import org.geysermc.geyser.api.extension.Extension;
 
 import java.util.List;
-import java.util.function.Consumer;
 
 /**
  * VoidAnvilExtension — Bedrock-only вход в наковальню VoidPE.
@@ -50,10 +49,16 @@ public final class VoidAnvilExtension implements Extension {
                         + "и показывает красный X, поэтому объединение считает сервер.\n\n"
                         + "Положите два предмета в слоты меню: инструмент + книгу, "
                         + "книгу + книгу или два одинаковых инструмента.")
-                .button("Открыть наковальню", (Consumer<SimpleFormResponse>) response -> connection.sendCommand("vench anvil"))
-                .button("Просто нажмите на наковальню", (Consumer<SimpleFormResponse>) response ->
+                .button("Открыть наковальню")
+                .button("Как пользоваться")
+                .validResultHandler(response -> {
+                    if (response.clickedButtonId() == 0) {
+                        connection.sendCommand("vench anvil");
+                    } else {
                         connection.sendMessage("Нажмите на обычную наковальню в мире — откроется Bedrock-наковальня. "
-                                + "Для переименования и ванильных объединений присядьте перед нажатием."))
+                                + "Для переименования и ванильных объединений присядьте перед нажатием.");
+                    }
+                })
                 .build();
         connection.sendForm(form);
     }
