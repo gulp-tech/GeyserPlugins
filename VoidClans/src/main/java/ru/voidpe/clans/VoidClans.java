@@ -25,6 +25,11 @@ public final class VoidClans extends JavaPlugin implements CommandExecutor, TabC
         saveDefaultConfig();
         service = new ClanService(this);
         getServer().getPluginManager().registerEvents(service, this);
+        if (Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+            if (new ClanPlaceholders(this).register()) {
+                getLogger().info("PlaceholderAPI: плейсхолдеры %voidclans_% зарегистрированы");
+            }
+        }
         if (getCommand("clan") != null) {
             getCommand("clan").setExecutor(this);
             getCommand("clan").setTabCompleter(this);

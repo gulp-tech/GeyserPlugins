@@ -15,6 +15,8 @@
 
 animation:
   duration-ticks: 90        # длина рулетки (90 = 4.5 сек)
+  final-hold-ticks: 20      # сколько выигрыш ещё висит над кейсом в конце (20 = 1 сек)
+  show-prize-name: true     # название текущей награды над крутящимся предметом
   spin-sound: "block.note_block.hat"
   win-sound: "entity.player.levelup"
   open-sound: "block.chest.open"

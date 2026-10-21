@@ -106,6 +106,7 @@ public final class CaseService implements Listener {
     private final Map<UUID, Map<String, Integer>> keys = new HashMap<>(); // виртуальные ключи: игрок -> кейс -> кол-во
     private final java.io.File keysFile;
     private final Map<String, String> placedCases = new LinkedHashMap<>(); // "world,x,y,z" -> id кейса
+    private final Map<String, Integer> placedOpeningCounts = new HashMap<>(); // открытых анимаций у поставленного кейса
     private final java.io.File placedFile;
 
     public CaseService(VoidCases plugin) {
@@ -365,7 +366,7 @@ public final class CaseService implements Listener {
                 int x = Integer.parseInt(parts[1]);
                 int y = Integer.parseInt(parts[2]);
                 int z = Integer.parseInt(parts[3]);
-                if (world.isChunkLoaded(x >> 4, z >> 4)) {
+                if (world.isChunkLoaded(x >> 4, z >> 4) && !isPlacedOpening(new Location(world, x, y, z))) {
                     CaseDef def = byId(e.getValue());
                     if (def != null) {
                         ensureHologram(new Location(world, x, y, z), def);
@@ -385,12 +386,41 @@ public final class CaseService implements Listener {
             int x = Integer.parseInt(parts[1]);
             int y = Integer.parseInt(parts[2]);
             int z = Integer.parseInt(parts[3]);
-            if ((x >> 4) == event.getChunk().getX() && (z >> 4) == event.getChunk().getZ()) {
+            Location loc = new Location(event.getWorld(), x, y, z);
+            if ((x >> 4) == event.getChunk().getX() && (z >> 4) == event.getChunk().getZ()
+                    && !isPlacedOpening(loc)) {
                 CaseDef def = byId(e.getValue());
                 if (def != null) {
-                    ensureHologram(new Location(event.getWorld(), x, y, z), def);
+                    ensureHologram(loc, def);
                 }
             }
+        }
+    }
+
+    private boolean isPlacedOpening(Location blockLoc) {
+        return blockLoc != null && placedOpeningCounts.getOrDefault(key(blockLoc), 0) > 0;
+    }
+
+    private void beginPlacedOpening(Location blockLoc) {
+        String locKey = key(blockLoc);
+        int count = placedOpeningCounts.getOrDefault(locKey, 0) + 1;
+        placedOpeningCounts.put(locKey, count);
+        if (count == 1) {
+            removeHologram(blockLoc); // на время анимации голограмма не мешает награде
+        }
+    }
+
+    private void endPlacedOpening(Location blockLoc, CaseDef def) {
+        String locKey = key(blockLoc);
+        int count = placedOpeningCounts.getOrDefault(locKey, 0) - 1;
+        if (count > 0) {
+            placedOpeningCounts.put(locKey, count);
+            return;
+        }
+        placedOpeningCounts.remove(locKey);
+        // Возвращаем голограмму только если кейс всё ещё стоит на этом блоке.
+        if (def != null && def.id().equalsIgnoreCase(placedCaseAt(blockLoc))) {
+            ensureHologram(blockLoc, def);
         }
     }
 
@@ -404,7 +434,8 @@ public final class CaseService implements Listener {
             msg(player, "need-keys", def, null);
             return;
         }
-        openCase(player, def, blockLoc.clone().add(0.5, 1.3, 0.5));
+        beginPlacedOpening(blockLoc);
+        openCase(player, def, blockLoc.clone().add(0.5, 1.15, 0.5), blockLoc);
     }
 
     /** Открыть кейс из любого места (/cases open): анимация крутится над игроком. */
@@ -417,7 +448,7 @@ public final class CaseService implements Listener {
             msg(player, "need-keys", def, null);
             return;
         }
-        openCase(player, def, player.getLocation().add(0, 1.6, 0));
+        openCase(player, def, player.getLocation().add(0, 1.6, 0), null);
     }
 
     /**
@@ -542,57 +573,146 @@ public final class CaseService implements Listener {
      * Анимация открытия СНАРУЖИ: над кейсом (или над игроком) крутится предмет,
      * призы мелькают и замедляются, в конце — выигрыш, фейерверк и приз.
      */
-    private void openCase(Player player, CaseDef def, Location anchor) {
+    private void openCase(Player player, CaseDef def, Location anchor, Location placedBlock) {
         opening.add(player.getUniqueId());
         playSound(player, cfg("animation.open-sound", "block.chest.open"), 1.0f);
+
+        final PrizeDef winningPrize = randomPrize(def);
         final Item display;
+        final ArmorStand prizeLabel;
         try {
-            display = anchor.getWorld().dropItem(anchor, prizeItem(randomPrize(def)));
+            PrizeDef firstPrize = randomPrize(def);
+            display = anchor.getWorld().dropItem(anchor, prizeItem(firstPrize));
             display.setGravity(false);
             display.setInvulnerable(true);
             display.setPickupDelay(Integer.MAX_VALUE);
             display.setVelocity(new org.bukkit.util.Vector(0, 0, 0));
+            prizeLabel = spawnPrizeLabel(anchor.clone().add(0, 0.55, 0), firstPrize);
         } catch (Throwable t) {
             opening.remove(player.getUniqueId());
+            if (placedBlock != null) {
+                endPlacedOpening(placedBlock, def);
+            }
+            plugin.getLogger().warning("Не удалось запустить анимацию кейса: " + t.getMessage());
             return;
         }
+
         final int duration = Math.max(40, plugin.getConfig().getInt("animation.duration-ticks", 90));
+        final int finalHold = Math.max(0, plugin.getConfig().getInt("animation.final-hold-ticks", 20));
         new BukkitRunnable() {
             int ticks = 0;
             int sinceUpdate = 0;
-            float yaw = 0;
+            int holdTicks = 0;
+            boolean finishing = false;
+            boolean cleaned = false;
+            PrizeDef shownPrize;
+
+            private void cleanup(boolean awardPrize) {
+                if (cleaned) {
+                    return;
+                }
+                cleaned = true;
+                display.remove();
+                if (prizeLabel != null) {
+                    prizeLabel.remove();
+                }
+                opening.remove(player.getUniqueId());
+                if (placedBlock != null) {
+                    endPlacedOpening(placedBlock, def); // голограмма возвращается после анимации
+                }
+                if (awardPrize) {
+                    award(player, def, winningPrize, anchor);
+                }
+            }
+
+            private void showPrize(PrizeDef prize) {
+                shownPrize = prize;
+                display.setItemStack(prizeItem(prize));
+                if (prizeLabel != null && prizeLabel.isValid()) {
+                    prizeLabel.customName(noItalic(component(TextUtil.color(prize.name()))));
+                }
+            }
 
             @Override
             public void run() {
                 if (!player.isOnline() || !display.isValid()) {
-                    display.remove();
-                    opening.remove(player.getUniqueId());
+                    // Игрок вышел до конца — ключ возвращаем, чтобы награда не сгорела из-за дисконнекта.
+                    if (player != null && !finishing) {
+                        addKeys(player.getUniqueId(), def.id(), 1);
+                    }
+                    cleanup(false);
                     cancel();
                     return;
                 }
+
+                if (finishing) {
+                    // Выигрыш спокойно висит над кейсом, чтобы игрок успел прочитать название.
+                    Location settled = anchor.clone().add(0, 0.22 + Math.sin(holdTicks * 0.25) * 0.02, 0);
+                    display.teleport(settled);
+                    if (prizeLabel != null && prizeLabel.isValid()) {
+                        prizeLabel.teleport(settled.clone().add(0, 0.55, 0));
+                    }
+                    holdTicks++;
+                    if (holdTicks >= finalHold) {
+                        cleanup(true);
+                        cancel();
+                    }
+                    return;
+                }
+
                 ticks++;
                 sinceUpdate++;
-                yaw += 24;
-                Location spin = anchor.clone();
-                spin.setYaw(yaw);
+                double progress = Math.min(1.0, (double) ticks / duration);
+                // Плавный подъём по дуге, лёгкое кружение и постепенная остановка в центре.
+                double angle = ticks * (0.42 - 0.27 * progress);
+                double radius = 0.16 * (1.0 - progress);
+                Location spin = anchor.clone().add(
+                        Math.cos(angle) * radius,
+                        Math.sin(progress * Math.PI) * 0.30 + Math.sin(ticks * 0.45) * 0.025,
+                        Math.sin(angle) * radius);
+                spin.setYaw((float) Math.toDegrees(angle));
                 display.teleport(spin);
-                int interval = ticks < duration * 0.45 ? 2
-                        : ticks < duration * 0.72 ? 4
-                        : ticks < duration * 0.9 ? 7 : 10;
+                if (prizeLabel != null && prizeLabel.isValid()) {
+                    prizeLabel.teleport(spin.clone().add(0, 0.55, 0));
+                }
+
+                // Интервал смены наград плавно растёт: 2 -> 12 тиков (без резких ступеней).
+                int interval = Math.max(2, (int) Math.round(2 + 10 * progress * progress));
                 if (sinceUpdate >= interval && ticks < duration) {
                     sinceUpdate = 0;
-                    display.setItemStack(prizeItem(randomPrize(def)));
+                    showPrize(randomPrize(def));
                     playSound(player, cfg("animation.spin-sound", "block.note_block.hat"),
-                            0.8f + Math.min(0.7f, ticks / (float) duration * 0.7f));
+                            0.75f + (float) (0.55f * (1.0 - progress)));
                 }
                 if (ticks >= duration) {
-                    cancel();
-                    display.remove();
-                    opening.remove(player.getUniqueId());
-                    award(player, def, randomPrize(def), anchor);
+                    showPrize(winningPrize); // финальный предмет совпадает с реально выданной наградой
+                    playSound(player, cfg("animation.win-sound", "entity.player.levelup"), 1.0f);
+                    finishing = true;
                 }
             }
         }.runTaskTimer(plugin, 1L, 1L);
+    }
+
+    /** Подпись текущей награды над крутящимся предметом. */
+    private ArmorStand spawnPrizeLabel(Location loc, PrizeDef prize) {
+        if (!plugin.getConfig().getBoolean("animation.show-prize-name", true)) {
+            return null;
+        }
+        try {
+            return loc.getWorld().spawn(loc, ArmorStand.class, stand -> {
+                stand.setVisible(false);
+                stand.setGravity(false);
+                stand.setMarker(true);
+                stand.setInvulnerable(true);
+                stand.setPersistent(false);
+                stand.setCustomNameVisible(true);
+                stand.customName(noItalic(component(TextUtil.color(prize.name()))));
+                stand.addScoreboardTag("voidcases_animation_label");
+            });
+        } catch (Throwable t) {
+            plugin.getLogger().warning("Не удалось создать подпись награды: " + t.getMessage());
+            return null;
+        }
     }
 
     /** Выдать приз: команды консоли, сообщения, заголовок, объявление, фейерверк. */
@@ -672,20 +792,12 @@ public final class CaseService implements Listener {
     }
 
     // ------------------------------------------------------------------ утилиты
-    /**
-     * Плоское «стекло» для меню: обычный предмет (бумага) с item_model voidpe:pane_*.
-     * Geyser по маппингу (configs/Geyser-panes-mapping.json) показывает плоскую иконку
-     * из пака — строго спереди, не боком, как настоящая стекло-панель.
-     */
+    /** Обычное ванильное стекло для меню (как просил владелец: без кастомных иконок). */
     private ItemStack pane(boolean yellow, String name) {
-        ItemStack stack = new ItemStack(Material.PAPER);
+        ItemStack stack = new ItemStack(yellow ? Material.YELLOW_STAINED_GLASS_PANE : Material.BLACK_STAINED_GLASS_PANE);
         ItemMeta meta = stack.getItemMeta();
         if (meta != null) {
             meta.displayName(noItalic(component(TextUtil.color(name))));
-            try {
-                meta.setItemModel(new NamespacedKey("voidpe", yellow ? "pane_yellow" : "pane_black"));
-            } catch (Throwable ignored) {
-            }
             stack.setItemMeta(meta);
         }
         return stack;

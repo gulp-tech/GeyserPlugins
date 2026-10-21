@@ -63,6 +63,14 @@ roles:
     permissions: []
 default-role: member        # роль новых участников
 
+# Плейсхолдеры PlaceholderAPI для ChatEx и других плагинов:
+# %voidclans_tag% — готовый цветной тег клана, %voidclans_name% — просто название.
+# Полный список: tag, name, role, role_id, leader, level, xp, bank,
+# members, members_online, max_members, homes, has_clan, is_leader.
+placeholders:
+  tag-format: "&8[&#C86BFF{clan}&8]&r"  # &r в конце: тег не красит ник дальше
+  no-clan: ""                            # что вернёт %voidclans_name%, если клана нет
+
 menu:
   title: "&#C86BFFКлан"
   title-none: "&#C86BFFКланы"

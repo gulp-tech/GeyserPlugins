@@ -1015,19 +1015,9 @@ public final class ClanService implements Listener {
         return stack;
     }
 
-    /** Плоское «стекло»-заполнитель: бумага с item_model voidpe:pane_black (иконка пака строго спереди). */
+    /** Обычное ванильное чёрное стекло-заполнитель для меню. */
     private ItemStack filler() {
-        ItemStack stack = new ItemStack(Material.PAPER);
-        ItemMeta meta = stack.getItemMeta();
-        if (meta != null) {
-            meta.displayName(comp(" "));
-            try {
-                meta.setItemModel(new org.bukkit.NamespacedKey("voidpe", "pane_black"));
-            } catch (Throwable ignored) {
-            }
-            stack.setItemMeta(meta);
-        }
-        return stack;
+        return btn(Material.BLACK_STAINED_GLASS_PANE, " ");
     }
 
     private void fill(Inventory inv) {
