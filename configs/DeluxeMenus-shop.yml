@@ -98,7 +98,7 @@ items:
 
   'Раздел талисманы':
     slots:
-    - 21
+    - 29
     material: TOTEM_OF_UNDYING
     display_name: '&#FFD93DТалисманы'
     lore:
@@ -113,7 +113,7 @@ items:
 
   'Раздел сферы':
     slots:
-    - 23
+    - 31
     material: PAPER
     item_model: voidspheres:sphere1
     model_data_component:
@@ -128,6 +128,21 @@ items:
     click_commands:
       - '[sound] ITEM_BOOK_PAGE_TURN'
       - '[openguimenu] shop_spheres'
+
+  'Раздел зачарования':
+    slots:
+    - 33
+    material: ENCHANTED_BOOK
+    display_name: '&#C86BFFКастомные зачарования'
+    lore:
+      - ''
+      - '&7Книги: Автоплавка, Магнит и Бур.'
+      - '&7Накладываются на инструмент на наковальне.'
+      - ''
+      - '&eНажми, чтобы открыть раздел'
+    click_commands:
+      - '[sound] ITEM_BOOK_PAGE_TURN'
+      - '[openguimenu] shop_enchants'
 
   'В главное меню':
     slots:

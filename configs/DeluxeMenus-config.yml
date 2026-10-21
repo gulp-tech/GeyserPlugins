@@ -60,3 +60,7 @@ gui_menus:
   shop_spheres:
 
     file: shop_spheres.yml
+
+  shop_enchants:
+
+    file: shop_enchants.yml

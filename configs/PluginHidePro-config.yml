@@ -115,6 +115,7 @@ groups:
       - shoppickaxes
       - shoptalismans
       - shopspheres
+      - shopenchants
     #The list of commands that will be made visible only in tabcomplete
     tabcomplete:
       - spawn
@@ -164,6 +165,7 @@ groups:
       - shoppickaxes
       - shoptalismans
       - shopspheres
+      - shopenchants
     #If a player is in two groups, the group with the higher priority number is used
     #The minimum value is 0
     priority: 0
