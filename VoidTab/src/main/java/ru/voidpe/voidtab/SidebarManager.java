@@ -236,6 +236,17 @@ public final class SidebarManager {
                 .replace("{h}", String.valueOf(hours))
                 .replace("{m}", String.valueOf(minutes));
 
+    /** Титул игрока (суффикс LuckPerms из кейса титулов) без начального пробела. */
+    public String titleName(Player player) {
+        if (plugin.hooks().hasLuckPerms()) {
+            String suffix = plugin.hooks().luckPermsSuffix(player.getUniqueId());
+            if (suffix != null && !suffix.isBlank()) {
+                return suffix.trim();
+            }
+        }
+        return plugin.getConfig().getString("defaults.no-title", "&7Нет");
+    }
+
         text = text.replace("{device_icon}", deviceIconChar(player));
         text = text.replace("{device}", deviceName(player));
 
@@ -244,6 +255,7 @@ public final class SidebarManager {
         values.put("group", group);
         values.put("group_icon", rankIconChar(player));
         values.put("group_raw", groupRaw);
+        values.put("title", titleName(player));
         values.put("coins", coins);
         values.put("coins_raw", balance < 0 ? "0" : String.valueOf((long) balance));
         values.put("shards", shards);

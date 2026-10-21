@@ -7,7 +7,6 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.ArrayList;
@@ -28,6 +27,7 @@ public final class VoidCases extends JavaPlugin implements CommandExecutor, TabC
         saveDefaultConfig();
         service = new CaseService(this);
         getServer().getPluginManager().registerEvents(service, this);
+        service.initHolograms();
         if (getCommand("cases") != null) {
             getCommand("cases").setExecutor(this);
             getCommand("cases").setTabCompleter(this);
@@ -124,7 +124,7 @@ public final class VoidCases extends JavaPlugin implements CommandExecutor, TabC
                 send(sender, getConfig().getString("messages.case-not-found", "&cТакого кейса нет."));
                 return true;
             }
-            service.setPlaced(target, def, player.getFacing().getOppositeFace());
+            service.setPlaced(target, def);
             String done = getConfig().getString("messages.set-done", "&aКейс поставлен: {case}")
                     .replace("{case}", def.displayName());
             send(sender, done);
@@ -155,20 +155,57 @@ public final class VoidCases extends JavaPlugin implements CommandExecutor, TabC
                 } catch (NumberFormatException ignored) {
                 }
             }
-            Map<Integer, ItemStack> rest = target.getInventory().addItem(service.createCaseItem(def, amount));
-            for (ItemStack drop : rest.values()) {
-                target.getWorld().dropItemNaturally(target.getLocation(), drop);
-            }
-            String received = getConfig().getString("messages.received", "&aВыдан кейс: {case}")
+            service.addKeys(target.getUniqueId(), def.id(), amount);
+            String received = getConfig().getString("messages.received", "&aТебе выдан виртуальный ключ: {case}")
                     .replace("{case}", def.displayName())
                     .replace("{amount}", String.valueOf(amount));
             target.sendMessage(CaseService.component(prefix() + TextUtil.color(received)));
             if (!sender.equals(target)) {
-                String given = getConfig().getString("messages.given", "&aВыдан кейс игроку {player}")
+                String given = getConfig().getString("messages.given", "&aИгроку {player} выдан виртуальный ключ: {case}")
                         .replace("{player}", target.getName())
                         .replace("{case}", def.displayName())
                         .replace("{amount}", String.valueOf(amount));
                 send(sender, given);
+            }
+            return true;
+        }
+        if (sub.equals("open")) {
+            if (!(sender instanceof Player)) {
+                send(sender, "&cКоманда только для игроков.");
+                return true;
+            }
+            if (args.length < 2) {
+                send(sender, "&7Использование: &f/cases open <кейс> &8(список: /cases list)");
+                return true;
+            }
+            CaseService.CaseDef def = service.byId(args[1]);
+            if (def == null) {
+                send(sender, getConfig().getString("messages.case-not-found", "&cТакого кейса нет."));
+                return true;
+            }
+            service.tryOpen((Player) sender, def);
+            return true;
+        }
+        if (sub.equals("keys")) {
+            if (!(sender instanceof Player)) {
+                send(sender, "&cКоманда только для игроков.");
+                return true;
+            }
+            Player player = (Player) sender;
+            send(sender, getConfig().getString("messages.keys-title", "&#FFD93DТвои ключи:"));
+            boolean any = false;
+            for (CaseService.CaseDef def : service.all()) {
+                int have = service.keyCount(player.getUniqueId(), def.id());
+                if (have > 0) {
+                    any = true;
+                    send(sender, getConfig().getString("messages.keys-line", "&7- {case}&7: &f{amount}")
+                            .replace("{case}", def.displayName())
+                            .replace("{amount}", String.valueOf(have))
+                            .replace("{id}", def.id()));
+                }
+            }
+            if (!any) {
+                send(sender, getConfig().getString("messages.keys-none", "&7Ключей пока нет. Загляни в магазин: &f/shop"));
             }
             return true;
         }
@@ -178,19 +215,21 @@ public final class VoidCases extends JavaPlugin implements CommandExecutor, TabC
 
     private void help(CommandSender sender) {
         send(sender, "&fКейсы VoidPE:");
-        send(sender, "&7/cases give <игрок> <кейс> [кол-во] &8— выдать кейс (админ)");
+        send(sender, "&7/cases give <игрок> <кейс> [кол-во] &8— выдать ВИРТУАЛЬНЫЙ ключ (админ)");
+        send(sender, "&7/cases open <кейс> &8— открыть кейс ключом из любого места");
+        send(sender, "&7/cases keys &8— мои ключи");
         send(sender, "&7/cases set <кейс> &8— поставить кейс на блок, на который смотришь");
         send(sender, "&7/cases remove &8— убрать кейс с блока, на который смотришь");
         send(sender, "&7/cases list &8— список кейсов");
         send(sender, "&7/cases reload &8— перезагрузка (админ)");
-        send(sender, "&7Открытие: держи кейс в руке и нажми ПКМ.");
+        send(sender, "&7Открытие: клик по поставленному кейсу или &f/cases open <кейс>&7. Ключи виртуальные!");
     }
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
-            for (String sub : List.of("give", "list", "reload", "set", "remove")) {
+            for (String sub : List.of("give", "list", "reload", "set", "remove", "open", "keys")) {
                 if (sub.startsWith(args[0].toLowerCase())) {
                     result.add(sub);
                 }
@@ -201,7 +240,7 @@ public final class VoidCases extends JavaPlugin implements CommandExecutor, TabC
                     result.add(player.getName());
                 }
             }
-        } else if (args.length == 2 && args[0].equalsIgnoreCase("set")) {
+        } else if (args.length == 2 && (args[0].equalsIgnoreCase("set") || args[0].equalsIgnoreCase("open"))) {
             for (String id : service.ids()) {
                 if (id.startsWith(args[1].toLowerCase())) {
                     result.add(id);

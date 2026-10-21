@@ -10,11 +10,13 @@ import org.bukkit.Color;
 import org.bukkit.FireworkEffect;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
-import org.bukkit.block.data.Directional;
 import org.bukkit.NamespacedKey;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.entity.ArmorStand;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Firework;
+import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -23,9 +25,9 @@ import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockExplodeEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
@@ -67,7 +69,7 @@ public final class CaseService implements Listener {
         }
         Inventory inv = Bukkit.createInventory(new TitlesHolder(), 27,
                 component(TextUtil.color("&#FFD93DТитулы &8• &fтолько из кейса")));
-        ItemStack filler = pane(Material.BLACK_STAINED_GLASS_PANE, " ");
+        ItemStack filler = pane(false, " ");
         for (int slot = 0; slot < 27; slot++) {
             inv.setItem(slot, filler);
         }
@@ -93,28 +95,16 @@ public final class CaseService implements Listener {
             }
             inv.setItem(slot++, item);
         }
-        inv.setItem(22, pane(Material.YELLOW_STAINED_GLASS_PANE, "&#FFD93DКейс: " + def.displayName()));
+        inv.setItem(22, pane(true, "&#FFD93DКейс: " + def.displayName()));
         player.openInventory(inv);
-    }
-
-    /** Маркер инвентаря рулетки. */
-    static final class CaseHolder implements InventoryHolder {
-        final String caseId;
-        CaseHolder(String caseId) { this.caseId = caseId; }
-        @Override public Inventory getInventory() { return null; }
-    }
-
-    private static final class Session {
-        final CaseDef def;
-        final Inventory inventory;
-        boolean finished;
-        Session(CaseDef def, Inventory inventory) { this.def = def; this.inventory = inventory; }
     }
 
     private final VoidCases plugin;
     private final NamespacedKey idKey;
     private final Map<String, CaseDef> cases = new LinkedHashMap<>();
-    private final Map<UUID, Session> sessions = new HashMap<>();
+    private final java.util.Set<UUID> opening = new java.util.HashSet<>();
+    private final Map<UUID, Map<String, Integer>> keys = new HashMap<>(); // виртуальные ключи: игрок -> кейс -> кол-во
+    private final java.io.File keysFile;
     private final Map<String, String> placedCases = new LinkedHashMap<>(); // "world,x,y,z" -> id кейса
     private final java.io.File placedFile;
 
@@ -122,8 +112,10 @@ public final class CaseService implements Listener {
         this.plugin = plugin;
         this.idKey = new NamespacedKey(plugin, "case_id");
         this.placedFile = new java.io.File(plugin.getDataFolder(), "placed-cases.yml");
+        this.keysFile = new java.io.File(plugin.getDataFolder(), "keys.yml");
         load();
         loadPlaced();
+        loadKeys();
     }
 
     // ------------------------------------------------------------------ загрузка
@@ -225,28 +217,84 @@ public final class CaseService implements Listener {
         }
     }
 
+    // ------------------------------------------------------------------ виртуальные ключи
+    private void loadKeys() {
+        keys.clear();
+        if (!keysFile.isFile()) {
+            return;
+        }
+        YamlConfiguration yaml = YamlConfiguration.loadConfiguration(keysFile);
+        ConfigurationSection root = yaml.getConfigurationSection("keys");
+        if (root == null) {
+            return;
+        }
+        for (String uuidText : root.getKeys(false)) {
+            try {
+                UUID uuid = UUID.fromString(uuidText);
+                Map<String, Integer> owned = new HashMap<>();
+                ConfigurationSection per = root.getConfigurationSection(uuidText);
+                if (per != null) {
+                    for (String caseId : per.getKeys(false)) {
+                        owned.put(caseId.toLowerCase(Locale.ROOT), per.getInt(caseId));
+                    }
+                }
+                keys.put(uuid, owned);
+            } catch (IllegalArgumentException ignored) {
+            }
+        }
+    }
+
+    private void saveKeys() {
+        try {
+            YamlConfiguration yaml = new YamlConfiguration();
+            for (Map.Entry<UUID, Map<String, Integer>> e : keys.entrySet()) {
+                for (Map.Entry<String, Integer> c : e.getValue().entrySet()) {
+                    if (c.getValue() > 0) {
+                        yaml.set("keys." + e.getKey() + "." + c.getKey(), c.getValue());
+                    }
+                }
+            }
+            yaml.save(keysFile);
+        } catch (Throwable t) {
+            plugin.getLogger().warning("Не удалось сохранить ключи: " + t.getMessage());
+        }
+    }
+
+    public int keyCount(UUID player, String caseId) {
+        Map<String, Integer> owned = keys.get(player);
+        return owned == null ? 0 : owned.getOrDefault(caseId.toLowerCase(Locale.ROOT), 0);
+    }
+
+    public void addKeys(UUID player, String caseId, int amount) {
+        keys.computeIfAbsent(player, k -> new HashMap<>())
+                .merge(caseId.toLowerCase(Locale.ROOT), amount, Integer::sum);
+        saveKeys();
+    }
+
+    private boolean takeKey(UUID player, String caseId) {
+        int have = keyCount(player, caseId);
+        if (have <= 0) {
+            return false;
+        }
+        keys.get(player).put(caseId.toLowerCase(Locale.ROOT), have - 1);
+        saveKeys();
+        return true;
+    }
+
     /** Вид кейса в этой точке или null. */
     public String placedCaseAt(Location loc) {
         return loc == null || loc.getWorld() == null ? null : placedCases.get(key(loc));
     }
 
-    /** Поставить кейс на блок: блок становится сундуком Края (материал — в конфиге), точка сохраняется. */
-    public void setPlaced(Block block, CaseDef def, org.bukkit.block.BlockFace facing) {
+    /**
+     * Поставить кейс на блок: сам блок НЕ меняется (якорь возрождения останется
+     * якорем, сундук — сундуком). Клик по нему перехватывается и открывает кейс.
+     * Над блоком появляется голограмма с названием.
+     */
+    public void setPlaced(Block block, CaseDef def) {
         placedCases.put(key(block.getLocation()), def.id());
-        String matName = plugin.getConfig().getString("placed-cases.set-block", "ENDER_CHEST");
-        Material material = matName == null || matName.isEmpty() ? null : Material.matchMaterial(matName);
-        if (material != null && material.isBlock()) {
-            block.setType(material);
-            if (block.getBlockData() instanceof Directional) {
-                Directional directional = (Directional) block.getBlockData();
-                try {
-                    directional.setFacing(facing);
-                    block.setBlockData(directional);
-                } catch (IllegalArgumentException ignored) {
-                }
-            }
-        }
         savePlaced();
+        ensureHologram(block.getLocation(), def);
     }
 
     /** Убрать поставленный кейс в точке; вернёт id кейса или null, если там кейса нет. */
@@ -254,27 +302,128 @@ public final class CaseService implements Listener {
         String removed = placedCases.remove(key(loc));
         if (removed != null) {
             savePlaced();
+            removeHologram(loc);
         }
         return removed;
     }
 
-    /** Списать один предмет-кейс указанного вида из инвентаря (включая руки). */
-    private boolean consumeCaseFromInventory(Player player, String caseId) {
-        ItemStack[] contents = player.getInventory().getContents();
-        for (int i = 0; i < contents.length; i++) {
-            ItemStack stack = contents[i];
-            if (caseId.equals(identify(stack))) {
-                stack.setAmount(stack.getAmount() - 1);
-                if (stack.getAmount() <= 0) {
-                    player.getInventory().setItem(i, null);
-                }
-                return true;
-            }
+    // ------------------------------------------------------------------ голограммы
+    private static final String HOLO_TAG = "voidcases_holo";
+
+    /** Голограмма над поставленным кейсом: название + подсказка. Видна в Bedrock. */
+    public void ensureHologram(Location blockLoc, CaseDef def) {
+        if (blockLoc == null || blockLoc.getWorld() == null || def == null) {
+            return;
         }
-        return false;
+        removeHologram(blockLoc);
+        Location base = blockLoc.clone().add(0.5, 0, 0.5);
+        spawnHoloLine(base.clone().add(0, 1.75, 0), def.displayName());
+        String second = plugin.getConfig().getString("hologram.second-line", "&#FFD93DНажми, чтобы открыть");
+        if (second != null && !second.isEmpty()) {
+            spawnHoloLine(base.clone().add(0, 1.45, 0), second);
+        }
     }
 
-    /** Клик по поставленному кейсу: списывает кейс-предмет из инвентаря и запускает рулетку. */
+    private void spawnHoloLine(Location loc, String legacyText) {
+        try {
+            loc.getWorld().spawn(loc, ArmorStand.class, stand -> {
+                stand.setVisible(false);
+                stand.setGravity(false);
+                stand.setMarker(true);
+                stand.setInvulnerable(true);
+                stand.setPersistent(true);
+                stand.setCustomNameVisible(true);
+                stand.customName(noItalic(component(TextUtil.color(legacyText))));
+                stand.addScoreboardTag(HOLO_TAG);
+            });
+        } catch (Throwable t) {
+            plugin.getLogger().warning("Голограмма кейса не создалась: " + t.getMessage());
+        }
+    }
+
+    public void removeHologram(Location blockLoc) {
+        if (blockLoc == null || blockLoc.getWorld() == null) {
+            return;
+        }
+        Location center = blockLoc.clone().add(0.5, 1.6, 0.5);
+        for (Entity entity : blockLoc.getWorld().getNearbyEntities(center, 1.2, 1.6, 1.2)) {
+            if (entity.getScoreboardTags().contains(HOLO_TAG)) {
+                entity.remove();
+            }
+        }
+    }
+
+    /** После старта: голограммы для уже загруженных чанков (остальные — по ChunkLoadEvent). */
+    public void initHolograms() {
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            for (Map.Entry<String, String> e : placedCases.entrySet()) {
+                String[] parts = e.getKey().split(",");
+                org.bukkit.World world = Bukkit.getWorld(parts[0]);
+                if (world == null) {
+                    continue;
+                }
+                int x = Integer.parseInt(parts[1]);
+                int y = Integer.parseInt(parts[2]);
+                int z = Integer.parseInt(parts[3]);
+                if (world.isChunkLoaded(x >> 4, z >> 4)) {
+                    CaseDef def = byId(e.getValue());
+                    if (def != null) {
+                        ensureHologram(new Location(world, x, y, z), def);
+                    }
+                }
+            }
+        }, 40L);
+    }
+
+    @EventHandler
+    public void onChunkLoad(ChunkLoadEvent event) {
+        for (Map.Entry<String, String> e : placedCases.entrySet()) {
+            String[] parts = e.getKey().split(",");
+            if (!parts[0].equals(event.getWorld().getName())) {
+                continue;
+            }
+            int x = Integer.parseInt(parts[1]);
+            int y = Integer.parseInt(parts[2]);
+            int z = Integer.parseInt(parts[3]);
+            if ((x >> 4) == event.getChunk().getX() && (z >> 4) == event.getChunk().getZ()) {
+                CaseDef def = byId(e.getValue());
+                if (def != null) {
+                    ensureHologram(new Location(event.getWorld(), x, y, z), def);
+                }
+            }
+        }
+    }
+
+    /** Открыть поставленный кейс: списывает ВИРТУАЛЬНЫЙ ключ. */
+    public void tryOpenPlaced(Player player, CaseDef def, Location blockLoc) {
+        if (opening.contains(player.getUniqueId())) {
+            msg(player, "already-opening", def, null);
+            return;
+        }
+        if (!takeKey(player.getUniqueId(), def.id())) {
+            msg(player, "need-keys", def, null);
+            return;
+        }
+        openCase(player, def, blockLoc.clone().add(0.5, 1.3, 0.5));
+    }
+
+    /** Открыть кейс из любого места (/cases open): анимация крутится над игроком. */
+    public void tryOpen(Player player, CaseDef def) {
+        if (opening.contains(player.getUniqueId())) {
+            msg(player, "already-opening", def, null);
+            return;
+        }
+        if (!takeKey(player.getUniqueId(), def.id())) {
+            msg(player, "need-keys", def, null);
+            return;
+        }
+        openCase(player, def, player.getLocation().add(0, 1.6, 0));
+    }
+
+    /**
+     * Клик по поставленному кейсу: клик ВСЕГДА отменяется (якорь возрождения не
+     * активируется, сундук не открывается) — вместо этого запускается открытие кейса.
+     */
     @EventHandler
     public void onPlacedUse(PlayerInteractEvent event) {
         if (event.getHand() != EquipmentSlot.HAND || event.getAction() != Action.RIGHT_CLICK_BLOCK) {
@@ -288,20 +437,12 @@ public final class CaseService implements Listener {
         if (caseId == null) {
             return;
         }
-        event.setCancelled(true); // сам сундук не открываем — открывается рулетка
-        Player player = event.getPlayer();
-        if (sessions.containsKey(player.getUniqueId())) {
-            return; // рулетка уже крутится (возможно, её открыл onUse с кейсом в руке)
-        }
+        event.setCancelled(true);
         CaseDef def = byId(caseId);
         if (def == null) {
             return;
         }
-        if (!consumeCaseFromInventory(player, caseId)) {
-            msg(player, "need-case", def, null);
-            return;
-        }
-        openCase(player, def);
+        tryOpenPlaced(event.getPlayer(), def, block.getLocation());
     }
 
     // поставленный кейс нельзя сломать (админ убирает его командой /cases remove)
@@ -361,7 +502,11 @@ public final class CaseService implements Listener {
         return stack.getItemMeta().getPersistentDataContainer().get(idKey, PersistentDataType.STRING);
     }
 
-    // ------------------------------------------------------------------ открытие
+    // ------------------------------------------------------------------ открытие (анимация СНАРУЖИ, в мире)
+    /**
+     * Старые физические предметы-кейсы: ПКМ превращает их в виртуальные ключи
+     * (по одному за предмет). Дальше открытие — только виртуальными ключами.
+     */
     @EventHandler
     public void onUse(PlayerInteractEvent event) {
         if (event.getHand() != EquipmentSlot.HAND) {
@@ -372,7 +517,8 @@ public final class CaseService implements Listener {
             return;
         }
         Player player = event.getPlayer();
-        String id = identify(player.getInventory().getItemInMainHand());
+        ItemStack hand = player.getInventory().getItemInMainHand();
+        String id = identify(hand);
         if (id == null) {
             return;
         }
@@ -381,85 +527,77 @@ public final class CaseService implements Listener {
             return;
         }
         event.setCancelled(true);
-        if (sessions.containsKey(player.getUniqueId())) {
-            msg(player, "already-opening", def, null);
-            return;
-        }
-        // расходуем один кейс и запускаем рулетку
-        ItemStack hand = player.getInventory().getItemInMainHand();
-        hand.setAmount(hand.getAmount() - 1);
-        openCase(player, def);
+        int amount = Math.max(1, hand.getAmount());
+        hand.setAmount(0);
+        addKeys(player.getUniqueId(), def.id(), amount);
+        String text = plugin.getConfig().getString("messages.key-added",
+                        "&aПредмет превращён в виртуальные ключи: {case} &7x{amount}&a. Открыть: &f/cases open {id}")
+                .replace("{case}", def.displayName())
+                .replace("{amount}", String.valueOf(amount))
+                .replace("{id}", def.id());
+        player.sendMessage(component(prefix() + TextUtil.color(text)));
     }
 
-    private void openCase(Player player, CaseDef def) {
-        Inventory inv = Bukkit.createInventory(new CaseHolder(def.id()), 27,
-                component(TextUtil.color(def.displayName())));
-        ItemStack filler = pane(Material.BLACK_STAINED_GLASS_PANE, " ");
-        for (int slot = 0; slot < 27; slot++) {
-            if (slot < 9 || slot > 17) {
-                inv.setItem(slot, filler);
-            }
-        }
-        ItemStack pointer = pane(Material.YELLOW_STAINED_GLASS_PANE, "&#FFD93D▼");
-        inv.setItem(4, pointer);
-        inv.setItem(22, pointer);
-        roll(inv, def);
-        sessions.put(player.getUniqueId(), new Session(def, inv));
-        player.openInventory(inv);
+    /**
+     * Анимация открытия СНАРУЖИ: над кейсом (или над игроком) крутится предмет,
+     * призы мелькают и замедляются, в конце — выигрыш, фейерверк и приз.
+     */
+    private void openCase(Player player, CaseDef def, Location anchor) {
+        opening.add(player.getUniqueId());
         playSound(player, cfg("animation.open-sound", "block.chest.open"), 1.0f);
-
+        final Item display;
+        try {
+            display = anchor.getWorld().dropItem(anchor, prizeItem(randomPrize(def)));
+            display.setGravity(false);
+            display.setInvulnerable(true);
+            display.setPickupDelay(Integer.MAX_VALUE);
+            display.setVelocity(new org.bukkit.util.Vector(0, 0, 0));
+        } catch (Throwable t) {
+            opening.remove(player.getUniqueId());
+            return;
+        }
         final int duration = Math.max(40, plugin.getConfig().getInt("animation.duration-ticks", 90));
         new BukkitRunnable() {
             int ticks = 0;
             int sinceUpdate = 0;
+            float yaw = 0;
 
             @Override
             public void run() {
-                if (!player.isOnline()) {
-                    sessions.remove(player.getUniqueId());
+                if (!player.isOnline() || !display.isValid()) {
+                    display.remove();
+                    opening.remove(player.getUniqueId());
                     cancel();
                     return;
                 }
                 ticks++;
                 sinceUpdate++;
-                // рулетка постепенно замедляется: 2 -> 4 -> 7 -> 10 тиков между сменами
+                yaw += 24;
+                Location spin = anchor.clone();
+                spin.setYaw(yaw);
+                display.teleport(spin);
                 int interval = ticks < duration * 0.45 ? 2
                         : ticks < duration * 0.72 ? 4
                         : ticks < duration * 0.9 ? 7 : 10;
                 if (sinceUpdate >= interval && ticks < duration) {
                     sinceUpdate = 0;
-                    roll(inv, def);
+                    display.setItemStack(prizeItem(randomPrize(def)));
                     playSound(player, cfg("animation.spin-sound", "block.note_block.hat"),
                             0.8f + Math.min(0.7f, ticks / (float) duration * 0.7f));
                 }
                 if (ticks >= duration) {
                     cancel();
-                    finish(player, def, inv);
+                    display.remove();
+                    opening.remove(player.getUniqueId());
+                    award(player, def, randomPrize(def), anchor);
                 }
             }
         }.runTaskTimer(plugin, 1L, 1L);
     }
 
-    private void roll(Inventory inv, CaseDef def) {
-        for (int slot = 9; slot <= 17; slot++) {
-            inv.setItem(slot, prizeItem(randomPrize(def)));
-        }
-    }
-
-    private void finish(Player player, CaseDef def, Inventory inv) {
-        Session session = sessions.get(player.getUniqueId());
-        if (session != null) {
-            session.finished = true;
-        }
-        PrizeDef prize = randomPrize(def);
-        // финальный кадр: приз ровно по центру, где указатели
-        for (int slot = 9; slot <= 17; slot++) {
-            inv.setItem(slot, prizeItem(randomPrize(def)));
-        }
-        inv.setItem(13, prizeItem(prize));
+    /** Выдать приз: команды консоли, сообщения, заголовок, объявление, фейерверк. */
+    private void award(Player player, CaseDef def, PrizeDef prize, Location anchor) {
         playSound(player, cfg("animation.win-sound", "entity.player.levelup"), 1.0f);
-
-        // команды приза (консоль): {player} заменяется на ник
         for (String cmd : prize.commands()) {
             String prepared = cmd.replace("{player}", player.getName());
             if (prepared.startsWith("/")) {
@@ -467,7 +605,6 @@ public final class CaseService implements Listener {
             }
             Bukkit.dispatchCommand(Bukkit.getConsoleSender(), prepared);
         }
-
         msg(player, "win", def, prize);
         player.showTitle(Title.title(
                 noItalic(component(TextUtil.color(prize.name()))),
@@ -485,14 +622,6 @@ public final class CaseService implements Listener {
         if (plugin.getConfig().getBoolean("animation.firework", true)) {
             launchFirework(player);
         }
-
-        // секунду показываем выигрыш в рулетке, потом закрываем
-        Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            sessions.remove(player.getUniqueId());
-            if (player.isOnline() && player.getOpenInventory().getTopInventory().equals(inv)) {
-                player.closeInventory();
-            }
-        }, 20L);
     }
 
     private PrizeDef randomPrize(CaseDef def) {
@@ -527,49 +656,36 @@ public final class CaseService implements Listener {
         }
     }
 
-    // ------------------------------------------------------------------ защита рулетки
+    // ------------------------------------------------------------------ защита меню титулов
     @EventHandler
     public void onClick(InventoryClickEvent event) {
-        if (event.getInventory().getHolder() instanceof CaseHolder
-                || event.getInventory().getHolder() instanceof TitlesHolder) {
+        if (event.getInventory().getHolder() instanceof TitlesHolder) {
             event.setCancelled(true);
         }
     }
 
     @EventHandler
     public void onDrag(InventoryDragEvent event) {
-        if (event.getInventory().getHolder() instanceof CaseHolder
-                || event.getInventory().getHolder() instanceof TitlesHolder) {
+        if (event.getInventory().getHolder() instanceof TitlesHolder) {
             event.setCancelled(true);
         }
     }
 
-    @EventHandler
-    public void onClose(InventoryCloseEvent event) {
-        if (!(event.getInventory().getHolder() instanceof CaseHolder)) {
-            return;
-        }
-        if (!(event.getPlayer() instanceof Player)) {
-            return;
-        }
-        Player player = (Player) event.getPlayer();
-        Session session = sessions.get(player.getUniqueId());
-        // закрыл рулетку до конца анимации — открываем обратно, приз не потеряется
-        if (session != null && !session.finished) {
-            Bukkit.getScheduler().runTask(plugin, () -> {
-                if (player.isOnline() && sessions.containsKey(player.getUniqueId())) {
-                    player.openInventory(session.inventory);
-                }
-            });
-        }
-    }
-
     // ------------------------------------------------------------------ утилиты
-    private ItemStack pane(Material material, String name) {
-        ItemStack stack = new ItemStack(material);
+    /**
+     * Плоское «стекло» для меню: обычный предмет (бумага) с item_model voidpe:pane_*.
+     * Geyser по маппингу (configs/Geyser-panes-mapping.json) показывает плоскую иконку
+     * из пака — строго спереди, не боком, как настоящая стекло-панель.
+     */
+    private ItemStack pane(boolean yellow, String name) {
+        ItemStack stack = new ItemStack(Material.PAPER);
         ItemMeta meta = stack.getItemMeta();
         if (meta != null) {
             meta.displayName(noItalic(component(TextUtil.color(name))));
+            try {
+                meta.setItemModel(new NamespacedKey("voidpe", yellow ? "pane_yellow" : "pane_black"));
+            } catch (Throwable ignored) {
+            }
             stack.setItemMeta(meta);
         }
         return stack;

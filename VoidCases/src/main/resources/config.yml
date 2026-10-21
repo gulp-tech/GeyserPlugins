@@ -20,21 +20,26 @@ animation:
   open-sound: "block.chest.open"
   firework: true            # фейерверк при выигрыше
 
-# Поставленные кейсы: /cases set <кейс>, глядя на блок. Блок станет этим
-# материалом (ENDER_CHEST — сундук Края). Пусто ("") — блок не менять.
-placed-cases:
-  set-block: ENDER_CHEST
+# Поставленные кейсы: /cases set <кейс>, глядя на блок. Сам блок НЕ меняется
+# (якорь возрождения останется якорем) — клик по нему просто открывает кейс,
+# а исходное действие блока блокируется. Над кейсом висит голограмма.
+hologram:
+  second-line: "&#FFD93DНажми, чтобы открыть"
 
 messages:
   prefix: "&#C86BFFVoidPE &8» &f"
   no-permission: "&cТолько для админов."
-  received: "&aВыдан кейс: {case} &7x{amount}"
-  given: "&aИгроку &f{player} &aвыдан кейс: {case} &7x{amount}"
+  received: "&aТебе выдан виртуальный ключ: {case} &7x{amount}&a. Открыть: &f/cases open"
+  key-added: "&aПредмет превращён в виртуальные ключи: {case} &7x{amount}&a. Открыть: &f/cases open {id}"
+  keys-title: "&#FFD93DТвои ключи:"
+  keys-line: "&7- {case}&7: &f{amount} &8(/cases open {id})"
+  keys-none: "&7Ключей пока нет. Загляни в магазин."
+  given: "&aИгроку &f{player} &aвыдан виртуальный ключ: {case} &7x{amount}"
   player-offline: "&cИгрок не в сети."
   case-not-found: "&cТакого кейса нет. Список: &f/cases list"
   already-opening: "&cПодожди, кейс уже открывается."
-  need-case: "&cНужен кейс: {case}&c. Его можно купить в магазине."
-  set-done: "&aКейс поставлен: {case}&a. Игроки открывают его кликом (нужен сам кейс)."
+  need-keys: "&cНет ключей от кейса {case}&c. Ключи продаются в магазине, список своих: &f/cases keys"
+  set-done: "&aКейс поставлен: {case}&a. Блок не изменён, над ним голограмма. Открытие — кликом, нужен виртуальный ключ."
   set-removed: "&aКейс убран."
   not-a-case: "&cЭтот блок — не кейс."
   no-target-block: "&cПосмотри на блок (до 6 блоков)."
@@ -46,12 +51,12 @@ messages:
 cases:
 
   # ---------------- Кейс доната (привилегии LuckPerms) ----------------
-  # parent set ставит привилегию основной. Группы LP: поменяй под свои.
+  # parent add добавляет привилегию. Группы LP: поменяй под свои.
   donate:
     display-name: "&#FFD93DКейс доната"
     material: NETHER_STAR
     item-lore:
-      - "&7ПКМ — открыть кейс"
+      - "&7Виртуальный ключ. Открыть: &f/cases open donate"
       - "&7Внутри: привилегия от Странника до Императора"
     prizes:
       - id: strannik
@@ -59,43 +64,43 @@ cases:
         material: LEATHER_HELMET
         weight: 300
         announce: false
-        commands: ["lp user {player} parent set strannik"]
+        commands: ["lp user {player} parent add strannik"]
       - id: geroy
         name: "&#55E6FFПривилегия: Герой"
         material: IRON_HELMET
         weight: 220
         announce: false
-        commands: ["lp user {player} parent set geroy"]
+        commands: ["lp user {player} parent add geroy"]
       - id: rycar
         name: "&#8CE8FFПривилегия: Рыцарь"
         material: GOLDEN_HELMET
         weight: 160
         announce: false
-        commands: ["lp user {player} parent set rycar"]
+        commands: ["lp user {player} parent add rycar"]
       - id: baron
         name: "&#7CFC00Привилегия: Барон"
         material: DIAMOND_HELMET
         weight: 110
         announce: true
-        commands: ["lp user {player} parent set baron"]
+        commands: ["lp user {player} parent add baron"]
       - id: lord
         name: "&#C86BFFПривилегия: Лорд"
         material: DIAMOND_CHESTPLATE
         weight: 70
         announce: true
-        commands: ["lp user {player} parent set lord"]
+        commands: ["lp user {player} parent add lord"]
       - id: knyaz
         name: "&#FF9A3DПривилегия: Князь"
         material: NETHERITE_HELMET
         weight: 35
         announce: true
-        commands: ["lp user {player} parent set knyaz"]
+        commands: ["lp user {player} parent add knyaz"]
       - id: imperator
         name: "<gradient:#FFD93D:#FF5555>Привилегия: Император</gradient>"
         material: DRAGON_HEAD
         weight: 10
         announce: true
-        commands: ["lp user {player} parent set imperator"]
+        commands: ["lp user {player} parent add imperator"]
 
   # ---------------- Кейс титулов (выбиваются ТОЛЬКО отсюда) ----------------
   # Титул — суффикс после ника в чате (LuckPerms meta setsuffix).
@@ -104,7 +109,7 @@ cases:
     display-name: "&#C86BFFКейс титулов"
     material: NAME_TAG
     item-lore:
-      - "&7ПКМ — открыть кейс"
+      - "&7Виртуальный ключ. Открыть: &f/cases open titles"
       - "&7Внутри: титул после ника. Меню: &f/titles"
     prizes:
       - id: vezunchik
@@ -112,50 +117,50 @@ cases:
         material: PAPER
         weight: 300
         announce: false
-        commands: ['lp user {player} meta setsuffix 90 " &a[Везунчик]"']
+        commands: ['lp user {player} meta setsuffix 90 " &#7CFC00Везунчик&r"']
       - id: ohotnik
         name: "&#8CE8FFТитул: Охотник"
         material: BOW
         weight: 220
         announce: false
-        commands: ['lp user {player} meta setsuffix 90 " &#8CE8FF[Охотник]"']
+        commands: ['lp user {player} meta setsuffix 90 " &#8CE8FFОхотник&r"']
       - id: bogach
         name: "&#FFD93DТитул: Богач"
         material: GOLD_INGOT
         weight: 160
         announce: false
-        commands: ['lp user {player} meta setsuffix 90 " &#FFD93D[Богач]"']
+        commands: ['lp user {player} meta setsuffix 90 " &#FFD93DБогач&r"']
       - id: groza
         name: "&#55E6FFТитул: Гроза"
         material: LIGHTNING_ROD
         weight: 110
         announce: true
-        commands: ['lp user {player} meta setsuffix 90 " &#55E6FF[Гроза]"']
+        commands: ['lp user {player} meta setsuffix 90 " &#55E6FFГроза&r"']
       - id: prizrak
         name: "&#C86BFFТитул: Призрак"
         material: PHANTOM_MEMBRANE
         weight: 70
         announce: true
-        commands: ['lp user {player} meta setsuffix 90 " &#C86BFF[Призрак]"']
+        commands: ['lp user {player} meta setsuffix 90 " &#C86BFFПризрак&r"']
       - id: legenda
         name: "&#FF9A3DТитул: Легенда"
         material: NETHERITE_SWORD
         weight: 35
         announce: true
-        commands: ['lp user {player} meta setsuffix 90 " &#FF9A3D[Легенда]"']
+        commands: ['lp user {player} meta setsuffix 90 " &#FF9A3DЛегенда&r"']
       - id: mif
         name: "<gradient:#FFD93D:#FF5555>Титул: Миф</gradient>"
         material: ENCHANTED_GOLDEN_APPLE
         weight: 10
         announce: true
-        commands: ['lp user {player} meta setsuffix 90 " &#FF5555[Миф]"']
+        commands: ['lp user {player} meta setsuffix 90 " &#FF5555Миф&r"']
 
   # ---------------- Кейс осколков (PlayerPoints) ----------------
   shards:
     display-name: "&#8CE8FFКейс осколков"
     material: PRISMARINE_SHARD
     item-lore:
-      - "&7ПКМ — открыть кейс"
+      - "&7Виртуальный ключ. Открыть: &f/cases open shards"
       - "&7Внутри: осколки (PlayerPoints)"
     prizes:
       - id: shards_25

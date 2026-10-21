@@ -64,6 +64,7 @@ scoreboard:
   lines:
     - "&fИмя: &#FFA63D{player}"
     - "&fДонат: {group_icon} {group}"
+    - "&fТитул: {title}"
     - "&fМонеты: &#FFD93D{coins} {icon:coin}"
     - "&fОсколки: &#54C8FF{shards} {icon:shard}"
     - ""
@@ -133,6 +134,7 @@ nametag:
   use-display-name: true
   # В TAB-списке после ника писать устройство текстом: MUSD38 (Windows) — понятно и без иконок.
   device-name-in-tab: true
+  title-in-tab: true      # титул (кейс титулов) после ника в TAB
   # Красное сердечко после числа здоровья под ником (само число ставит игра).
   health-below-name: true
   health-suffix: "&c❤"

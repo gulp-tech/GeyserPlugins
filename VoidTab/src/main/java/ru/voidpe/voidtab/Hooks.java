@@ -209,8 +209,32 @@ public final class Hooks {
         }
     }
 
-    /** getPrefix() из CachedMetaData держателя (User или Group), QueryOptions — контекстные по умолчанию. */
-    private String metaPrefix(Object holder) {
+    /**
+     * Действующий суффикс LuckPerms игрока — это ТИТУЛ из кейса титулов
+     * (meta setsuffix). null — титула нет.
+     */
+    public String luckPermsSuffix(UUID uuid) {
+        if (luckPerms == null || lpGetUserManager == null) {
+            return null;
+        }
+        try {
+            Object userManager = lpGetUserManager.invoke(luckPerms);
+            if (userManager == null) {
+                return null;
+            }
+            Method getUser = findMethod(userManager.getClass(), "getUser", UUID.class);
+            Object user = getUser == null ? null : getUser.invoke(userManager, uuid);
+            if (user == null) {
+                return null;
+            }
+            return metaValue(user, "getSuffix");
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
+    /** getSuffix()/getPrefix() из CachedMetaData держателя. */
+    private String metaValue(Object holder, String getter) {
         try {
             Method getCachedData = findMethod(holder.getClass(), "getCachedData");
             if (getCachedData == null) {
@@ -251,12 +275,17 @@ public final class Hooks {
             if (meta == null) {
                 return null;
             }
-            Method getPrefix = findMethod(meta.getClass(), "getPrefix");
-            Object value = getPrefix == null ? null : getPrefix.invoke(meta);
+            Method get = findMethod(meta.getClass(), getter);
+            Object value = get == null ? null : get.invoke(meta);
             return value == null ? null : String.valueOf(value);
         } catch (Throwable t) {
             return null;
         }
+    }
+
+    /** getPrefix() из CachedMetaData держателя (User или Group), QueryOptions — контекстные по умолчанию. */
+    private String metaPrefix(Object holder) {
+        return metaValue(holder, "getPrefix");
     }
 
     public String vaultGroup(OfflinePlayer player) {

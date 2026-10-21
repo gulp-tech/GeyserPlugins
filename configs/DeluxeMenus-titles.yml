@@ -16,7 +16,7 @@ items:
     slots:
     - 10
     material: NAME_TAG
-    display_name: '&#7CFC00[Везунчик]'
+    display_name: '&#7CFC00Везунчик'
     lore:
       - ''
       - '&fТитул после ника в чате.'
@@ -28,7 +28,7 @@ items:
     slots:
     - 11
     material: NAME_TAG
-    display_name: '&#8CE8FF[Охотник]'
+    display_name: '&#8CE8FFОхотник'
     lore:
       - ''
       - '&fТитул после ника в чате.'
@@ -40,7 +40,7 @@ items:
     slots:
     - 12
     material: NAME_TAG
-    display_name: '&#FFD93D[Богач]'
+    display_name: '&#FFD93DБогач'
     lore:
       - ''
       - '&fТитул после ника в чате.'
@@ -52,7 +52,7 @@ items:
     slots:
     - 13
     material: NAME_TAG
-    display_name: '&#C86BFF[Гроза]'
+    display_name: '&#C86BFFГроза'
     lore:
       - ''
       - '&fТитул после ника в чате.'
@@ -64,7 +64,7 @@ items:
     slots:
     - 14
     material: NAME_TAG
-    display_name: '&#B8B8FF[Призрак]'
+    display_name: '&#B8B8FFПризрак'
     lore:
       - ''
       - '&fТитул после ника в чате.'
@@ -76,7 +76,7 @@ items:
     slots:
     - 15
     material: NAME_TAG
-    display_name: '&#FF9A3D[Легенда]'
+    display_name: '&#FF9A3DЛегенда'
     lore:
       - ''
       - '&fТитул после ника в чате.'
@@ -88,7 +88,7 @@ items:
     slots:
     - 16
     material: NAME_TAG
-    display_name: '<gradient:#C86BFF:#FF7847>[Миф]</gradient>'
+    display_name: '<gradient:#C86BFF:#FF7847>Миф</gradient>'
     lore:
       - ''
       - '&fТитул после ника в чате.'

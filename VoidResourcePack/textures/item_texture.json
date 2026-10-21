@@ -52,6 +52,12 @@
     },
     "pink_stained_glass_pane": {
       "textures": "textures/items/void_pane_pink"
+    },
+    "pane_black": {
+      "textures": "textures/items/void_pane_black"
+    },
+    "pane_yellow": {
+      "textures": "textures/items/void_pane_yellow"
     }
   }
 }

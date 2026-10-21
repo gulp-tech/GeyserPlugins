@@ -90,8 +90,16 @@ public final class NametagManager {
         if (plugin.getConfig().getBoolean("nametag.rank-name", true)) {
             prefix += TextUtil.color(plugin.sidebar().rankDisplayName(player)) + " ";
         }
-        boolean changed = !prefix.equals(appliedPrefix.get(player.getUniqueId()));
-        appliedPrefix.put(player.getUniqueId(), prefix);
+        // Титул (суффикс LP) в TAB после ника; учитываем в "changed", чтобы таб обновлялся при получении титула
+        String titleSuffix = "";
+        if (plugin.getConfig().getBoolean("nametag.title-in-tab", true) && plugin.hooks().hasLuckPerms()) {
+            String suffix = plugin.hooks().luckPermsSuffix(player.getUniqueId());
+            if (suffix != null && !suffix.isBlank()) {
+                titleSuffix = suffix;
+            }
+        }
+        boolean changed = !(prefix + "|" + titleSuffix).equals(appliedPrefix.get(player.getUniqueId()));
+        appliedPrefix.put(player.getUniqueId(), prefix + "|" + titleSuffix);
 
         Component prefixComponent = component(
                 TextUtil.color(plugin.getConfig().getString("nametag.prefix-color", "&f")) + prefix);
@@ -114,7 +122,8 @@ public final class NametagManager {
             Component name = Component.text(prefix).append(Component.text(player.getName()));
             player.displayName(name);
             String tabName = TextUtil.color(
-                    plugin.getConfig().getString("nametag.prefix-color", "&f")) + prefix + player.getName();
+                    plugin.getConfig().getString("nametag.prefix-color", "&f")) + prefix + player.getName()
+                    + TextUtil.color(titleSuffix);
             if (plugin.getConfig().getBoolean("nametag.device-name-in-tab", true)) {
                 tabName += TextUtil.color(" &7(" + plugin.sidebar().deviceName(player) + ")");
             }

@@ -104,3 +104,19 @@ items:
       - '[sound] ITEM_BOOK_PAGE_TURN'
       - '[player] shop'
       - '[close]'
+
+  'Титулы /titles':
+    slots:
+    - 40
+    material: NAME_TAG
+    display_name: '&#C86BFFТитулы &7/titles'
+    lore:
+      - ''
+      - '&f Титулы после ника в чате.'
+      - '&f Выбиваются только из кейса титулов!'
+      - ''
+      - '&#1CA769➥ &fНажмите, чтобы посмотреть.'
+    click_commands:
+      - '[sound] ITEM_BOOK_PAGE_TURN'
+      - '[player] titles'
+      - '[close]'
