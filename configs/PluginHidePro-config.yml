@@ -116,6 +116,7 @@ groups:
       - shoptalismans
       - shopspheres
       - vench anvil
+      - combat
       - shopenchants
     #The list of commands that will be made visible only in tabcomplete
     tabcomplete:
@@ -167,6 +168,7 @@ groups:
       - shoptalismans
       - shopspheres
       - vench anvil
+      - combat
       - shopenchants
     #If a player is in two groups, the group with the higher priority number is used
     #The minimum value is 0

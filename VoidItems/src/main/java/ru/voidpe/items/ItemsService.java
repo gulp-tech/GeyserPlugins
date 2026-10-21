@@ -21,7 +21,9 @@ import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockExplodeEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerItemConsumeEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
@@ -330,9 +332,16 @@ public final class ItemsService implements Listener {
     }
 
     // ------------------------------------------------------------------ запретные зоны
-    /** В этой точке кастомные предметы запрещены (мир целиком или регион WorldGuard). Зелья — исключение, их тут не проверяют. */
+    /**
+     * В этой точке кастомные предметы запрещены: мир целиком или регион
+     * WorldGuard. Исключение — разрешённые регионы: например, в мире world
+     * предметы запрещены везде, кроме PvP-региона pvp.
+     */
     public boolean isBanned(Location loc) {
         if (loc == null || loc.getWorld() == null) {
+            return false;
+        }
+        if (worldGuard.inRegion(loc, plugin.getConfig().getStringList("banned.allowed-worldguard-regions"))) {
             return false;
         }
         if (plugin.getConfig().getStringList("banned.worlds").contains(loc.getWorld().getName())) {
@@ -385,7 +394,7 @@ public final class ItemsService implements Listener {
     }
 
     // ------------------------------------------------------------------ использование (ПКМ)
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     public void onUse(PlayerInteractEvent event) {
         if (event.getHand() != EquipmentSlot.HAND) {
             return;
@@ -425,6 +434,20 @@ public final class ItemsService implements Listener {
         if (used) {
             consumeMainHand(player);
             startCooldown(player.getUniqueId(), item);
+        }
+    }
+
+    /** Кастомные зелья в запретной зоне пить нельзя (раньше зелья были исключением). */
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onConsumeCustomPotion(PlayerItemConsumeEvent event) {
+        String id = identify(event.getItem());
+        CustomItem item = id == null ? null : byId(id);
+        if (item == null || item.kind() != CustomItem.Kind.POTION) {
+            return;
+        }
+        if (isBanned(event.getPlayer().getLocation())) {
+            event.setCancelled(true);
+            msg(event.getPlayer(), "banned", item);
         }
     }
 
@@ -783,7 +806,7 @@ public final class ItemsService implements Listener {
     }
 
     // ------------------------------------------------------------------ лом спавнеров
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     public void onBreakSpawner(BlockBreakEvent event) {
         Block block = event.getBlock();
         // блоки трапок не ломаются вообще (отдельный обработчик выше), тут — спавнеры

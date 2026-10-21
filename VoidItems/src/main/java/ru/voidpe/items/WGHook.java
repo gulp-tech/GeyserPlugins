@@ -61,6 +61,11 @@ public final class WGHook {
 
     /** Игрок находится в одном из запретных регионов WorldGuard (по именам из конфига). */
     public boolean inBannedRegion(Location loc, List<String> regionNames) {
+        return inRegion(loc, regionNames);
+    }
+
+    /** Игрок находится в одном из регионов WorldGuard с указанными именами. */
+    public boolean inRegion(Location loc, List<String> regionNames) {
         if (!available || loc == null || loc.getWorld() == null || regionNames == null || regionNames.isEmpty()) {
             return false;
         }
