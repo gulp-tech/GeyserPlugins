@@ -103,6 +103,22 @@ PvP-урон ставит обоих игроков в режим боя (по �
 WorldGuard `pvp`; в остальных мирах разрешены. Это настраивается в VoidItems:
 `banned.worlds`, `banned.allowed-worldguard-regions`.
 
+## VoidAntiCheat — Bedrock-античит
+
+`VoidAntiCheat` проверяет только Bedrock/Floodgate-игроков и не повторяет
+ошибку Java-античитов, которые Bedrock либо пропускают, либо ложно штрафуют.
+Внутри: Speed, Fly/Hover, Timer, NoFall, Step, Jesus, Spider, Elytra, лодки,
+Velocity, Reach, KillAura-эвристики, AutoClicker, FastBreak/FastPlace,
+Scaffold, BlockReach, BadPackets и NoClip. У каждой проверки свои VL,
+затухание, setback/cancel/punish-пороги и команды наказания; есть компенсация
+TPS/пинга, грейсы после телепортов и нокбэков, исключения миров и регионов
+WorldGuard, алерты персоналу, `violations.log` и необязательный Discord webhook.
+
+Команды: `/vac`, `/vac info <игрок>`, `/vac alerts`, `/vac reset <игрок>`,
+`/vac setback <игрок>`, `/vac reload`. Настройки:
+`VoidAntiCheat/src/main/resources/config.yml`. Floodgate и WorldGuard —
+softdepend через рефлексию, PacketEvents/ProtocolLib не нужны.
+
 ## Установка
 
 1. **Плагин:** скачайте `FaralTab-1.12.3.jar` из [артефактов GitHub Actions](../../actions)

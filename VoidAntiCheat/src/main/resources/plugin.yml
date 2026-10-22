@@ -1,0 +1,37 @@
+name: VoidAntiCheat
+version: '${project.version}'
+main: ru.voidpe.anticheat.VoidAntiCheat
+api-version: '26.2'
+author: VoidPE
+description: "Bedrock-only античит VoidPE: проверки движения, боя и блоков с Bedrock-допусками, компенсацией лагов, VL, setback и наказаниями."
+softdepend: [Floodgate, Geyser-Spigot, WorldGuard]
+commands:
+  vac:
+    description: "VoidAntiCheat: статус, алерты, информация об игроке, сброс VL, setback и reload"
+    usage: /vac [info <игрок>|alerts|reset <игрок> [проверка]|setback <игрок>|reload]
+    aliases: [voidac, anticheat]
+permissions:
+  voidanticheat.admin:
+    description: Управление VoidAntiCheat и просмотр информации
+    default: op
+  voidanticheat.alerts:
+    description: Получать алерты VoidAntiCheat
+    default: op
+  voidanticheat.bypass:
+    description: Полный обход всех проверок VoidAntiCheat
+    default: false
+  voidanticheat.bypass.speed:
+    description: Обход проверки Speed
+    default: false
+  voidanticheat.bypass.fly:
+    description: Обход проверки Fly
+    default: false
+  voidanticheat.bypass.timer:
+    description: Обход проверки Timer
+    default: false
+  voidanticheat.bypass.reach:
+    description: Обход проверки Reach
+    default: false
+  voidanticheat.bypass.killaura:
+    description: Обход проверки KillAura
+    default: false

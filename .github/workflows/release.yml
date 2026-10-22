@@ -133,6 +133,19 @@ jobs:
             fi
           fi
 
+      - name: Собрать плагин VoidAntiCheat
+        working-directory: VoidAntiCheat
+        run: |
+          build() { mvn -B -DskipTests "$@" package > mvn.log 2>&1; }
+          if ! build -Dpurpur.version="$PURPUR_VERSION"; then
+            grep -E "\[ERROR\]|BUILD FAILURE|Could not resolve|Failed to read" mvn.log | head -20 | sed 's/%/%25/g; s/^/::error::/'
+            echo "Purpur API недоступна — собираем с Paper API (на Purpur работает так же)"
+            if ! build -Dapi.groupId=io.papermc.paper -Dapi.artifactId=paper-api -Dpurpur.version=26.2-R0.1-SNAPSHOT; then
+              grep -E "\[ERROR\]|BUILD FAILURE|Could not resolve|Failed to read" mvn.log | head -20 | sed 's/%/%25/g; s/^/::error::/'
+              exit 1
+            fi
+          fi
+
       - name: Собрать плагин VoidDrops
         working-directory: VoidDrops
         run: |
@@ -200,11 +213,12 @@ jobs:
           CLN=$(ls VoidClans/target/VoidClans-*.jar | head -1)
           DRP=$(ls VoidDrops/target/VoidDrops-*.jar | head -1)
           CMB=$(ls VoidCombat/target/VoidCombat-*.jar | head -1)
+          VAC=$(ls VoidAntiCheat/target/VoidAntiCheat-*.jar | head -1)
           AUS=$(ls VoidAuthSpawn/target/VoidAuthSpawn-*.jar | head -1)
           WCT=$(ls VoidWardenCity/target/VoidWardenCity-*.jar | head -1)
           ANV=$(ls VoidAnvilExtension/build/libs/VoidAnvilExtension-*.jar | head -1)
           echo "Файлы релиза: $JAR + $TAL + $ITM + VoidResourcePack.mcpack"
-          gh release create "${{ inputs.tag || github.ref_name }}" "$JAR" "$TAL" "$ITM" "$ENC" "$CAS" "$CLN" "$DRP" "$CMB" "$AUS" "$WCT" "$ANV" VoidResourcePack.mcpack VoidSpheres.mcpack \
+          gh release create "${{ inputs.tag || github.ref_name }}" "$JAR" "$TAL" "$ITM" "$ENC" "$CAS" "$CLN" "$DRP" "$CMB" "$VAC" "$AUS" "$WCT" "$ANV" VoidResourcePack.mcpack VoidSpheres.mcpack \
             --target "$GITHUB_SHA" \
             --title "VoidPE ${{ inputs.tag || github.ref_name }} — FaralTab + ресурспак" \
             --notes "Bedrock-only сервер VoidPE (Purpur 26.2 + Geyser + Floodgate).
