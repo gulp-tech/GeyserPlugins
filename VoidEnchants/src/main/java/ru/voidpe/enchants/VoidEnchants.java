@@ -750,10 +750,10 @@ public final class VoidEnchants extends JavaPlugin implements Listener, TabCompl
         if (first == null || second == null || first.getType().isAir() || second.getType().isAir()) {
             return null;
         }
-        if (autosmelt(first) == 0 && magnet(first) == 0 && drill(first) == 0
-                && autosmelt(second) == 0 && magnet(second) == 0 && drill(second) == 0) {
-            return null; // чисто ванильные объединения делает обычная наковальня
-        }
+        // Чисто ванильные объединения тоже считаем здесь: ванильная наковальня
+        // не поднимет чары выше своих капов (Защита IV + IV там навсегда IV),
+        // а в конфиге капы выше ванильных (anvil.caps, защита — до 5).
+        // Результат без изменений проверка same ниже всё равно отсечёт.
         boolean secondIsBook = second.getType() == Material.ENCHANTED_BOOK;
         if (!secondIsBook && first.getType() != second.getType() && !isBook(first)) {
             return null; // инструмент+книга, инструмент+такой же инструмент, книга+книга (и книга+инструмент)

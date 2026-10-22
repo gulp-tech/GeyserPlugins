@@ -192,6 +192,14 @@ public final class CaseService implements Listener {
     private void addOwnedTitle(UUID uuid, String titleId) {
         ownedTitles.computeIfAbsent(uuid, k -> new java.util.LinkedHashSet<>())
                 .add(titleId.toLowerCase(Locale.ROOT));
+        // Право titles.<id> для меню титулов DeluxeMenus (проверка has permission).
+        // Выдаётся и при выигрыше, и при синхронизации старого титула из суффикса LP.
+        Player online = Bukkit.getPlayer(uuid);
+        if (online != null) {
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
+                    "lp user " + online.getName() + " permission set titles."
+                            + titleId.toLowerCase(Locale.ROOT) + " true");
+        }
     }
 
     private void recordTitleWin(Player player, PrizeDef prize) {

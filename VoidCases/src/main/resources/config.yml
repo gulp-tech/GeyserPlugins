@@ -125,43 +125,57 @@ cases:
         material: PAPER
         weight: 300
         announce: false
-        commands: ['lp user {player} meta setsuffix 90 " &#7CFC00Везунчик&r"']
+        commands:
+          - 'lp user {player} meta setsuffix 90 " &#7CFC00Везунчик&r"'
+          - 'lp user {player} permission set titles.vezunchik true'
       - id: ohotnik
         name: "&#8CE8FFТитул: Охотник"
         material: BOW
         weight: 220
         announce: false
-        commands: ['lp user {player} meta setsuffix 90 " &#8CE8FFОхотник&r"']
+        commands:
+          - 'lp user {player} meta setsuffix 90 " &#8CE8FFОхотник&r"'
+          - 'lp user {player} permission set titles.ohotnik true'
       - id: bogach
         name: "&#FFD93DТитул: Богач"
         material: GOLD_INGOT
         weight: 160
         announce: false
-        commands: ['lp user {player} meta setsuffix 90 " &#FFD93DБогач&r"']
+        commands:
+          - 'lp user {player} meta setsuffix 90 " &#FFD93DБогач&r"'
+          - 'lp user {player} permission set titles.bogach true'
       - id: groza
         name: "&#55E6FFТитул: Гроза"
         material: LIGHTNING_ROD
         weight: 110
         announce: true
-        commands: ['lp user {player} meta setsuffix 90 " &#55E6FFГроза&r"']
+        commands:
+          - 'lp user {player} meta setsuffix 90 " &#55E6FFГроза&r"'
+          - 'lp user {player} permission set titles.groza true'
       - id: prizrak
         name: "&#C86BFFТитул: Призрак"
         material: PHANTOM_MEMBRANE
         weight: 70
         announce: true
-        commands: ['lp user {player} meta setsuffix 90 " &#C86BFFПризрак&r"']
+        commands:
+          - 'lp user {player} meta setsuffix 90 " &#C86BFFПризрак&r"'
+          - 'lp user {player} permission set titles.prizrak true'
       - id: legenda
         name: "&#FF9A3DТитул: Легенда"
         material: NETHERITE_SWORD
         weight: 35
         announce: true
-        commands: ['lp user {player} meta setsuffix 90 " &#FF9A3DЛегенда&r"']
+        commands:
+          - 'lp user {player} meta setsuffix 90 " &#FF9A3DЛегенда&r"'
+          - 'lp user {player} permission set titles.legenda true'
       - id: mif
         name: "<gradient:#FFD93D:#FF5555>Титул: Миф</gradient>"
         material: ENCHANTED_GOLDEN_APPLE
         weight: 10
         announce: true
-        commands: ['lp user {player} meta setsuffix 90 " &#FF5555Миф&r"']
+        commands:
+          - 'lp user {player} meta setsuffix 90 " &#FF5555Миф&r"'
+          - 'lp user {player} permission set titles.mif true'
 
   # ---------------- Кейс осколков (PlayerPoints) ----------------
   shards:
