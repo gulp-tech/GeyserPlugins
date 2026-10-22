@@ -110,7 +110,7 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
             getCommand("wcity").setTabCompleter(this);
         }
         long chestPeriod = Math.max(20L, getConfig().getLong("chests.scan-seconds", 60L) * 20L);
-        Bukkit.getScheduler().runTaskTimer(this, this::scanChests, chestPeriod, chestPeriod);
+        Bukkit.getScheduler().runTaskTimer(this, () -> scanChests(false), chestPeriod, chestPeriod);
         long wardenPeriod = Math.max(20L, getConfig().getLong("warden.check-seconds", 30L) * 20L);
         Bukkit.getScheduler().runTaskTimer(this, this::spawnWardens, wardenPeriod, wardenPeriod);
         long holoPeriod = Math.max(20L, getConfig().getLong("hologram.update-seconds", 10L) * 20L);
@@ -227,7 +227,7 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
     private int scanChests(boolean force) {
         Location center = cityCenter();
         if (center == null || center.getWorld() == null) {
-            return;
+            return 0;
         }
         long now = System.currentTimeMillis();
         long cooldown = currentRefillMillis();
