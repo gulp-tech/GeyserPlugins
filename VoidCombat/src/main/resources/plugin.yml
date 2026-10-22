@@ -7,8 +7,8 @@ description: "Режим боя VoidPE: PvP-метка, кулдауны ябл�
 softdepend: [VoidItems, WorldGuard]
 commands:
   combat:
-    description: "Режим боя VoidPE"
-    usage: /combat
+    description: "Режим боя VoidPE: статус; админ — on|off|settime|world|zone|info|reload"
+    usage: /combat [on|off|settime <сек>|world add|remove|list|zone add|remove|list|info|reload]
     aliases: [vcombat, бой]
     permission: voidcombat.use
 permissions:

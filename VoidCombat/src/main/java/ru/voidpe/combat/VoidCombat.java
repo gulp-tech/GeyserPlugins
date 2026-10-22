@@ -7,12 +7,14 @@ import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
@@ -40,12 +42,16 @@ import org.bukkit.potion.PotionType;
 import org.bukkit.projectiles.ProjectileSource;
 import org.bukkit.scheduler.BukkitTask;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -68,13 +74,27 @@ public final class VoidCombat extends JavaPlugin implements Listener, CommandExe
     private final Map<UUID, Map<String, Long>> cooldownUntil = new HashMap<>();
     private final Map<UUID, Map<String, Long>> lastBlockMessage = new HashMap<>();
     private BukkitTask timerTask;
+    private WGHook worldGuard;
+
+    // Настройки из команд (/combat on|off|settime|world|zone) — state.yml.
+    // null/пусто = значение берётся из config.yml.
+    private Boolean enabledOverride;
+    private Integer durationOverride;
+    private final Set<String> stateSafeWorlds = new HashSet<>();
+    private final List<SafeZone> safeZones = new ArrayList<>();
 
     private record CooldownItem(String key, String label, int seconds) {
+    }
+
+    /** Безопасная зона-круг, созданная командой /combat zone add. */
+    private record SafeZone(String name, String world, double x, double y, double z, int radius) {
     }
 
     @Override
     public void onEnable() {
         saveDefaultConfig();
+        worldGuard = new WGHook(getLogger());
+        loadState();
         getServer().getPluginManager().registerEvents(this, this);
         if (getCommand("combat") != null) {
             getCommand("combat").setExecutor(this);
@@ -149,8 +169,139 @@ public final class VoidCombat extends JavaPlugin implements Listener, CommandExe
         return (int) Math.ceil(combatLeftMillis(uuid) / 1000.0);
     }
 
+    // ------------------------------------------------------------ настройки и state.yml
+
+    /** Режим боя включён: выбор командой (/combat on|off) главнее конфига. */
+    private boolean combatEnabled() {
+        return enabledOverride != null
+                ? enabledOverride
+                : getConfig().getBoolean("combat.enabled", true);
+    }
+
+    /** Длительность режима боя в секундах: команда главнее конфига. */
+    private int combatDuration() {
+        int seconds = durationOverride != null
+                ? durationOverride
+                : getConfig().getInt("combat.duration-seconds", 30);
+        return Math.max(1, seconds);
+    }
+
+    private File stateFile() {
+        return new File(getDataFolder(), "state.yml");
+    }
+
+    private void loadState() {
+        enabledOverride = null;
+        durationOverride = null;
+        stateSafeWorlds.clear();
+        safeZones.clear();
+        File file = stateFile();
+        if (!file.exists()) {
+            return;
+        }
+        YamlConfiguration data = YamlConfiguration.loadConfiguration(file);
+        if (data.contains("enabled")) {
+            enabledOverride = data.getBoolean("enabled");
+        }
+        if (data.contains("duration-seconds")) {
+            durationOverride = Math.max(1, Math.min(3600, data.getInt("duration-seconds")));
+        }
+        for (String world : data.getStringList("safe-worlds")) {
+            stateSafeWorlds.add(world.toLowerCase(Locale.ROOT));
+        }
+        for (Map<?, ?> raw : data.getMapList("zones")) {
+            Object name = raw.get("name");
+            Object world = raw.get("world");
+            if (name == null || world == null) {
+                continue;
+            }
+            safeZones.add(new SafeZone(
+                    String.valueOf(name).toLowerCase(Locale.ROOT),
+                    String.valueOf(world),
+                    raw.get("x") instanceof Number n ? n.doubleValue() : 0,
+                    raw.get("y") instanceof Number n ? n.doubleValue() : 0,
+                    raw.get("z") instanceof Number n ? n.doubleValue() : 0,
+                    raw.get("radius") instanceof Number n ? Math.max(1, n.intValue()) : 30));
+        }
+        getLogger().info("VoidCombat state: включён=" + combatEnabled()
+                + ", длительность=" + combatDuration() + " сек, безопасных миров="
+                + stateSafeWorlds.size() + ", зон=" + safeZones.size());
+    }
+
+    private void saveState() {
+        YamlConfiguration data = new YamlConfiguration();
+        if (enabledOverride != null) {
+            data.set("enabled", enabledOverride);
+        }
+        if (durationOverride != null) {
+            data.set("duration-seconds", durationOverride);
+        }
+        data.set("safe-worlds", new ArrayList<>(stateSafeWorlds));
+        List<Map<String, Object>> zones = new ArrayList<>();
+        for (SafeZone zone : safeZones) {
+            Map<String, Object> row = new HashMap<>();
+            row.put("name", zone.name());
+            row.put("world", zone.world());
+            row.put("x", zone.x());
+            row.put("y", zone.y());
+            row.put("z", zone.z());
+            row.put("radius", zone.radius());
+            zones.add(row);
+        }
+        data.set("zones", zones);
+        try {
+            data.save(stateFile());
+        } catch (IOException e) {
+            getLogger().warning("Не удалось сохранить state.yml: " + e.getMessage());
+        }
+    }
+
+    // ------------------------------------------------------------ безопасные места
+
+    /** Все безопасные миры: из конфига + добавленные командой (нижний регистр). */
+    private Set<String> safeWorldNames() {
+        Set<String> out = new HashSet<>(stateSafeWorlds);
+        for (String world : getConfig().getStringList("combat.safe.worlds")) {
+            out.add(world.toLowerCase(Locale.ROOT));
+        }
+        return out;
+    }
+
+    /** Безопасное место: режим боя не ставится, метка снимается. */
+    private boolean isSafe(Location loc) {
+        if (loc == null || loc.getWorld() == null) {
+            return false;
+        }
+        if (safeWorldNames().contains(loc.getWorld().getName().toLowerCase(Locale.ROOT))) {
+            return true;
+        }
+        if (worldGuard != null && worldGuard.inRegion(loc,
+                getConfig().getStringList("combat.safe.worldguard-regions"))) {
+            return true;
+        }
+        boolean ignoreY = getConfig().getBoolean("combat.safe.ignore-y", true);
+        for (SafeZone zone : safeZones) {
+            if (!zone.world().equalsIgnoreCase(loc.getWorld().getName())) {
+                continue;
+            }
+            double dx = loc.getX() - zone.x();
+            double dz = loc.getZ() - zone.z();
+            double distSq = ignoreY
+                    ? dx * dx + dz * dz
+                    : dx * dx + dz * dz + Math.pow(loc.getY() - zone.y(), 2);
+            if (distSq <= (double) zone.radius() * zone.radius()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private void tagCombat(Player player, Player opponent) {
-        if (!getConfig().getBoolean("combat.enabled", true)) {
+        if (!combatEnabled()) {
+            return;
+        }
+        // Безопасное место (мир, регион WG, зона): боя нет ни у кого из пары.
+        if (isSafe(player.getLocation()) || isSafe(opponent.getLocation())) {
             return;
         }
         if (getConfig().getBoolean("combat.ignore-creative-and-spectator", true)
@@ -159,11 +310,10 @@ public final class VoidCombat extends JavaPlugin implements Listener, CommandExe
             return;
         }
         boolean wasInCombat = isInCombat(player);
-        int duration = Math.max(1, getConfig().getInt("combat.duration-seconds", 15));
-        combatUntil.put(player.getUniqueId(), System.currentTimeMillis() + duration * 1000L);
+        combatUntil.put(player.getUniqueId(),
+                System.currentTimeMillis() + combatDuration() * 1000L);
         if (!wasInCombat) {
-            msg(player, player.equals(opponent) ? "combat-started" : "combat-started",
-                    "{player}", opponent.getName());
+            msg(player, "combat-started", "{player}", opponent.getName());
         }
     }
 
@@ -177,6 +327,12 @@ public final class VoidCombat extends JavaPlugin implements Listener, CommandExe
                 it.remove();
                 continue;
             }
+            if (getConfig().getBoolean("combat.safe.clear-on-enter", true)
+                    && isSafe(player.getLocation())) {
+                it.remove();
+                msg(player, "combat-ended-safe");
+                continue;
+            }
             long leftMillis = entry.getValue() - now;
             if (leftMillis <= 0) {
                 it.remove();
@@ -185,11 +341,24 @@ public final class VoidCombat extends JavaPlugin implements Listener, CommandExe
             }
             if (getConfig().getBoolean("combat.display.actionbar", true)) {
                 String format = getConfig().getString("combat.display.actionbar-format",
-                        "&#FF5555Режим боя: &f{seconds} сек.");
+                        "&#FF5555Режим боя: &f{seconds} сек. &8[{bar}&8]");
                 int seconds = (int) Math.ceil(leftMillis / 1000.0);
-                player.sendActionBar(comp(format.replace("{seconds}", String.valueOf(seconds))));
+                player.sendActionBar(comp(format
+                        .replace("{seconds}", String.valueOf(seconds))
+                        .replace("{bar}", progressBar(leftMillis))));
             }
         }
+    }
+
+    /** Полоса прогресса режима боя для {bar} в actionbar. */
+    private String progressBar(long leftMillis) {
+        int length = Math.max(1, Math.min(40, getConfig().getInt("combat.display.bar-length", 10)));
+        double total = combatDuration() * 1000.0;
+        double fraction = total <= 0 ? 0 : Math.max(0.0, Math.min(1.0, leftMillis / total));
+        int filled = (int) Math.round(fraction * length);
+        String filledChar = getConfig().getString("combat.display.bar-filled", "█");
+        String emptyChar = getConfig().getString("combat.display.bar-empty", "░");
+        return filledChar.repeat(filled) + emptyChar.repeat(length - filled);
     }
 
     private Player resolveAttacker(Entity damager) {
@@ -555,36 +724,270 @@ public final class VoidCombat extends JavaPlugin implements Listener, CommandExe
 
     // ------------------------------------------------------------ команда
 
+    private boolean admin(CommandSender sender) {
+        return sender.hasPermission("voidcombat.admin");
+    }
+
+    private void sendHelp(CommandSender sender) {
+        String prefix = getConfig().getString("messages.prefix", "");
+        for (String line : getConfig().getStringList("messages.help")) {
+            sender.sendMessage(comp((prefix == null ? "" : prefix) + line));
+        }
+    }
+
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (args.length >= 1 && args[0].equalsIgnoreCase("reload")) {
-            if (!sender.hasPermission("voidcombat.admin")) {
-                msg(sender, "no-permission");
+        String sub = args.length == 0 ? "" : args[0].toLowerCase(Locale.ROOT);
+        switch (sub) {
+            case "reload" -> {
+                if (!admin(sender)) {
+                    msg(sender, "no-permission");
+                    return true;
+                }
+                reloadConfig();
+                loadState();
+                msg(sender, "reloaded");
                 return true;
             }
-            reloadConfig();
-            msg(sender, "reloaded");
-            return true;
+            case "on", "off" -> {
+                if (!admin(sender)) {
+                    msg(sender, "no-permission");
+                    return true;
+                }
+                boolean on = sub.equals("on");
+                enabledOverride = on;
+                if (!on) {
+                    combatUntil.clear();
+                }
+                saveState();
+                msg(sender, on ? "mode-enabled" : "mode-disabled",
+                        "{seconds}", String.valueOf(combatDuration()));
+                return true;
+            }
+            case "settime", "time", "duration" -> {
+                if (!admin(sender)) {
+                    msg(sender, "no-permission");
+                    return true;
+                }
+                Integer seconds = args.length >= 2 ? parseInt(args[1]) : null;
+                if (seconds == null || seconds < 1 || seconds > 3600) {
+                    msg(sender, "invalid-seconds");
+                    return true;
+                }
+                durationOverride = seconds;
+                saveState();
+                msg(sender, "time-set", "{seconds}", String.valueOf(seconds));
+                return true;
+            }
+            case "info" -> {
+                if (!admin(sender)) {
+                    msg(sender, "no-permission");
+                    return true;
+                }
+                msg(sender, "info",
+                        "{state}", getConfig().getString(combatEnabled()
+                                ? "messages.state-on" : "messages.state-off", ""),
+                        "{seconds}", String.valueOf(combatDuration()),
+                        "{worlds}", String.valueOf(safeWorldNames().size()),
+                        "{zones}", String.valueOf(safeZones.size()),
+                        "{fighting}", String.valueOf(combatUntil.size()));
+                return true;
+            }
+            case "world" -> {
+                if (!admin(sender)) {
+                    msg(sender, "no-permission");
+                    return true;
+                }
+                handleWorld(sender, args);
+                return true;
+            }
+            case "zone" -> {
+                if (!admin(sender)) {
+                    msg(sender, "no-permission");
+                    return true;
+                }
+                handleZone(sender, args);
+                return true;
+            }
+            case "help" -> {
+                sendHelp(sender);
+                return true;
+            }
+            default -> {
+                if (!(sender instanceof Player player)) {
+                    sendHelp(sender);
+                    return true;
+                }
+                if (!sub.isEmpty() && admin(sender)) {
+                    sendHelp(sender);
+                    return true;
+                }
+                if (!combatEnabled()) {
+                    msg(player, "combat-status-off");
+                } else if (isInCombat(player)) {
+                    msg(player, "combat-status-active",
+                            "{seconds}", String.valueOf(combatLeftSeconds(player.getUniqueId())));
+                } else {
+                    msg(player, "combat-status-none");
+                }
+                return true;
+            }
         }
-        if (!(sender instanceof Player)) {
-            sender.sendMessage(comp("&fИспользование: &b/combat reload &7— из консоли доступна только перезагрузка."));
-            return true;
+    }
+
+    private Integer parseInt(String text) {
+        try {
+            return Integer.parseInt(text.trim());
+        } catch (NumberFormatException e) {
+            return null;
         }
-        Player player = (Player) sender;
-        if (isInCombat(player)) {
-            msg(player, "combat-status-active", "{seconds}", String.valueOf(combatLeftSeconds(player.getUniqueId())));
-        } else {
-            msg(player, "combat-status-none");
+    }
+
+    /** /combat world add|remove|list [мир] — безопасные миры без режима боя. */
+    private void handleWorld(CommandSender sender, String[] args) {
+        String action = args.length >= 2 ? args[1].toLowerCase(Locale.ROOT) : "";
+        switch (action) {
+            case "add", "remove" -> {
+                String worldName;
+                if (args.length >= 3) {
+                    worldName = args[2];
+                } else if (sender instanceof Player player) {
+                    worldName = player.getWorld().getName();
+                } else {
+                    msg(sender, "world-usage");
+                    return;
+                }
+                if (action.equals("add")) {
+                    if (Bukkit.getWorld(worldName) == null) {
+                        msg(sender, "world-not-found", "{world}", worldName);
+                        return;
+                    }
+                    stateSafeWorlds.add(worldName.toLowerCase(Locale.ROOT));
+                    saveState();
+                    msg(sender, "world-added", "{world}", worldName);
+                } else {
+                    boolean inState = stateSafeWorlds.remove(worldName.toLowerCase(Locale.ROOT));
+                    boolean inConfig = getConfig().getStringList("combat.safe.worlds").stream()
+                            .anyMatch(w -> w.equalsIgnoreCase(worldName));
+                    if (!inState && !inConfig) {
+                        msg(sender, "world-not-safe", "{world}", worldName);
+                        return;
+                    }
+                    saveState();
+                    // Мир из config.yml командой не убрать — честно предупреждаем.
+                    msg(sender, inConfig && !inState ? "world-in-config" : "world-removed",
+                            "{world}", worldName);
+                }
+            }
+            case "list" -> {
+                Set<String> worlds = safeWorldNames();
+                if (worlds.isEmpty()) {
+                    msg(sender, "worlds-empty");
+                } else {
+                    msg(sender, "worlds-list", "{worlds}", String.join(", ", worlds));
+                }
+            }
+            default -> msg(sender, "world-usage");
         }
-        return true;
+    }
+
+    /** /combat zone add <имя> [радиус] | remove <имя> | list — зоны-круги. */
+    private void handleZone(CommandSender sender, String[] args) {
+        String action = args.length >= 2 ? args[1].toLowerCase(Locale.ROOT) : "";
+        switch (action) {
+            case "add" -> {
+                if (!(sender instanceof Player player)) {
+                    msg(sender, "players-only");
+                    return;
+                }
+                if (args.length < 3) {
+                    msg(sender, "zone-usage");
+                    return;
+                }
+                String name = args[2].toLowerCase(Locale.ROOT);
+                if (safeZones.stream().anyMatch(z -> z.name().equals(name))) {
+                    msg(sender, "zone-exists", "{name}", name);
+                    return;
+                }
+                int radius = getConfig().getInt("combat.safe.default-zone-radius", 30);
+                if (args.length >= 4) {
+                    Integer parsed = parseInt(args[3]);
+                    if (parsed == null || parsed < 1 || parsed > 1000) {
+                        msg(sender, "zone-usage");
+                        return;
+                    }
+                    radius = parsed;
+                }
+                Location loc = player.getLocation();
+                safeZones.add(new SafeZone(name, loc.getWorld().getName(),
+                        loc.getX(), loc.getY(), loc.getZ(), radius));
+                saveState();
+                msg(sender, "zone-added", "{name}", name,
+                        "{radius}", String.valueOf(radius));
+            }
+            case "remove" -> {
+                if (args.length < 3) {
+                    msg(sender, "zone-usage");
+                    return;
+                }
+                String name = args[2].toLowerCase(Locale.ROOT);
+                if (!safeZones.removeIf(z -> z.name().equals(name))) {
+                    msg(sender, "zone-not-found", "{name}", name);
+                    return;
+                }
+                saveState();
+                msg(sender, "zone-removed", "{name}", name);
+            }
+            case "list" -> {
+                if (safeZones.isEmpty()) {
+                    msg(sender, "zones-empty");
+                } else {
+                    List<String> names = new ArrayList<>();
+                    for (SafeZone zone : safeZones) {
+                        names.add(zone.name() + " (" + zone.world() + ", r=" + zone.radius() + ")");
+                    }
+                    msg(sender, "zones-list", "{zones}", String.join(", ", names));
+                }
+            }
+            default -> msg(sender, "zone-usage");
+        }
     }
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> result = new ArrayList<>();
-        if (args.length == 1 && sender.hasPermission("voidcombat.admin")
-                && "reload".startsWith(args[0].toLowerCase(Locale.ROOT))) {
-            result.add("reload");
+        if (!admin(sender)) {
+            return result;
+        }
+        String prefix = args.length == 0 ? "" : args[args.length - 1].toLowerCase(Locale.ROOT);
+        List<String> options = List.of();
+        if (args.length == 1) {
+            options = List.of("on", "off", "settime", "world", "zone", "info", "reload", "help");
+        } else if (args.length == 2 && args[0].equalsIgnoreCase("world")) {
+            options = List.of("add", "remove", "list");
+        } else if (args.length == 2 && args[0].equalsIgnoreCase("zone")) {
+            options = List.of("add", "remove", "list");
+        } else if (args.length == 2 && args[0].equalsIgnoreCase("settime")) {
+            options = List.of("15", "30", "45", "60", "90");
+        } else if (args.length == 3 && args[0].equalsIgnoreCase("world")
+                && (args[1].equalsIgnoreCase("add") || args[1].equalsIgnoreCase("remove"))) {
+            List<String> worlds = new ArrayList<>();
+            for (org.bukkit.World world : Bukkit.getWorlds()) {
+                worlds.add(world.getName());
+            }
+            options = worlds;
+        } else if (args.length == 3 && args[0].equalsIgnoreCase("zone")
+                && args[1].equalsIgnoreCase("remove")) {
+            List<String> names = new ArrayList<>();
+            for (SafeZone zone : safeZones) {
+                names.add(zone.name());
+            }
+            options = names;
+        }
+        for (String option : options) {
+            if (option.toLowerCase(Locale.ROOT).startsWith(prefix)) {
+                result.add(option);
+            }
         }
         return result;
     }
