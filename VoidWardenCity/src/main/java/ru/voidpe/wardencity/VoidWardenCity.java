@@ -29,6 +29,7 @@ import org.bukkit.event.block.BlockExplodeEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
+import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
@@ -81,7 +82,7 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
 
     private record LootEntry(Material material, String command, int chance, int min, int max,
                              String name, int customModelData, String itemModel,
-                             Map<String, Integer> enchantments, String potion) {
+                             Map<String, Integer> enchantments, String potion, String sig) {
     }
 
     /** Предметы, добавленные админом через GUI (/wcity loot) — дополнение к ванильному луту. */
@@ -99,11 +100,51 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
         }
     }
 
+    /** Шансы, изменённые админом в меню /wcity chances (файл loot-chances.yml). */
+    private final Map<String, Integer> chanceOverrides = new HashMap<>();
+    /** Переопределённый шанс доп. лута из GUI; null — брать из конфига. */
+    private Integer customChanceOverride;
+
+    /** Список наград со шансами (меню /wcity chances), страница page. */
+    private static final class ChancesGuiHolder implements InventoryHolder {
+        private Inventory inventory;
+        private final int page;
+
+        private ChancesGuiHolder(int page) {
+            this.page = page;
+        }
+
+        @Override
+        public Inventory getInventory() {
+            return inventory;
+        }
+    }
+
+    /** Редактор шанса одной награды (или доп. лута, если custom). */
+    private static final class ChanceEditHolder implements InventoryHolder {
+        private Inventory inventory;
+        private final String sig;
+        private final int page;
+        private final boolean custom;
+
+        private ChanceEditHolder(String sig, int page, boolean custom) {
+            this.sig = sig;
+            this.page = page;
+            this.custom = custom;
+        }
+
+        @Override
+        public Inventory getInventory() {
+            return inventory;
+        }
+    }
+
     @Override
     public void onEnable() {
         saveDefaultConfig();
         loadChestData();
         loadCustomLoot();
+        loadChanceOverrides();
         getServer().getPluginManager().registerEvents(this, this);
         if (getCommand("wcity") != null) {
             getCommand("wcity").setExecutor(this);
@@ -270,39 +311,48 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
         int rollsMin = Math.max(0, getConfig().getInt("chests.rolls-min", 2));
         int rollsMax = Math.max(rollsMin, getConfig().getInt("chests.rolls-max", 4));
         int rolls = rollsMin + (rollsMax > rollsMin ? random.nextInt(rollsMax - rollsMin + 1) : 0);
-        List<LootEntry> shuffled = new ArrayList<>(loot);
-        java.util.Collections.shuffle(shuffled, random);
+        // Как в ванилле: в сундуке ВСЕГДА rolls наград. Раньше каждая строка
+        // бросала шанс один раз — при неудаче сундук получал 2-4 предмета
+        // вместо 5-10, а зачарованные строки (12-30%) часто проваливались все.
+        // Теперь идём проходами по перемешанному списку, пока не наберём rolls.
         int placed = 0;
-        for (LootEntry e : shuffled) {
-            if (placed >= rolls) {
-                break;
-            }
-            if (random.nextInt(100) >= e.chance()) {
-                continue;
-            }
-            if (e.command() != null) {
-                // Командный лут (сферы, талисманы, осколки) выдаётся тому, кто открыл
-                // свежезаполненный сундук. При фоновом обновлении без игрока — пропускаем.
-                if (opener != null) {
-                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
-                            e.command().replace("%player%", opener.getName()));
-                    placed++;
+        boolean full = false;
+        for (int pass = 0; pass < 3 && placed < rolls && !full; pass++) {
+            List<LootEntry> shuffled = new ArrayList<>(loot);
+            java.util.Collections.shuffle(shuffled, random);
+            for (LootEntry e : shuffled) {
+                if (placed >= rolls) {
+                    break;
                 }
-                continue;
-            }
-            int amount = e.min() + (e.max() > e.min() ? random.nextInt(e.max() - e.min() + 1) : 0);
-            if (amount <= 0) {
-                continue;
-            }
-            int slot = freeSlot(inv);
-            if (slot >= 0) {
+                if (random.nextInt(100) >= e.chance()) {
+                    continue;
+                }
+                if (e.command() != null) {
+                    // Командный лут (сферы, талисманы, осколки) выдаётся тому, кто открыл
+                    // свежезаполненный сундук. При фоновом обновлении без игрока — пропускаем.
+                    if (opener != null) {
+                        Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
+                                e.command().replace("%player%", opener.getName()));
+                        placed++;
+                    }
+                    continue;
+                }
+                int amount = e.min() + (e.max() > e.min() ? random.nextInt(e.max() - e.min() + 1) : 0);
+                if (amount <= 0) {
+                    continue;
+                }
+                int slot = freeSlot(inv);
+                if (slot < 0) {
+                    full = true;
+                    break;
+                }
                 inv.setItem(slot, buildItem(e, amount));
                 placed++;
             }
         }
         // Дополнение к ванильному луту из GUI (/wcity loot): каждый сохранённый
         // предмет с шансом кладётся в сундук в случайном количестве 1..размер стака.
-        int customChance = getConfig().getInt("custom-loot.chance-percent", 30);
+        int customChance = effectiveCustomChance();
         for (ItemStack saved : customLoot) {
             if (random.nextInt(100) >= customChance) {
                 continue;
@@ -413,11 +463,23 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
             }
             String potion = raw.get("potion") == null ? null : String.valueOf(raw.get("potion"));
             if (raw.get("command") != null) {
-                out.add(new LootEntry(null, String.valueOf(raw.get("command")), chance, min, max, name, cmd, model, enchants, potion));
+                String command = String.valueOf(raw.get("command"));
+                String sig = "cmd:" + command;
+                out.add(new LootEntry(null, command, overrideChance(sig, chance), min, max,
+                        name, cmd, model, enchants, potion, sig));
             } else if (raw.get("material") != null) {
                 Material mat = Material.matchMaterial(String.valueOf(raw.get("material")));
                 if (mat != null) {
-                    out.add(new LootEntry(mat, null, chance, min, max, name, cmd, model, enchants, potion));
+                    // Подпись награды для меню шансов: материал + зачарования,
+                    // чтобы две зачарованные книги (swift_sneak и random) не путались.
+                    String sig = mat.name();
+                    if (!enchants.isEmpty()) {
+                        List<String> keys = new ArrayList<>(enchants.keySet());
+                        java.util.Collections.sort(keys);
+                        sig += ":" + String.join("+", keys);
+                    }
+                    out.add(new LootEntry(mat, null, overrideChance(sig, chance), min, max,
+                            name, cmd, model, enchants, potion, sig));
                 }
             }
         }
@@ -619,6 +681,275 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
         saveCustomLoot();
         if (event.getPlayer() instanceof Player player) {
             send(player, msg("gui-saved").replace("{count}", String.valueOf(customLoot.size())));
+        }
+    }
+
+    // ------------------------------------------------- меню шансов (/wcity chances)
+
+    private File chanceFile() {
+        return new File(getDataFolder(), "loot-chances.yml");
+    }
+
+    private void loadChanceOverrides() {
+        chanceOverrides.clear();
+        customChanceOverride = null;
+        File file = chanceFile();
+        if (!file.exists()) {
+            return;
+        }
+        YamlConfiguration data = YamlConfiguration.loadConfiguration(file);
+        for (Map<?, ?> raw : data.getMapList("chances")) {
+            Object sig = raw.get("sig");
+            if (sig != null && raw.get("chance") instanceof Number n) {
+                chanceOverrides.put(String.valueOf(sig), clampChance(n.intValue()));
+            }
+        }
+        if (data.contains("custom-chance-percent")) {
+            customChanceOverride = clampChance(data.getInt("custom-chance-percent"));
+        }
+    }
+
+    private void saveChanceOverrides() {
+        YamlConfiguration data = new YamlConfiguration();
+        List<Map<String, Object>> list = new ArrayList<>();
+        for (Map.Entry<String, Integer> e : chanceOverrides.entrySet()) {
+            Map<String, Object> row = new HashMap<>();
+            row.put("sig", e.getKey());
+            row.put("chance", e.getValue());
+            list.add(row);
+        }
+        data.set("chances", list);
+        if (customChanceOverride != null) {
+            data.set("custom-chance-percent", customChanceOverride);
+        }
+        try {
+            data.save(chanceFile());
+        } catch (IOException e) {
+            getLogger().warning("Не удалось сохранить loot-chances.yml: " + e.getMessage());
+        }
+    }
+
+    private static int clampChance(int chance) {
+        return Math.max(0, Math.min(100, chance));
+    }
+
+    private int overrideChance(String sig, int configChance) {
+        Integer override = chanceOverrides.get(sig);
+        return override == null ? configChance : override;
+    }
+
+    private int effectiveCustomChance() {
+        return customChanceOverride != null
+                ? customChanceOverride
+                : getConfig().getInt("custom-loot.chance-percent", 30);
+    }
+
+    private void openChancesGui(Player player, int page) {
+        List<LootEntry> entries = parseLoot();
+        int perPage = 45;
+        int pages = Math.max(1, (entries.size() + perPage - 1) / perPage);
+        int current = Math.max(0, Math.min(page, pages - 1));
+        ChancesGuiHolder holder = new ChancesGuiHolder(current);
+        Inventory gui = Bukkit.createInventory(holder, 54, comp(msg("chances-title")));
+        holder.inventory = gui;
+        int from = current * perPage;
+        for (int i = 0; i < perPage && from + i < entries.size(); i++) {
+            gui.setItem(i, chanceIcon(entries.get(from + i)));
+        }
+        ItemStack filler = pane(Material.GRAY_STAINED_GLASS_PANE, " ");
+        for (int slot = 45; slot < 54; slot++) {
+            if (slot != 46) {
+                gui.setItem(slot, filler);
+            }
+        }
+        if (current > 0) {
+            gui.setItem(45, button(Material.ARROW, "&e← Назад (стр. " + current + ")"));
+        }
+        gui.setItem(46, customChanceIcon());
+        if (current < pages - 1) {
+            gui.setItem(53, button(Material.ARROW, "&eВперёд (стр. " + (current + 2) + ") →"));
+        }
+        player.openInventory(gui);
+    }
+
+    private ItemStack chanceIcon(LootEntry e) {
+        ItemStack icon;
+        List<String> lore = new ArrayList<>();
+        if (e.command() != null) {
+            icon = new ItemStack(Material.COMMAND_BLOCK);
+            ItemMeta meta = icon.getItemMeta();
+            if (meta != null) {
+                meta.displayName(comp("&eКомандная награда").decoration(TextDecoration.ITALIC, false));
+                String command = e.command();
+                lore.add("&7" + (command.length() > 42 ? command.substring(0, 42) + "…" : command));
+            }
+            icon.setItemMeta(meta);
+        } else {
+            icon = buildItem(e, 1);
+        }
+        ItemMeta meta = icon.getItemMeta();
+        if (meta != null) {
+            List<Component> lines = new ArrayList<>();
+            if (meta.hasLore()) {
+                lines.addAll(meta.lore());
+            }
+            for (String line : lore) {
+                lines.add(comp(line));
+            }
+            lines.add(comp("&7Шанс выпадения: &f" + e.chance() + "%"));
+            if (e.command() == null) {
+                lines.add(comp(e.min() == e.max()
+                        ? "&7Количество: &f" + e.min()
+                        : "&7Количество: &f" + e.min() + "–" + e.max()));
+            }
+            lines.add(comp("&eНажми, чтобы изменить шанс"));
+            meta.lore(lines);
+            icon.setItemMeta(meta);
+        }
+        return icon;
+    }
+
+    private ItemStack customChanceIcon() {
+        ItemStack icon = new ItemStack(Material.CHEST);
+        ItemMeta meta = icon.getItemMeta();
+        if (meta != null) {
+            meta.displayName(comp("&#FFD93DДоп. лут из /wcity loot")
+                    .decoration(TextDecoration.ITALIC, false));
+            meta.lore(List.of(
+                    comp("&7Шанс каждого предмета: &f" + effectiveCustomChance() + "%"),
+                    comp("&eНажми, чтобы изменить шанс")));
+            icon.setItemMeta(meta);
+        }
+        return icon;
+    }
+
+    private ItemStack pane(Material material, String name) {
+        ItemStack item = new ItemStack(material);
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.displayName(comp(name).decoration(TextDecoration.ITALIC, false));
+            item.setItemMeta(meta);
+        }
+        return item;
+    }
+
+    private ItemStack button(Material material, String name) {
+        return pane(material, name);
+    }
+
+    private ItemStack editorIcon(String sig, boolean custom, int chance) {
+        if (custom) {
+            ItemStack icon = customChanceIcon();
+            return icon;
+        }
+        for (LootEntry e : parseLoot()) {
+            if (e.sig().equals(sig)) {
+                return chanceIcon(e);
+            }
+        }
+        ItemStack icon = new ItemStack(Material.PAPER);
+        ItemMeta meta = icon.getItemMeta();
+        if (meta != null) {
+            meta.displayName(comp("&fШанс: &e" + chance + "%").decoration(TextDecoration.ITALIC, false));
+            icon.setItemMeta(meta);
+        }
+        return icon;
+    }
+
+    private void openChanceEditor(Player player, String sig, int page, boolean custom) {
+        int chance = custom ? effectiveCustomChance() : currentEntryChance(sig);
+        ChanceEditHolder holder = new ChanceEditHolder(sig, page, custom);
+        Inventory gui = Bukkit.createInventory(holder, 27, comp(msg("chance-edit-title")));
+        holder.inventory = gui;
+        ItemStack filler = pane(Material.GRAY_STAINED_GLASS_PANE, " ");
+        for (int slot = 0; slot < gui.getSize(); slot++) {
+            gui.setItem(slot, filler);
+        }
+        gui.setItem(13, editorIcon(sig, custom, chance));
+        gui.setItem(10, pane(Material.RED_STAINED_GLASS_PANE, "&c−10%"));
+        gui.setItem(11, pane(Material.RED_STAINED_GLASS_PANE, "&c−5%"));
+        gui.setItem(12, pane(Material.RED_STAINED_GLASS_PANE, "&c−1%"));
+        gui.setItem(14, pane(Material.GREEN_STAINED_GLASS_PANE, "&a+1%"));
+        gui.setItem(15, pane(Material.GREEN_STAINED_GLASS_PANE, "&a+5%"));
+        gui.setItem(16, pane(Material.GREEN_STAINED_GLASS_PANE, "&a+10%"));
+        gui.setItem(22, button(Material.ARROW, "&e← К списку наград"));
+        player.openInventory(gui);
+    }
+
+    private int currentEntryChance(String sig) {
+        for (LootEntry e : parseLoot()) {
+            if (e.sig().equals(sig)) {
+                return e.chance();
+            }
+        }
+        return 0;
+    }
+
+    private void setChance(String sig, boolean custom, int chance) {
+        int value = clampChance(chance);
+        if (custom) {
+            customChanceOverride = value;
+        } else {
+            chanceOverrides.put(sig, value);
+        }
+        saveChanceOverrides();
+    }
+
+    @EventHandler(priority = EventPriority.HIGH)
+    public void onChancesClick(InventoryClickEvent event) {
+        if (!(event.getWhoClicked() instanceof Player player)) {
+            return;
+        }
+        if (event.getInventory().getHolder() instanceof ChancesGuiHolder holder) {
+            event.setCancelled(true);
+            if (event.getClickedInventory() != event.getInventory()) {
+                return;
+            }
+            int slot = event.getSlot();
+            player.playSound(player.getLocation(), "minecraft:ui.button.click", 0.6f, 1.0f);
+            if (slot == 45 && holder.page > 0) {
+                openChancesGui(player, holder.page - 1);
+            } else if (slot == 46) {
+                openChanceEditor(player, null, holder.page, true);
+            } else if (slot == 53) {
+                openChancesGui(player, holder.page + 1);
+            } else if (slot < 45) {
+                List<LootEntry> entries = parseLoot();
+                int index = holder.page * 45 + slot;
+                if (index < entries.size()) {
+                    openChanceEditor(player, entries.get(index).sig(), holder.page, false);
+                }
+            }
+            return;
+        }
+        if (event.getInventory().getHolder() instanceof ChanceEditHolder holder) {
+            event.setCancelled(true);
+            if (event.getClickedInventory() != event.getInventory()) {
+                return;
+            }
+            int slot = event.getSlot();
+            player.playSound(player.getLocation(), "minecraft:ui.button.click", 0.6f, 1.0f);
+            if (slot == 22) {
+                openChancesGui(player, holder.page);
+                return;
+            }
+            int delta = switch (slot) {
+                case 10 -> -10;
+                case 11 -> -5;
+                case 12 -> -1;
+                case 14 -> 1;
+                case 15 -> 5;
+                case 16 -> 10;
+                default -> 0;
+            };
+            if (delta != 0) {
+                int current = holder.custom
+                        ? effectiveCustomChance() : currentEntryChance(holder.sig);
+                int value = clampChance(current + delta);
+                setChance(holder.sig, holder.custom, value);
+                openChanceEditor(player, holder.sig, holder.page, holder.custom);
+                player.sendActionBar(comp(msg("chance-set").replace("{chance}", String.valueOf(value))));
+            }
         }
     }
 
@@ -841,6 +1172,14 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
                 openLootGui(player);
                 return true;
             }
+            case "chances" -> {
+                if (!admin(sender) || !(sender instanceof Player player)) {
+                    send(sender, msg("admin-only"));
+                    return true;
+                }
+                openChancesGui(player, 0);
+                return true;
+            }
             case "refill" -> {
                 if (!admin(sender)) {
                     send(sender, msg("admin-only"));
@@ -856,6 +1195,7 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
                     return true;
                 }
                 reloadConfig();
+                loadChanceOverrides();
                 send(sender, msg("reloaded"));
                 return true;
             }
@@ -939,7 +1279,7 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
             List<String> base = admin(sender)
-                    ? List.of("tp", "setcenter", "setspawn", "chest", "loot", "refill", "info", "reload")
+                    ? List.of("tp", "setcenter", "setspawn", "chest", "loot", "chances", "refill", "info", "reload")
                     : List.of("tp", "info");
             List<String> out = new ArrayList<>();
             for (String b : base) {
