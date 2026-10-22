@@ -50,6 +50,7 @@ public final class VoidVersionsExtension implements Extension {
 
     private static final String GAME_PROTOCOL = "org.geysermc.geyser.network.bedrock.GameProtocol";
     private static final String CODEC_PROCESSOR = "org.geysermc.geyser.network.bedrock.CodecProcessor";
+    private static final String VERSION_COMMAND = "org.geysermc.geyser.command.defaults.VersionCommand";
     private static final String MINECRAFT_VERSION_IMPL = "org.geysermc.geyser.impl.MinecraftVersionImpl";
     private static final String CODEC_CLASS_NAME = "org.cloudburstmc.protocol.bedrock.codec.v%d.Bedrock_v%d";
 
@@ -71,6 +72,51 @@ public final class VoidVersionsExtension implements Extension {
         } catch (Throwable t) {
             logger().warning("VoidVersions: не удалось прочитать список версий GameProtocol: " + describe(t));
         }
+        updateVersionCommandOutput();
+    }
+
+    /**
+     * Команда {@code /geyser version} показывает диапазон версий из поля
+     * {@code SUPPORTED_BEDROCK_RANGE} класса VersionCommand. Оно считается
+     * один раз в статическом инициализаторе (и только как «первая - последняя»),
+     * поэтому заменяем его полным списком версий уже после нашего патча —
+     * тогда {@code geyser version} честно перечисляет все версии, включая
+     * добавленные расширением. Поле final, пишем через Unsafe; любая ошибка
+     * здесь некритична и просто логируется.
+     */
+    private void updateVersionCommandOutput() {
+        try {
+            ClassLoader cl = VoidVersionsExtension.class.getClassLoader();
+            Class<?> gameProtocol = Class.forName(GAME_PROTOCOL, false, cl);
+            String fullList = String.valueOf(gameProtocol.getMethod("getAllSupportedBedrockVersions").invoke(null));
+
+            // initialize=true: статический блок VersionCommand должен отработать
+            // ДО записи, иначе он потом сам перезапишет поле своим диапазоном.
+            Class<?> versionCommand = Class.forName(VERSION_COMMAND, true, cl);
+            Field range = versionCommand.getDeclaredField("SUPPORTED_BEDROCK_RANGE");
+            range.setAccessible(true);
+            try {
+                range.set(null, fullList);
+            } catch (IllegalAccessException finalField) {
+                writeStaticField(range, fullList);
+            }
+            logger().info("VoidVersions: команда /geyser version теперь покажет все поддерживаемые версии.");
+        } catch (Throwable t) {
+            logger().warning("VoidVersions: не удалось обновить вывод /geyser version: " + describe(unwrap(t))
+                    + " — команда покажет диапазон Geyser по умолчанию, на сам вход старых клиентов это не влияет.");
+        }
+    }
+
+    /** Запись в static final поле через sun.misc.Unsafe. */
+    private static void writeStaticField(Field field, Object value) throws Exception {
+        Class<?> unsafeClass = Class.forName("sun.misc.Unsafe");
+        Field theUnsafe = unsafeClass.getDeclaredField("theUnsafe");
+        theUnsafe.setAccessible(true);
+        Object unsafe = theUnsafe.get(null);
+        Object base = unsafeClass.getMethod("staticFieldBase", Field.class).invoke(unsafe, field);
+        long offset = (Long) unsafeClass.getMethod("staticFieldOffset", Field.class).invoke(unsafe, field);
+        unsafeClass.getMethod("putObject", Object.class, long.class, Object.class)
+                .invoke(unsafe, base, offset, value);
     }
 
     // ------------------------------------------------------------ конфиг
