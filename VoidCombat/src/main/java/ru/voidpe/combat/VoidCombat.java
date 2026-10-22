@@ -1,6 +1,7 @@
 package ru.voidpe.combat;
 
 import com.destroystokyo.paper.event.player.PlayerElytraBoostEvent;
+import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
@@ -71,6 +72,7 @@ public final class VoidCombat extends JavaPlugin implements Listener, CommandExe
     private static final NamespacedKey VOID_ITEMS_ID = NamespacedKey.fromString("voiditems:item_id");
 
     private final Map<UUID, Long> combatUntil = new HashMap<>();
+    private final Map<UUID, BossBar> combatBars = new HashMap<>();
     private final Map<UUID, Map<String, Long>> cooldownUntil = new HashMap<>();
     private final Map<UUID, Map<String, Long>> lastBlockMessage = new HashMap<>();
     private BukkitTask timerTask;
@@ -100,7 +102,7 @@ public final class VoidCombat extends JavaPlugin implements Listener, CommandExe
             getCommand("combat").setExecutor(this);
             getCommand("combat").setTabCompleter(this);
         }
-        timerTask = Bukkit.getScheduler().runTaskTimer(this, this::tickCombat, 20L, 20L);
+        timerTask = Bukkit.getScheduler().runTaskTimer(this, this::tickCombat, 10L, 10L);
         getLogger().info("VoidCombat включён: режим боя, кулдауны предметов и запрет фейерверков в бою.");
     }
 
@@ -109,6 +111,7 @@ public final class VoidCombat extends JavaPlugin implements Listener, CommandExe
         if (timerTask != null) {
             timerTask.cancel();
         }
+        hideAllCombatBars();
         combatUntil.clear();
         cooldownUntil.clear();
         lastBlockMessage.clear();
@@ -315,6 +318,8 @@ public final class VoidCombat extends JavaPlugin implements Listener, CommandExe
         if (!wasInCombat) {
             msg(player, "combat-started", "{player}", opponent.getName());
         }
+        // Боссбар показываем сразу, не дожидаясь следующего тика таймера.
+        updateCombatBar(player, combatDuration() * 1000L);
     }
 
     private void tickCombat() {
@@ -325,20 +330,24 @@ public final class VoidCombat extends JavaPlugin implements Listener, CommandExe
             Player player = Bukkit.getPlayer(entry.getKey());
             if (player == null || !player.isOnline()) {
                 it.remove();
+                combatBars.remove(entry.getKey());
                 continue;
             }
             if (getConfig().getBoolean("combat.safe.clear-on-enter", true)
                     && isSafe(player.getLocation())) {
                 it.remove();
+                hideCombatBar(player);
                 msg(player, "combat-ended-safe");
                 continue;
             }
             long leftMillis = entry.getValue() - now;
             if (leftMillis <= 0) {
                 it.remove();
+                hideCombatBar(player);
                 msg(player, "combat-ended");
                 continue;
             }
+            updateCombatBar(player, leftMillis);
             if (getConfig().getBoolean("combat.display.actionbar", true)) {
                 String format = getConfig().getString("combat.display.actionbar-format",
                         "&#FF5555Режим боя: &f{seconds} сек. &8[{bar}&8]");
@@ -348,6 +357,72 @@ public final class VoidCombat extends JavaPlugin implements Listener, CommandExe
                         .replace("{bar}", progressBar(leftMillis))));
             }
         }
+    }
+
+    // ------------------------------------------------------------ боссбар боя
+
+    private BossBar.Color bossBarColor() {
+        String raw = getConfig().getString("combat.display.bossbar-color", "RED");
+        try {
+            return BossBar.Color.valueOf(raw == null ? "RED" : raw.trim().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException e) {
+            return BossBar.Color.RED;
+        }
+    }
+
+    private BossBar.Overlay bossBarOverlay() {
+        String raw = getConfig().getString("combat.display.bossbar-overlay", "PROGRESS");
+        try {
+            return BossBar.Overlay.valueOf(raw == null ? "PROGRESS" : raw.trim().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException e) {
+            return BossBar.Overlay.PROGRESS;
+        }
+    }
+
+    /** Создаёт/обновляет боссбар боя: заголовок с секундами + тающая полоса. */
+    private void updateCombatBar(Player player, long leftMillis) {
+        if (!getConfig().getBoolean("combat.display.bossbar", true)) {
+            hideCombatBar(player);
+            return;
+        }
+        int seconds = (int) Math.ceil(leftMillis / 1000.0);
+        String format = getConfig().getString("combat.display.bossbar-format",
+                "&#FF5555Режим боя: &f{seconds} сек.");
+        Component title = comp(format.replace("{seconds}", String.valueOf(seconds)));
+        double total = combatDuration() * 1000.0;
+        float progress = total <= 0 ? 0.0f
+                : (float) Math.max(0.0, Math.min(1.0, leftMillis / total));
+        BossBar bar = combatBars.get(player.getUniqueId());
+        if (bar == null) {
+            bar = BossBar.bossBar(title, progress, bossBarColor(), bossBarOverlay());
+            combatBars.put(player.getUniqueId(), bar);
+        } else {
+            bar.name(title);
+            bar.progress(progress);
+            bar.color(bossBarColor());
+            bar.overlay(bossBarOverlay());
+        }
+        player.showBossBar(bar);
+    }
+
+    private void hideCombatBar(Player player) {
+        if (player == null) {
+            return;
+        }
+        BossBar bar = combatBars.remove(player.getUniqueId());
+        if (bar != null) {
+            player.hideBossBar(bar);
+        }
+    }
+
+    private void hideAllCombatBars() {
+        for (Map.Entry<UUID, BossBar> entry : combatBars.entrySet()) {
+            Player player = Bukkit.getPlayer(entry.getKey());
+            if (player != null && player.isOnline()) {
+                player.hideBossBar(entry.getValue());
+            }
+        }
+        combatBars.clear();
     }
 
     /** Полоса прогресса режима боя для {bar} в actionbar. */
@@ -393,12 +468,14 @@ public final class VoidCombat extends JavaPlugin implements Listener, CommandExe
     @EventHandler
     public void onDeath(PlayerDeathEvent event) {
         combatUntil.remove(event.getEntity().getUniqueId());
+        hideCombatBar(event.getEntity());
     }
 
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
         UUID uuid = event.getPlayer().getUniqueId();
         combatUntil.remove(uuid);
+        hideCombatBar(event.getPlayer());
         cooldownUntil.remove(uuid);
         lastBlockMessage.remove(uuid);
     }
@@ -746,6 +823,7 @@ public final class VoidCombat extends JavaPlugin implements Listener, CommandExe
                 }
                 reloadConfig();
                 loadState();
+                hideAllCombatBars();
                 msg(sender, "reloaded");
                 return true;
             }
@@ -758,6 +836,7 @@ public final class VoidCombat extends JavaPlugin implements Listener, CommandExe
                 enabledOverride = on;
                 if (!on) {
                     combatUntil.clear();
+                    hideAllCombatBars();
                 }
                 saveState();
                 msg(sender, on ? "mode-enabled" : "mode-disabled",

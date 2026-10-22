@@ -45,6 +45,17 @@ combat:
     ignore-y: true
 
   display:
+    # Боссбар сверху экрана, пока игрок в бою: заголовок с обратным
+    # отсчётом и полоса, которая тает по мере окончания режима боя.
+    # На Bedrock через Geyser виден отлично (в отличие от actionbar).
+    bossbar: true
+    # Текст боссбара: {seconds} — осталось секунд.
+    bossbar-format: "&#FF5555Режим боя: &f{seconds} сек."
+    # Цвет боссбара: RED, PINK, BLUE, GREEN, YELLOW, PURPLE, WHITE.
+    bossbar-color: RED
+    # Стиль полосы: PROGRESS (сплошная) или NOTCHED_6, NOTCHED_10,
+    # NOTCHED_12, NOTCHED_20 (с делениями).
+    bossbar-overlay: PROGRESS
     # Показывать оставшееся время над хотбаром каждую секунду.
     actionbar: true
     # Текст в actionbar: {seconds} — осталось секунд, {bar} — полоса.
