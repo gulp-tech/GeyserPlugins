@@ -198,6 +198,19 @@ jobs:
             exit "$code"
           fi
 
+      - name: Собрать Geyser extension VoidVersions
+        working-directory: VoidVersionsExtension
+        run: |
+          set +e
+          ./gradlew --no-daemon clean build > gradle.log 2>&1
+          code=$?
+          cat gradle.log
+          if [ "$code" -ne 0 ]; then
+            grep -E "FAILURE|What went wrong|Execution failed|error:|Could not|Caused by|Exception" gradle.log | head -40 | sed 's/%/%25/g; s/\r/%0D/g; s/\n/%0A/g; s/^/::error::/'
+            tail -30 gradle.log | sed 's/%/%25/g; s/\r/%0D/g; s/\n/%0A/g; s/^/::error::/'
+            exit "$code"
+          fi
+
       - name: Собрать Bedrock ресурспак (.mcpack)
         run: python3 tools/build_mcpack.py
 
@@ -217,8 +230,9 @@ jobs:
           AUS=$(ls VoidAuthSpawn/target/VoidAuthSpawn-*.jar | head -1)
           WCT=$(ls VoidWardenCity/target/VoidWardenCity-*.jar | head -1)
           ANV=$(ls VoidAnvilExtension/build/libs/VoidAnvilExtension-*.jar | head -1)
+          VVE=$(ls VoidVersionsExtension/build/libs/VoidVersionsExtension-*.jar | head -1)
           echo "Файлы релиза: $JAR + $TAL + $ITM + VoidResourcePack.mcpack"
-          gh release create "${{ inputs.tag || github.ref_name }}" "$JAR" "$TAL" "$ITM" "$ENC" "$CAS" "$CLN" "$DRP" "$CMB" "$VAC" "$AUS" "$WCT" "$ANV" VoidResourcePack.mcpack VoidSpheres.mcpack \
+          gh release create "${{ inputs.tag || github.ref_name }}" "$JAR" "$TAL" "$ITM" "$ENC" "$CAS" "$CLN" "$DRP" "$CMB" "$VAC" "$AUS" "$WCT" "$ANV" "$VVE" VoidResourcePack.mcpack VoidSpheres.mcpack \
             --target "$GITHUB_SHA" \
             --title "VoidPE ${{ inputs.tag || github.ref_name }} — FaralTab + ресурспак" \
             --notes "Bedrock-only сервер VoidPE (Purpur 26.2 + Geyser + Floodgate).

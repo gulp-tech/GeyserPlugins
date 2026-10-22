@@ -195,6 +195,19 @@ jobs:
             exit "$code"
           fi
 
+      - name: Собрать Geyser extension VoidVersions
+        working-directory: VoidVersionsExtension
+        run: |
+          set +e
+          ./gradlew --no-daemon clean build > gradle.log 2>&1
+          code=$?
+          cat gradle.log
+          if [ "$code" -ne 0 ]; then
+            grep -E "FAILURE|What went wrong|Execution failed|error:|Could not|Caused by|Exception" gradle.log | head -40 | sed 's/%/%25/g; s/\r/%0D/g; s/\n/%0A/g; s/^/::error::/'
+            tail -30 gradle.log | sed 's/%/%25/g; s/\r/%0D/g; s/\n/%0A/g; s/^/::error::/'
+            exit "$code"
+          fi
+
       - name: Собрать Bedrock ресурспак (.mcpack)
         run: python3 tools/build_mcpack.py
 
@@ -213,4 +226,5 @@ jobs:
             VoidAuthSpawn/target/VoidAuthSpawn-*.jar
             VoidWardenCity/target/VoidWardenCity-*.jar
             VoidAnvilExtension/build/libs/VoidAnvilExtension-*.jar
+            VoidVersionsExtension/build/libs/VoidVersionsExtension-*.jar
             VoidResourcePack.mcpack
