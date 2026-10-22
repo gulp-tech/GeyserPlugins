@@ -15,6 +15,7 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
@@ -24,12 +25,21 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockExplodeEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
+import org.bukkit.event.entity.EntityExplodeEvent;
+import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
+import org.bukkit.event.player.PlayerMoveEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.EnchantmentStorageMeta;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.PotionMeta;
+import org.bukkit.potion.PotionType;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
@@ -70,13 +80,30 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
     private final Map<String, UUID> holograms = new HashMap<>();
 
     private record LootEntry(Material material, String command, int chance, int min, int max,
-                             String name, int customModelData, String itemModel) {
+                             String name, int customModelData, String itemModel,
+                             Map<String, Integer> enchantments, String potion) {
+    }
+
+    /** Предметы, добавленные админом через GUI (/wcity loot) — дополнение к ванильному луту. */
+    private final List<ItemStack> customLoot = new ArrayList<>();
+    /** Кто сейчас находится в городе (для приветствия при входе). */
+    private final java.util.Set<UUID> insideCity = new java.util.HashSet<>();
+
+    /** Держатель GUI настройки лута, чтобы отличать его от обычных инвентарей. */
+    private static final class LootGuiHolder implements InventoryHolder {
+        private Inventory inventory;
+
+        @Override
+        public Inventory getInventory() {
+            return inventory;
+        }
     }
 
     @Override
     public void onEnable() {
         saveDefaultConfig();
         loadChestData();
+        loadCustomLoot();
         getServer().getPluginManager().registerEvents(this, this);
         if (getCommand("wcity") != null) {
             getCommand("wcity").setExecutor(this);
@@ -134,6 +161,29 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
                 && loc.getY() <= center.getY() + getConfig().getDouble("city.y-above", 45);
     }
 
+    /**
+     * Текущий интервал обновления сундуков, в минутах: зависит от онлайна.
+     * 25+ игроков — 5 мин, 10+ — 10 мин, меньше — 20 мин (chests.online-tiers).
+     */
+    private long currentRefillMinutes() {
+        int online = Bukkit.getOnlinePlayers().size();
+        long best = 20;
+        long bestMin = -1;
+        for (Map<?, ?> tier : getConfig().getMapList("chests.online-tiers")) {
+            int minOnline = tier.get("min-online") instanceof Number n ? n.intValue() : 0;
+            long minutes = tier.get("minutes") instanceof Number n ? n.longValue() : 20;
+            if (online >= minOnline && minOnline >= bestMin) {
+                bestMin = minOnline;
+                best = minutes;
+            }
+        }
+        return Math.max(1L, best);
+    }
+
+    private long currentRefillMillis() {
+        return currentRefillMinutes() * 60_000L;
+    }
+
     // ------------------------------------------------------------- сундуки
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -147,7 +197,7 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
         }
         String key = key(loc);
         long now = System.currentTimeMillis();
-        long cooldown = Math.max(1L, getConfig().getLong("chests.refill-minutes", 60L)) * 60_000L;
+        long cooldown = currentRefillMillis();
         Long last = chestRefills.get(key);
         if (last == null || now - last >= cooldown) {
             refill(event.getInventory(), player);
@@ -170,14 +220,20 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
 
     /** Периодически находит сундуки в загруженных чанках города и обновляет протухший лут. */
     private void scanChests() {
+        scanChests(false);
+    }
+
+    /** @return сколько сундуков наполнено. force — обновить все, игнорируя кулдаун. */
+    private int scanChests(boolean force) {
         Location center = cityCenter();
         if (center == null || center.getWorld() == null) {
             return;
         }
         long now = System.currentTimeMillis();
-        long cooldown = Math.max(1L, getConfig().getLong("chests.refill-minutes", 60L)) * 60_000L;
+        long cooldown = currentRefillMillis();
         double radius = getConfig().getDouble("city.radius", 120);
         boolean changed = false;
+        int refilled = 0;
         for (org.bukkit.Chunk chunk : center.getWorld().getLoadedChunks()) {
             double cx = chunk.getX() * 16 + 8;
             double cz = chunk.getZ() * 16 + 8;
@@ -190,10 +246,11 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
                 }
                 String key = key(chest.getLocation());
                 Long last = chestRefills.get(key);
-                if (last == null || now - last >= cooldown) {
+                if (force || last == null || now - last >= cooldown) {
                     refill(chest.getBlockInventory(), null);
                     chestRefills.put(key, now);
                     changed = true;
+                    refilled++;
                 }
                 ensureHologram(chest.getLocation());
             }
@@ -201,6 +258,7 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
         if (changed) {
             saveChestData();
         }
+        return refilled;
     }
 
     private void refill(Inventory inv, Player opener) {
@@ -236,28 +294,93 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
             if (amount <= 0) {
                 continue;
             }
-            ItemStack item = new ItemStack(e.material(), amount);
-            ItemMeta meta = item.getItemMeta();
-            if (meta != null) {
-                if (e.name() != null && !e.name().isBlank()) {
-                    meta.displayName(comp(e.name()).decoration(TextDecoration.ITALIC, false));
-                }
-                if (e.customModelData() > 0) {
-                    meta.setCustomModelData(e.customModelData());
-                }
-                if (e.itemModel() != null && !e.itemModel().isBlank()) {
-                    NamespacedKey key = NamespacedKey.fromString(e.itemModel());
-                    if (key != null) {
-                        meta.setItemModel(key);
-                    }
-                }
-                item.setItemMeta(meta);
-            }
             int slot = freeSlot(inv);
             if (slot >= 0) {
-                inv.setItem(slot, item);
+                inv.setItem(slot, buildItem(e, amount));
                 placed++;
             }
+        }
+        // Дополнение к ванильному луту из GUI (/wcity loot): каждый сохранённый
+        // предмет с шансом кладётся в сундук в случайном количестве 1..размер стака.
+        int customChance = getConfig().getInt("custom-loot.chance-percent", 30);
+        for (ItemStack saved : customLoot) {
+            if (random.nextInt(100) >= customChance) {
+                continue;
+            }
+            int slot = freeSlot(inv);
+            if (slot < 0) {
+                break;
+            }
+            ItemStack clone = saved.clone();
+            clone.setAmount(1 + random.nextInt(Math.max(1, saved.getAmount())));
+            inv.setItem(slot, clone);
+        }
+    }
+
+    private ItemStack buildItem(LootEntry e, int amount) {
+        ItemStack item = new ItemStack(e.material(), amount);
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null) {
+            return item;
+        }
+        if (e.name() != null && !e.name().isBlank()) {
+            meta.displayName(comp(e.name()).decoration(TextDecoration.ITALIC, false));
+        }
+        if (e.customModelData() > 0) {
+            meta.setCustomModelData(e.customModelData());
+        }
+        if (e.itemModel() != null && !e.itemModel().isBlank()) {
+            NamespacedKey key = NamespacedKey.fromString(e.itemModel());
+            if (key != null) {
+                meta.setItemModel(key);
+            }
+        }
+        if (e.potion() != null && meta instanceof PotionMeta potionMeta) {
+            try {
+                potionMeta.setBasePotionType(PotionType.valueOf(e.potion().toUpperCase(Locale.ROOT)));
+            } catch (IllegalArgumentException ignored) {
+                // неверное имя зелья в конфиге — оставим обычную бутылку
+            }
+        }
+        if (e.enchantments() != null) {
+            for (Map.Entry<String, Integer> en : e.enchantments().entrySet()) {
+                if (en.getKey().equalsIgnoreCase("random")) {
+                    applyRandomEnchant(meta);
+                    continue;
+                }
+                Enchantment enchantment = org.bukkit.Registry.ENCHANTMENT.get(
+                        NamespacedKey.minecraft(en.getKey().toLowerCase(Locale.ROOT)));
+                if (enchantment == null) {
+                    continue;
+                }
+                if (meta instanceof EnchantmentStorageMeta storage) {
+                    storage.addStoredEnchant(enchantment, en.getValue(), true);
+                } else {
+                    meta.addEnchant(enchantment, en.getValue(), true);
+                }
+            }
+        }
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    /** Случайное зачарование для ванильной «книги со случайным зачарованием». */
+    private void applyRandomEnchant(ItemMeta meta) {
+        List<Enchantment> all = new ArrayList<>();
+        for (Enchantment ench : org.bukkit.Registry.ENCHANTMENT) {
+            if (ench != null) {
+                all.add(ench);
+            }
+        }
+        if (all.isEmpty()) {
+            return;
+        }
+        Enchantment picked = all.get(random.nextInt(all.size()));
+        int level = 1 + random.nextInt(Math.max(1, Math.min(3, picked.getMaxLevel())));
+        if (meta instanceof EnchantmentStorageMeta storage) {
+            storage.addStoredEnchant(picked, level, true);
+        } else {
+            meta.addEnchant(picked, level, true);
         }
     }
 
@@ -280,12 +403,21 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
             String name = raw.get("name") == null ? null : String.valueOf(raw.get("name"));
             int cmd = raw.get("custom-model-data") instanceof Number n ? n.intValue() : 0;
             String model = raw.get("item-model") == null ? null : String.valueOf(raw.get("item-model"));
+            Map<String, Integer> enchants = new HashMap<>();
+            if (raw.get("enchantments") instanceof Map<?, ?> enMap) {
+                for (Map.Entry<?, ?> en : enMap.entrySet()) {
+                    if (en.getValue() instanceof Number n) {
+                        enchants.put(String.valueOf(en.getKey()), n.intValue());
+                    }
+                }
+            }
+            String potion = raw.get("potion") == null ? null : String.valueOf(raw.get("potion"));
             if (raw.get("command") != null) {
-                out.add(new LootEntry(null, String.valueOf(raw.get("command")), chance, min, max, name, cmd, model));
+                out.add(new LootEntry(null, String.valueOf(raw.get("command")), chance, min, max, name, cmd, model, enchants, potion));
             } else if (raw.get("material") != null) {
                 Material mat = Material.matchMaterial(String.valueOf(raw.get("material")));
                 if (mat != null) {
-                    out.add(new LootEntry(mat, null, chance, min, max, name, cmd, model));
+                    out.add(new LootEntry(mat, null, chance, min, max, name, cmd, model, enchants, potion));
                 }
             }
         }
@@ -391,7 +523,7 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
     private String hologramText(Location chestLoc) {
         String raw = getConfig().getString("hologram.text", "&#FFD93DСундук города &8• &f{timer}");
         Long last = chestRefills.get(key(chestLoc));
-        long cooldown = Math.max(1L, getConfig().getLong("chests.refill-minutes", 60L)) * 60_000L;
+        long cooldown = currentRefillMillis();
         String timer;
         if (last == null) {
             timer = getConfig().getString("hologram.ready", "&aможно лутать");
@@ -421,6 +553,72 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
                     Integer.parseInt(parts[2]), Integer.parseInt(parts[3]));
         } catch (NumberFormatException e) {
             return null;
+        }
+    }
+
+    // ------------------------------------------------- GUI настройки лута
+
+    private File customLootFile() {
+        return new File(getDataFolder(), "loot-items.yml");
+    }
+
+    private void loadCustomLoot() {
+        customLoot.clear();
+        File file = customLootFile();
+        if (!file.exists()) {
+            return;
+        }
+        YamlConfiguration data = YamlConfiguration.loadConfiguration(file);
+        List<?> raw = data.getList("items");
+        if (raw != null) {
+            for (Object o : raw) {
+                if (o instanceof ItemStack stack && !stack.getType().isAir()) {
+                    customLoot.add(stack.clone());
+                }
+            }
+        }
+        getLogger().info("Дополнительного лута из GUI загружено предметов: " + customLoot.size());
+    }
+
+    private void saveCustomLoot() {
+        YamlConfiguration data = new YamlConfiguration();
+        data.set("items", customLoot);
+        try {
+            data.save(customLootFile());
+        } catch (IOException e) {
+            getLogger().warning("Не удалось сохранить loot-items.yml: " + e.getMessage());
+        }
+    }
+
+    private void openLootGui(Player player) {
+        LootGuiHolder holder = new LootGuiHolder();
+        Inventory gui = Bukkit.createInventory(holder, 54, comp(msg("gui-title")));
+        holder.inventory = gui;
+        int slot = 0;
+        for (ItemStack saved : customLoot) {
+            if (slot >= gui.getSize()) {
+                break;
+            }
+            gui.setItem(slot++, saved.clone());
+        }
+        player.openInventory(gui);
+        send(player, msg("gui-open"));
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onLootGuiClose(InventoryCloseEvent event) {
+        if (!(event.getInventory().getHolder() instanceof LootGuiHolder)) {
+            return;
+        }
+        customLoot.clear();
+        for (ItemStack item : event.getInventory().getContents()) {
+            if (item != null && !item.getType().isAir()) {
+                customLoot.add(item.clone());
+            }
+        }
+        saveCustomLoot();
+        if (event.getPlayer() instanceof Player player) {
+            send(player, msg("gui-saved").replace("{count}", String.valueOf(customLoot.size())));
         }
     }
 
@@ -501,6 +699,35 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
         send(killer, msg("warden-killed"));
     }
 
+    /** Приветствие при входе на территорию города (один раз, пока не выйдешь). */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onMoveCity(PlayerMoveEvent event) {
+        if (!getConfig().getBoolean("announcements.enter-enabled", true)) {
+            return;
+        }
+        if (event.getTo() == null) {
+            return;
+        }
+        if (event.getFrom().getBlockX() == event.getTo().getBlockX()
+                && event.getFrom().getBlockZ() == event.getTo().getBlockZ()
+                && event.getFrom().getBlockY() == event.getTo().getBlockY()) {
+            return;
+        }
+        Player player = event.getPlayer();
+        boolean inside = inCity(event.getTo());
+        if (inside && insideCity.add(player.getUniqueId())) {
+            send(player, msg("enter-city"));
+        } else if (!inside) {
+            insideCity.remove(player.getUniqueId());
+        }
+    }
+
+    @EventHandler
+    public void onQuitCity(PlayerQuitEvent event) {
+        insideCity.remove(event.getPlayer().getUniqueId());
+        tpCooldowns.remove(event.getPlayer().getUniqueId());
+    }
+
     // ------------------------------------------------------------- защита
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
@@ -510,6 +737,21 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
                 && !event.getPlayer().hasPermission("voidwardencity.admin")) {
             event.setCancelled(true);
             send(event.getPlayer(), msg("protected"));
+        }
+    }
+
+    /** При включённой защите взрывы не разносят сундуки города. */
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onExplodeBlocks(EntityExplodeEvent event) {
+        if (getConfig().getBoolean("protection.prevent-break", false)) {
+            event.blockList().removeIf(b -> b.getType() == Material.CHEST && inCity(b.getLocation()));
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onExplodeBlocks(BlockExplodeEvent event) {
+        if (getConfig().getBoolean("protection.prevent-break", false)) {
+            event.blockList().removeIf(b -> b.getType() == Material.CHEST && inCity(b.getLocation()));
         }
     }
 
@@ -591,6 +833,23 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
                 send(sender, msg("chest-placed"));
                 return true;
             }
+            case "loot" -> {
+                if (!admin(sender) || !(sender instanceof Player player)) {
+                    send(sender, msg("admin-only"));
+                    return true;
+                }
+                openLootGui(player);
+                return true;
+            }
+            case "refill" -> {
+                if (!admin(sender)) {
+                    send(sender, msg("admin-only"));
+                    return true;
+                }
+                int count = scanChests(true);
+                send(sender, msg("refilled").replace("{count}", String.valueOf(count)));
+                return true;
+            }
             case "reload" -> {
                 if (!admin(sender)) {
                     send(sender, msg("admin-only"));
@@ -614,7 +873,9 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
                         .replace("{z}", String.valueOf(center.getBlockZ()))
                         .replace("{radius}", String.valueOf(getConfig().getInt("city.radius", 120)))
                         .replace("{chests}", String.valueOf(chestRefills.size()))
-                        .replace("{wardens}", String.valueOf(wardens)));
+                        .replace("{wardens}", String.valueOf(wardens))
+                        .replace("{minutes}", String.valueOf(currentRefillMinutes()))
+                        .replace("{online}", String.valueOf(Bukkit.getOnlinePlayers().size())));
                 return true;
             }
             default -> {
@@ -678,7 +939,7 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
             List<String> base = admin(sender)
-                    ? List.of("tp", "setcenter", "setspawn", "chest", "info", "reload")
+                    ? List.of("tp", "setcenter", "setspawn", "chest", "loot", "refill", "info", "reload")
                     : List.of("tp", "info");
             List<String> out = new ArrayList<>();
             for (String b : base) {

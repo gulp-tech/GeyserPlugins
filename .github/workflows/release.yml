@@ -211,7 +211,7 @@ jobs:
 
           **FaralTab-1.1.0.jar** — плагин скорборда в \`plugins/\` (нужны Vault, PlayerPoints, LuckPerms, Geyser, Floodgate).
           **VoidAuthSpawn-1.2.0.jar** — дополнение к AuthMe в `plugins/` рядом с AuthMe: незарегистрированных телепортирует в точку регистрации (`/authspawn set`).
-          **VoidWardenCity-1.1.0.jar** — Город Вардена в `plugins/`: `/wcity setcenter` и `/wcity setspawn` в древнем городе, дальше плагин сам наполняет сундуки и спавнит варденов.
+          **VoidWardenCity-1.2.0.jar** — Город Вардена в `plugins/`: `/wcity setcenter` и `/wcity setspawn` в древнем городе, дальше плагин сам наполняет сундуки и спавнит варденов.
           **VoidResourcePack.mcpack** — Bedrock-ресурспак с иконками в \`plugins/Geyser-Spigot/packs/\` + \`force-resource-packs: true\` в конфиге Geyser.
 
           Java-игроки кикаются плагином (bedrock-only), Java-заглушек нет."
