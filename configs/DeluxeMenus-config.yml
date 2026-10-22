@@ -64,3 +64,9 @@ gui_menus:
   shop_enchants:
 
     file: shop_enchants.yml
+
+  # --------- Донат-привилегии за осколки ---------
+
+  donate:
+
+    file: donate.yml
