@@ -1,0 +1,116 @@
+# ============================================================
+#  VoidWardenCity — «Город Вардена» как на FunTime (VoidPE, Bedrock)
+#
+#  Данж живёт в обычном древнем городе (Ancient City). Настройка:
+#   1. Найди древний город: /locate structure ancient_city
+#   2. Встань в его центре: /wcity setcenter
+#   3. Встань на место появления игроков: /wcity setspawn
+#  Дальше плагин сам наполняет сундуки лутом ниже, спавнит варденов
+#  и платит за их убийство командами из warden.kill-reward-commands.
+#  Цвета: &a, &#FFB340 и <gradient:#FF5555:#FFB340>текст</gradient>
+# ============================================================
+
+enabled: true
+
+city:
+  # Центр города (ставится командой /wcity setcenter).
+  world: world
+  x: 0
+  y: -51
+  z: 0
+  # Радиус города от центра (по горизонтали). Древний город большой,
+  # 120 блоков обычно хватает.
+  radius: 120
+  # Сколько блоков вниз/вверх от центра считается городом.
+  y-below: 45
+  y-above: 45
+
+teleport:
+  enabled: true
+  # Точка появления игроков (ставится командой /wcity setspawn).
+  world: world
+  x: 0.5
+  y: -45
+  z: 0.5
+  yaw: 0.0
+  pitch: 0.0
+  # Цена телепорта в осколках PlayerPoints (0 — бесплатно).
+  # Списание идёт консольной командой points take.
+  cost-points: 250
+  # Кулдаун телепорта на игрока, в секундах.
+  cooldown-seconds: 300
+  sound: "minecraft:entity.enderman.teleport"
+
+chests:
+  # Через сколько минут лут в сундуке обновится (сундук при этом
+  # очищается и наполняется заново). Как на FunTime — «сундуки по кд».
+  refill-minutes: 60
+  # Как часто плагин ищет сундуки в загруженных чанках, в секундах.
+  scan-seconds: 60
+  # Сколько разных наград из списка ниже выпадет в один сундук.
+  rolls-min: 2
+  rolls-max: 4
+  # Лут: material — обычный предмет; command — консольная команда тому,
+  # кто открыл свежезаполненный сундук (сферы, талисманы, осколки).
+  # chance — шанс в %, min/max — количество. %player% — ник открывшего.
+  loot:
+    - {material: DIAMOND, chance: 60, min: 1, max: 3}
+    - {material: EMERALD, chance: 50, min: 1, max: 4}
+    - {material: GOLDEN_APPLE, chance: 35, min: 1, max: 2}
+    - {material: ENCHANTED_GOLDEN_APPLE, chance: 6, min: 1, max: 1}
+    - {material: EXPERIENCE_BOTTLE, chance: 55, min: 3, max: 8}
+    - {material: ENDER_PEARL, chance: 45, min: 1, max: 3}
+    - {material: BOOK, chance: 40, min: 1, max: 1}
+    - {material: ECHO_SHARD, chance: 25, min: 1, max: 2}
+    - {material: SCULK_CATALYST, chance: 20, min: 1, max: 1}
+    - {material: NETHERITE_SCRAP, chance: 12, min: 1, max: 1}
+    - {material: TOTEM_OF_UNDYING, chance: 8, min: 1, max: 1}
+    # Кастомные награды VoidPE (выдаются открывшему сундук):
+    - {command: "points give %player% 25", chance: 30}
+    - {command: "sphere give %player% 1 1", chance: 5}
+    # - {command: "talisman give %player% sphere2 1", chance: 3}
+    # - {command: "items give %player% dust 2", chance: 10}
+
+warden:
+  # Доспавнивать варденов рядом с игроками в городе (помимо ванильных
+  # крикунов древнего города).
+  spawn-enabled: true
+  # Сколько варденов максимум живёт в городе одновременно.
+  max-in-city: 2
+  # Как часто проверять, не заспавнить ли вардена, в секундах.
+  check-seconds: 30
+  # Шанс спавна у каждого игрока в городе при проверке, в %.
+  spawn-chance-percent: 35
+  # На каком расстоянии от игрока спавнить вардена.
+  min-distance: 12
+  max-distance: 24
+  # Награда за убийство вардена в городе: консольные команды.
+  # %player% — ник убийцы. eco — монеты Essentials, points — осколки.
+  kill-reward-commands:
+    - "eco give %player% 150"
+    # - "points give %player% 10"
+
+protection:
+  # Запретить ломать и ставить блоки в городе (кроме админов).
+  # Включи, если не хочешь, чтобы город разносили: на FunTime он
+  # восстанавливается после рестарта, тут вместо этого — защита.
+  prevent-break: false
+  prevent-place: false
+
+messages:
+  prefix: "&#8E6BFFВарден &8» &f"
+  chest-loot: "&aСундук города обновился! &7Следующее обновление через {minutes} мин."
+  warden-near: "&5Ты чувствуешь, как земля дрожит... &cВарден рядом!"
+  warden-killed: "&aВарден повержен! Награда зачислена."
+  protected: "&cВ Городе Вардена нельзя ломать и ставить блоки."
+  teleported: "&aТы в Городе Вардена. &7Удачи с лутом... и с варденами."
+  teleported-paid: "&aТы в Городе Вардена. &7Списано осколков: &f{cost}&7. Удачи!"
+  tp-cooldown: "&cТелепорт в город будет доступен через &f{seconds} сек."
+  tp-disabled: "&cТелепорт в Город Вардена отключён."
+  not-set: "&cГород Вардена ещё не настроен администрацией."
+  center-set: "&aЦентр Города Вардена установлен: &f{x} {y} {z}&a. Теперь поставь точку появления: &f/wcity setspawn"
+  spawn-set: "&aТочка появления в Городе Вардена установлена."
+  reloaded: "&aVoidWardenCity перезагружен."
+  admin-only: "&cТолько для админов."
+  players-only: "&cКоманда доступна только игроку."
+  info: "&fГород Вардена: центр &7{x} {y} {z}&f, радиус &7{radius}&f, сундуков отслежено: &7{chests}&f, варденов сейчас: &7{wardens}"
