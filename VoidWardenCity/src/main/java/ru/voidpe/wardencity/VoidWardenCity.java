@@ -15,6 +15,8 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.entity.ArmorStand;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Warden;
@@ -64,6 +66,8 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
     private final Map<String, Long> chestRefills = new HashMap<>();
     /** Кулдауны телепорта игроков. */
     private final Map<UUID, Long> tpCooldowns = new HashMap<>();
+    /** Голограммы над сундуками: ключ сундука -> UUID стенда. */
+    private final Map<String, UUID> holograms = new HashMap<>();
 
     private record LootEntry(Material material, String command, int chance, int min, int max,
                              String name, int customModelData, String itemModel) {
@@ -82,6 +86,8 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
         Bukkit.getScheduler().runTaskTimer(this, this::scanChests, chestPeriod, chestPeriod);
         long wardenPeriod = Math.max(20L, getConfig().getLong("warden.check-seconds", 30L) * 20L);
         Bukkit.getScheduler().runTaskTimer(this, this::spawnWardens, wardenPeriod, wardenPeriod);
+        long holoPeriod = Math.max(20L, getConfig().getLong("hologram.update-seconds", 10L) * 20L);
+        Bukkit.getScheduler().runTaskTimer(this, this::updateHolograms, holoPeriod, holoPeriod);
         if (cityCenter() == null) {
             getLogger().warning("Город Вардена не настроен: мир из city.world не найден. "
                     + "Встань в центре древнего города и выполни /wcity setcenter.");
@@ -91,6 +97,13 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
     @Override
     public void onDisable() {
         saveChestData();
+        for (UUID id : holograms.values()) {
+            Entity e = Bukkit.getEntity(id);
+            if (e != null) {
+                e.remove();
+            }
+        }
+        holograms.clear();
     }
 
     // ------------------------------------------------------------- регион
@@ -140,8 +153,7 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
             refill(event.getInventory(), player);
             chestRefills.put(key, now);
             saveChestData();
-            send(player, msg("chest-loot").replace("{minutes}",
-                    String.valueOf(getConfig().getLong("chests.refill-minutes", 60L))));
+            ensureHologram(loc);
         }
     }
 
@@ -183,6 +195,7 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
                     chestRefills.put(key, now);
                     changed = true;
                 }
+                ensureHologram(chest.getLocation());
             }
         }
         if (changed) {
@@ -309,6 +322,105 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
             data.save(chestFile());
         } catch (IOException e) {
             getLogger().warning("Не удалось сохранить chests.yml: " + e.getMessage());
+        }
+    }
+
+    // ------------------------------------------------------------- голограммы
+
+    /** Ставит (или находит) голограмму над сундуком и обновляет её текст. */
+    private void ensureHologram(Location chestLoc) {
+        if (!getConfig().getBoolean("hologram.enabled", true) || chestLoc.getWorld() == null) {
+            return;
+        }
+        String key = key(chestLoc);
+        UUID id = holograms.get(key);
+        Entity existing = id == null ? null : Bukkit.getEntity(id);
+        if (existing != null && !existing.isDead()) {
+            existing.customName(comp(hologramText(chestLoc)));
+            return;
+        }
+        double height = getConfig().getDouble("hologram.height", 1.3);
+        Location loc = chestLoc.clone().add(0.5, height, 0.5);
+        ArmorStand stand = chestLoc.getWorld().spawn(loc, ArmorStand.class, st -> {
+            st.setVisible(false);
+            st.setGravity(false);
+            st.setMarker(true);
+            st.setInvulnerable(true);
+            st.setPersistent(false);
+            st.setCustomNameVisible(true);
+            st.customName(comp(hologramText(chestLoc)));
+        });
+        holograms.put(key, stand.getUniqueId());
+    }
+
+    private void removeHologram(String key) {
+        UUID id = holograms.remove(key);
+        if (id != null) {
+            Entity e = Bukkit.getEntity(id);
+            if (e != null) {
+                e.remove();
+            }
+        }
+    }
+
+    /** Раз в несколько секунд: текст-таймер у голограмм и чистка сломанных сундуков. */
+    private void updateHolograms() {
+        if (!getConfig().getBoolean("hologram.enabled", true)) {
+            return;
+        }
+        for (String key : new ArrayList<>(chestRefills.keySet())) {
+            Location loc = parseKey(key);
+            if (loc == null || loc.getWorld() == null) {
+                continue;
+            }
+            if (!loc.getWorld().isChunkLoaded(loc.getBlockX() >> 4, loc.getBlockZ() >> 4)) {
+                removeHologram(key); // чанк выгрузился — стенд всё равно не сохранится
+                continue;
+            }
+            if (loc.getBlock().getType() != Material.CHEST) {
+                // сундук сломали — убираем голограмму и запись
+                removeHologram(key);
+                chestRefills.remove(key);
+                saveChestData();
+                continue;
+            }
+            ensureHologram(loc);
+        }
+    }
+
+    private String hologramText(Location chestLoc) {
+        String raw = getConfig().getString("hologram.text", "&#FFD93DСундук города &8• &f{timer}");
+        Long last = chestRefills.get(key(chestLoc));
+        long cooldown = Math.max(1L, getConfig().getLong("chests.refill-minutes", 60L)) * 60_000L;
+        String timer;
+        if (last == null) {
+            timer = getConfig().getString("hologram.ready", "&aможно лутать");
+        } else {
+            long left = cooldown - (System.currentTimeMillis() - last);
+            if (left <= 0) {
+                timer = getConfig().getString("hologram.ready", "&aможно лутать");
+            } else {
+                long sec = left / 1000;
+                timer = String.format(Locale.ROOT, "%d:%02d", sec / 60, sec % 60);
+            }
+        }
+        return raw.replace("{timer}", timer == null ? "" : timer);
+    }
+
+    private Location parseKey(String key) {
+        String[] parts = key.split(";");
+        if (parts.length != 4) {
+            return null;
+        }
+        World world = Bukkit.getWorld(parts[0]);
+        if (world == null) {
+            return null;
+        }
+        try {
+            return new Location(world, Integer.parseInt(parts[1]),
+                    Integer.parseInt(parts[2]), Integer.parseInt(parts[3]));
+        } catch (NumberFormatException e) {
+            return null;
         }
     }
 
@@ -449,6 +561,36 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
                 send(sender, msg("spawn-set"));
                 return true;
             }
+            case "chest" -> {
+                if (!admin(sender) || !(sender instanceof Player player)) {
+                    send(sender, msg("admin-only"));
+                    return true;
+                }
+                if (!inCity(player.getLocation())) {
+                    send(sender, msg("chest-city-only"));
+                    return true;
+                }
+                Block target = player.getLocation().getBlock();
+                if (!target.getType().isAir()
+                        && target.getType() != Material.WATER
+                        && target.getType() != Material.LAVA) {
+                    send(sender, msg("chest-no-place"));
+                    return true;
+                }
+                target.setType(Material.CHEST);
+                if (target.getBlockData() instanceof org.bukkit.block.data.Directional dir) {
+                    dir.setFacing(player.getFacing().getOppositeFace());
+                    target.setBlockData(dir);
+                }
+                if (target.getState() instanceof Chest chest) {
+                    refill(chest.getBlockInventory(), null);
+                    chestRefills.put(key(target.getLocation()), System.currentTimeMillis());
+                    saveChestData();
+                    ensureHologram(target.getLocation());
+                }
+                send(sender, msg("chest-placed"));
+                return true;
+            }
             case "reload" -> {
                 if (!admin(sender)) {
                     send(sender, msg("admin-only"));
@@ -536,7 +678,7 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
             List<String> base = admin(sender)
-                    ? List.of("tp", "setcenter", "setspawn", "info", "reload")
+                    ? List.of("tp", "setcenter", "setspawn", "chest", "info", "reload")
                     : List.of("tp", "info");
             List<String> out = new ArrayList<>();
             for (String b : base) {

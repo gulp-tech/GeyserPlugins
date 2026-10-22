@@ -7,7 +7,7 @@ description: "Город Вардена как на FunTime: данж в дре�
 commands:
   wcity:
     description: "Город Вардена: телепорт и настройка"
-    usage: /wcity [tp|info|setcenter|setspawn|reload]
+    usage: /wcity [tp|info|setcenter|setspawn|chest|reload]
     aliases: [wardencity, warden]
 permissions:
   voidwardencity.use:
