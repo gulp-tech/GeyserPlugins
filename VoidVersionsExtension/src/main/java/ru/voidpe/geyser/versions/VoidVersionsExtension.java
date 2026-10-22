@@ -2,6 +2,7 @@ package ru.voidpe.geyser.versions;
 
 import org.geysermc.event.subscribe.Subscribe;
 import org.geysermc.geyser.api.event.lifecycle.GeyserPostInitializeEvent;
+import org.geysermc.geyser.api.event.lifecycle.GeyserPostReloadEvent;
 import org.geysermc.geyser.api.event.lifecycle.GeyserPreInitializeEvent;
 import org.geysermc.geyser.api.extension.Extension;
 
@@ -95,12 +96,21 @@ public final class VoidVersionsExtension implements Extension {
             Class<?> versionCommand = Class.forName(VERSION_COMMAND, true, cl);
             Field range = versionCommand.getDeclaredField("SUPPORTED_BEDROCK_RANGE");
             range.setAccessible(true);
+            String before = String.valueOf(range.get(null));
             try {
                 range.set(null, fullList);
-            } catch (IllegalAccessException finalField) {
+            } catch (IllegalAccessException | RuntimeException finalField) {
                 writeStaticField(range, fullList);
             }
-            logger().info("VoidVersions: команда /geyser version теперь покажет все поддерживаемые версии.");
+            // Самопроверка: перечитываем поле — команда покажет именно это значение.
+            String after = String.valueOf(range.get(null));
+            if (fullList.equals(after)) {
+                logger().info("VoidVersions: /geyser version: было '" + before
+                        + "', теперь команда покажет все поддерживаемые версии.");
+            } else {
+                logger().warning("VoidVersions: запись в VersionCommand не применилась: "
+                        + "поле как было '" + before + "', так и осталось '" + after + "'.");
+            }
         } catch (Throwable t) {
             logger().warning("VoidVersions: не удалось обновить вывод /geyser version: " + describe(unwrap(t))
                     + " — команда покажет диапазон Geyser по умолчанию, на сам вход старых клиентов это не влияет.");
@@ -329,6 +339,8 @@ public final class VoidVersionsExtension implements Extension {
                     + ", добавлено кодеков: " + added.size() + ".");
             if (!added.isEmpty()) {
                 logger().info("VoidVersions: теперь принимаются клиенты: " + String.join(", ", added));
+            } else if (scanned == 0) {
+                logger().info("VoidVersions: все доступные кодеки уже зарегистрированы в GameProtocol — добавлять нечего.");
             } else {
                 logger().warning("VoidVersions: ни одного дополнительного кодека не зарегистрировано. "
                         + "Либо в этой сборке Geyser библиотека cloudburst обрезана, "
@@ -338,6 +350,15 @@ public final class VoidVersionsExtension implements Extension {
             logger().error("VoidVersions: патч версий не удался: " + describe(unwrap(t))
                     + " — Geyser продолжит работу со стандартным диапазоном версий.");
         }
+        updateVersionCommandOutput();
+    }
+
+    @Subscribe
+    public void onPostReload(GeyserPostReloadEvent event) {
+        // После /geyser reload повторяем патч: он идемпотентен (уже внесённые
+        // кодеки пропускаются), а вывод /geyser version обновляем заново.
+        patched = false;
+        patchProtocols();
     }
 
     /** Класс BedrockCodec (тип поля CODEC) — нужен, чтобы найти processCodec по сигнатуре. */
