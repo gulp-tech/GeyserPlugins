@@ -104,9 +104,13 @@ public final class VoidVersionsExtension implements Extension {
             }
             // Самопроверка: перечитываем поле — команда покажет именно это значение.
             String after = String.valueOf(range.get(null));
+            Field codecsField = gameProtocol.getDeclaredField("SUPPORTED_BEDROCK_CODECS");
+            codecsField.setAccessible(true);
+            int codecCount = ((List<?>) codecsField.get(null)).size();
             if (fullList.equals(after)) {
                 logger().info("VoidVersions: /geyser version: было '" + before
-                        + "', теперь команда покажет все поддерживаемые версии.");
+                        + "', теперь команда покажет все поддерживаемые версии."
+                        + " Всего кодеков в GameProtocol: " + codecCount + ".");
             } else {
                 logger().warning("VoidVersions: запись в VersionCommand не применилась: "
                         + "поле как было '" + before + "', так и осталось '" + after + "'.");
