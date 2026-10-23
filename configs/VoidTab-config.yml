@@ -146,6 +146,12 @@ nametag:
   # Значения: windows | android | apple | mac | amazon | xbox | playstation |
   # switch | vr | tv | controller | kbmouse | linux | dedicated | device.
   # Пример:  MUSD38: windows
+  # Определение устройства по данным Bedrock-клиента.
+  device-detect:
+    # Телефоны (и сторонние клиенты) иногда присылают deviceOs=WINDOWS, хотя играют
+    # с телефона. Ввод TOUCH и интерфейс POCKET выдают мобильное устройство надёжнее,
+    # чем строка ОС. true — верить этим признакам (телефон покажется как Android/iOS).
+    touch-is-mobile: true
   device-overrides: {}
   device-names:
     windows: 'Windows'

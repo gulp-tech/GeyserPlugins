@@ -104,10 +104,17 @@ cooldowns:
       - dezorientation
       - spawner_lom
 
+elytra:
+  # Миры, где элитры запрещены полностью: взлететь нельзя, ускорение фейерверком
+  # не работает. Игрок, влетевший в такой мир на элитре, сразу опускается на землю.
+  banned-worlds: [world]
+
 fireworks:
   # Запрещать фейерверки всеми способами, пока игрок в режиме боя:
   # запуск рукой, ускорение на элитрах и выстрел из арбалета.
   block-in-combat: true
+  # Миры, где фейерверки запрещены всегда, даже вне боя (рука, элитра, арбалет).
+  banned-worlds: [world]
 
 messages:
   prefix: "&#FF5555VoidPE &8» &f"
@@ -118,8 +125,10 @@ messages:
   combat-status-active: "&cВы в режиме боя, осталось: &f{seconds} сек."
   combat-status-none: "&aВы не в режиме боя."
   combat-status-off: "&7Режим боя сейчас выключен."
+  elytra-blocked: "&cЭлитры в этом мире запрещены."
   cooldown: "&c{item} &cбудет доступно через &f{seconds} сек."
   firework-blocked: "&cФейерверки запрещены в режиме боя."
+  firework-blocked-world: "&cФейерверки в этом мире запрещены."
   no-permission: "&cТолько для админов."
   players-only: "&cКоманда доступна только игроку."
   reloaded: "&aVoidCombat перезагружен."

@@ -72,6 +72,10 @@ public final class NamespacedKey {
         this.key = key;
     }
 
+    public static NamespacedKey fromString(String key) {
+        return null;
+    }
+
     public static NamespacedKey minecraft(String key) {
         return new NamespacedKey(key);
     }
@@ -236,6 +240,7 @@ public abstract class PotionEffectType {
     public static final PotionEffectType JUMP_BOOST = new StubPotionEffectType("jump_boost");
     public static final PotionEffectType RESISTANCE = new StubPotionEffectType("resistance");
     public static final PotionEffectType FIRE_RESISTANCE = new StubPotionEffectType("fire_resistance");
+    public static final PotionEffectType INSTANT_HEALTH = new StubPotionEffectType("instant_health");
 
     public static PotionEffectType getByName(String name) {
         return valueOf(name);
@@ -323,27 +328,6 @@ public enum GameMode {
 }
 """)
 
-add("org/bukkit/Material", """
-package org.bukkit;
-
-public enum Material {
-    AIR, STONE, DIRT, GRASS_BLOCK, CHEST, HAY_BLOCK, SLIME_BLOCK, HONEY_BLOCK, ICE, PACKED_ICE,
-    BLUE_ICE, FROSTED_ICE, LADDER, VINE, SCAFFOLDING, COBWEB, POWDER_SNOW, BUBBLE_COLUMN,
-    SOUL_SAND, SOUL_SOIL, WATER, LAVA, BARRIER, OBSIDIAN;
-
-    public boolean isSolid() {
-        return this != AIR && this != WATER && this != LAVA && this != BUBBLE_COLUMN && this != POWDER_SNOW;
-    }
-
-    public boolean isInteractable() {
-        return this == CHEST;
-    }
-
-    public boolean isLiquid() {
-        return this == WATER || this == LAVA;
-    }
-}
-""")
 
 add("org/bukkit/util/Vector", """
 package org.bukkit.util;
@@ -705,6 +689,8 @@ public interface OfflinePlayer {
     boolean isOp();
 
     void setOp(boolean value);
+
+    org.bukkit.entity.Player getPlayer();
 }
 """)
 
@@ -739,6 +725,26 @@ public interface Player extends LivingEntity, org.bukkit.OfflinePlayer {
     boolean isFlying();
 
     boolean isGliding();
+
+    void setGliding(boolean gliding);
+
+    void sendActionBar(Component message);
+
+    void showBossBar(net.kyori.adventure.bossbar.BossBar bar);
+
+    void hideBossBar(net.kyori.adventure.bossbar.BossBar bar);
+
+    org.bukkit.scoreboard.Scoreboard getScoreboard();
+
+    void displayName(net.kyori.adventure.text.Component displayName);
+
+    int getStatistic(org.bukkit.Statistic statistic);
+
+    void showTitle(net.kyori.adventure.title.Title title);
+
+    void kick(net.kyori.adventure.text.Component reason);
+
+    void setScoreboard(org.bukkit.scoreboard.Scoreboard scoreboard);
 
     boolean isSwimming();
 
@@ -987,6 +993,8 @@ package org.bukkit.plugin;
 
 public interface ServicesManager {
     <T> RegisteredServiceProvider<T> getRegistration(Class<T> service);
+
+    java.util.Collection<Class<?>> getKnownServices();
 }
 """)
 
@@ -1185,7 +1193,7 @@ import java.util.Set;
 public class YamlConfiguration extends FileConfiguration {
     private final Map<String, Object> values = new LinkedHashMap<>();
 
-    public static YamlConfiguration loadConfiguration(File file) throws IOException {
+    public static YamlConfiguration loadConfiguration(File file) {
         return new YamlConfiguration();
     }
 
@@ -1631,6 +1639,10 @@ import org.bukkit.entity.Entity;
 public class EntityDamageByEntityEvent extends EntityDamageEvent {
     private final Entity damager;
 
+    public double getFinalDamage() {
+        return getDamage();
+    }
+
     public EntityDamageByEntityEvent(Entity damager, Entity victim, double damage) {
         super(victim, DamageCause.ENTITY_ATTACK, damage);
         this.damager = damager;
@@ -1750,6 +1762,18 @@ public interface Objective {
     String getName();
 
     Score getScore(String entry);
+
+    void setDisplaySlot(DisplaySlot slot);
+
+    DisplaySlot getDisplaySlot();
+
+    void displayName(net.kyori.adventure.text.Component name);
+
+    net.kyori.adventure.text.Component displayName();
+
+    void setDisplayName(String name);
+
+    void unregister();
 }
 """)
 
@@ -1766,6 +1790,14 @@ public interface Team {
     void addEntry(String entry);
 
     boolean removeEntry(String entry);
+
+    boolean hasEntry(String entry);
+
+    void prefix(net.kyori.adventure.text.Component prefix);
+
+    void suffix(net.kyori.adventure.text.Component suffix);
+
+    void unregister();
 }
 """)
 
@@ -1780,6 +1812,36 @@ public interface Scoreboard {
     Set<Objective> getObjectives();
 
     void resetScores(String entry);
+
+    Objective getObjective(String name);
+
+    Objective registerNewObjective(String name, Criteria criteria, net.kyori.adventure.text.Component displayName);
+
+    Objective registerNewObjective(String name, Criteria criteria, String displayName);
+
+    Team getTeam(String name);
+
+    Team registerNewTeam(String name);
+}
+""")
+
+add("org/bukkit/scoreboard/Criteria", """
+package org.bukkit.scoreboard;
+
+public final class Criteria {
+    public static final Criteria DUMMY = new Criteria("dummy");
+    public static final Criteria HEALTH = new Criteria("health");
+
+    private Criteria(String name) {
+    }
+}
+""")
+
+add("org/bukkit/scoreboard/DisplaySlot", """
+package org.bukkit.scoreboard;
+
+public enum DisplaySlot {
+    BELOW_NAME, LIST, PLAYER_LIST, SIDEBAR
 }
 """)
 
@@ -2033,6 +2095,10 @@ public final class Bukkit {
         return server == null ? null : server.getScheduler();
     }
 
+    public static int getMaxPlayers() {
+        return 0;
+    }
+
     public static ScoreboardManager getScoreboardManager() {
         return server == null ? null : server.getScoreboardManager();
     }
@@ -2132,7 +2198,33 @@ public enum Material {
     POTION, GLASS_BOTTLE, NETHER_WART, BLAZE_POWDER, SUGAR, FERMENTED_SPIDER_EYE, DIAMOND,
     EMERALD, FEATHER, MAGMA_CREAM, GLOW_INK_SAC, DIAMOND_HELMET, DIAMOND_CHESTPLATE,
     DIAMOND_LEGGINGS, DIAMOND_BOOTS, DIAMOND_SWORD, DIAMOND_PICKAXE, DIAMOND_AXE,
-    DIAMOND_SHOVEL, DIAMOND_HOE, WATER, LAVA, BARRIER;
+    DIAMOND_SHOVEL, DIAMOND_HOE, WATER, LAVA, BARRIER,
+    BLUE_ICE,
+    BUBBLE_COLUMN,
+    CAVE_VINES,
+    CAVE_VINES_PLANT,
+    COBWEB,
+    ENCHANTED_GOLDEN_APPLE,
+    FIREWORK_ROCKET,
+    FROSTED_ICE,
+    GOLDEN_APPLE,
+    HAY_BLOCK,
+    HONEY_BLOCK,
+    ICE,
+    LADDER,
+    LINGERING_POTION,
+    PACKED_ICE,
+    POWDER_SNOW,
+    SCAFFOLDING,
+    SLIME_BLOCK,
+    SOUL_SAND,
+    SOUL_SOIL,
+    SPLASH_POTION,
+    TWISTING_VINES,
+    TWISTING_VINES_PLANT,
+    VINE,
+    WEEPING_VINES,
+    WEEPING_VINES_PLANT;
 
     public static Material matchMaterial(String name) {
         return name == null ? null : STONE;
@@ -2392,6 +2484,12 @@ import org.bukkit.potion.PotionEffect;
 
 public interface PotionMeta extends ItemMeta {
     boolean addCustomEffect(PotionEffect effect, boolean overwrite);
+
+    boolean hasCustomEffect(org.bukkit.potion.PotionEffectType type);
+
+    org.bukkit.potion.PotionType getBasePotionType();
+
+    void setBasePotionType(org.bukkit.potion.PotionType type);
 
     void clearCustomEffects();
 
@@ -2817,6 +2915,332 @@ public interface HumanEntity extends LivingEntity {
     Inventory getEnderChest();
 }
 """)
+
+
+# ------------------------------------------------------------------ VoidCombat / VoidTab
+add("net/kyori/adventure/bossbar/BossBar", """
+package net.kyori.adventure.bossbar;
+
+import net.kyori.adventure.text.Component;
+
+public interface BossBar {
+    Component name();
+
+    BossBar name(Component name);
+
+    float progress();
+
+    BossBar progress(float progress);
+
+    Color color();
+
+    BossBar color(Color color);
+
+    Overlay overlay();
+
+    BossBar overlay(Overlay overlay);
+
+    static BossBar bossBar(Component name, float progress, Color color, Overlay overlay) {
+        return null;
+    }
+
+    enum Color { PINK, BLUE, RED, GREEN, YELLOW, PURPLE, WHITE }
+
+    enum Overlay { PROGRESS, NOTCHED_6, NOTCHED_10, NOTCHED_12, NOTCHED_20 }
+}
+""")
+
+add("net/kyori/adventure/text/serializer/plain/PlainTextComponentSerializer", """
+package net.kyori.adventure.text.serializer.plain;
+
+import net.kyori.adventure.text.Component;
+
+public interface PlainTextComponentSerializer {
+    static PlainTextComponentSerializer plainText() {
+        return null;
+    }
+
+    String serialize(Component component);
+}
+""")
+
+add("com/destroystokyo/paper/event/player/PlayerElytraBoostEvent", """
+package com.destroystokyo.paper.event.player;
+
+import org.bukkit.entity.Firework;
+import org.bukkit.event.Cancellable;
+import org.bukkit.event.player.PlayerEvent;
+import org.bukkit.inventory.ItemStack;
+
+public class PlayerElytraBoostEvent extends PlayerEvent implements Cancellable {
+    private boolean cancelled;
+
+    public Firework getFirework() {
+        return null;
+    }
+
+    public ItemStack getItemStack() {
+        return null;
+    }
+
+    @Override
+    public boolean isCancelled() {
+        return cancelled;
+    }
+
+    @Override
+    public void setCancelled(boolean cancel) {
+        this.cancelled = cancel;
+    }
+}
+""")
+
+add("org/bukkit/entity/Firework", """
+package org.bukkit.entity;
+
+public interface Firework extends Projectile {
+}
+""")
+
+add("org/bukkit/projectiles/ProjectileSource", """
+package org.bukkit.projectiles;
+
+public interface ProjectileSource {
+}
+""")
+
+add("org/bukkit/entity/Projectile", """
+package org.bukkit.entity;
+
+import org.bukkit.projectiles.ProjectileSource;
+
+public interface Projectile extends Entity {
+    ProjectileSource getShooter();
+
+    void setShooter(ProjectileSource shooter);
+}
+""")
+
+add("org/bukkit/entity/ThrownPotion", """
+package org.bukkit.entity;
+
+import org.bukkit.inventory.ItemStack;
+
+public interface ThrownPotion extends Projectile {
+    ItemStack getItem();
+
+    void setItem(ItemStack item);
+}
+""")
+
+add("org/bukkit/event/entity/EntityShootBowEvent", """
+package org.bukkit.event.entity;
+
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.Projectile;
+import org.bukkit.event.Cancellable;
+import org.bukkit.inventory.ItemStack;
+
+public class EntityShootBowEvent extends EntityEvent implements Cancellable {
+    private boolean cancelled;
+
+    public ItemStack getBow() {
+        return null;
+    }
+
+    public ItemStack getConsumable() {
+        return null;
+    }
+
+    public Projectile getProjectile() {
+        return null;
+    }
+
+    public float getForce() {
+        return 1.0f;
+    }
+
+    @Override
+    public boolean isCancelled() {
+        return cancelled;
+    }
+
+    @Override
+    public void setCancelled(boolean cancel) {
+        this.cancelled = cancel;
+    }
+}
+""")
+
+add("org/bukkit/event/entity/EntityToggleGlideEvent", """
+package org.bukkit.event.entity;
+
+import org.bukkit.event.Cancellable;
+
+public class EntityToggleGlideEvent extends EntityEvent implements Cancellable {
+    private boolean cancelled;
+
+    public boolean isGliding() {
+        return true;
+    }
+
+    @Override
+    public boolean isCancelled() {
+        return cancelled;
+    }
+
+    @Override
+    public void setCancelled(boolean cancel) {
+        this.cancelled = cancel;
+    }
+}
+""")
+
+add("org/bukkit/event/entity/PlayerDeathEvent", """
+package org.bukkit.event.entity;
+
+import org.bukkit.entity.Player;
+
+public class PlayerDeathEvent extends EntityEvent {
+    @Override
+    public Player getEntity() {
+        return null;
+    }
+}
+""")
+
+add("org/bukkit/event/entity/ProjectileLaunchEvent", """
+package org.bukkit.event.entity;
+
+import org.bukkit.entity.Projectile;
+import org.bukkit.event.Cancellable;
+
+public class ProjectileLaunchEvent extends EntityEvent implements Cancellable {
+    private boolean cancelled;
+
+    @Override
+    public Projectile getEntity() {
+        return null;
+    }
+
+    @Override
+    public boolean isCancelled() {
+        return cancelled;
+    }
+
+    @Override
+    public void setCancelled(boolean cancel) {
+        this.cancelled = cancel;
+    }
+}
+""")
+
+add("org/bukkit/potion/PotionType", """
+package org.bukkit.potion;
+
+/** В Paper — класс-реестр со статическими полями. */
+public class PotionType {
+    public static final PotionType WATER = new PotionType("water");
+    public static final PotionType HEALING = new PotionType("healing");
+    public static final PotionType STRONG_HEALING = new PotionType("strong_healing");
+    public static final PotionType REGEN = new PotionType("regeneration");
+    public static final PotionType SWIFTNESS = new PotionType("swiftness");
+
+    private final String key;
+
+    public PotionType(String key) {
+        this.key = key;
+    }
+
+    public String getKey() {
+        return key;
+    }
+}
+""")
+
+add("org/bukkit/Statistic", """
+package org.bukkit;
+
+public enum Statistic {
+    PLAYER_KILLS, DEATHS, PLAY_ONE_MINUTE, MOB_KILLS, DAMAGE_DEALT, WALK_ONE_CM
+}
+""")
+
+add("net/kyori/adventure/title/Title", """
+package net.kyori.adventure.title;
+
+import java.time.Duration;
+import net.kyori.adventure.text.Component;
+
+public interface Title {
+    Component title();
+
+    Component subtitle();
+
+    static Title title(Component title, Component subtitle, Times times) {
+        return null;
+    }
+
+    interface Times {
+        static Times times(Duration fadeIn, Duration stay, Duration fadeOut) {
+            return null;
+        }
+    }
+}
+""")
+
+add("org/bukkit/scoreboard/Scoreboard", """
+package org.bukkit.scoreboard;
+
+import java.util.Set;
+
+public interface Scoreboard {
+    Set<Team> getTeams();
+
+    Set<Objective> getObjectives();
+
+    void resetScores(String entry);
+
+    Objective getObjective(String name);
+
+    Objective registerNewObjective(String name, Criteria criteria, net.kyori.adventure.text.Component displayName);
+
+    Objective registerNewObjective(String name, Criteria criteria, String displayName);
+
+    Team getTeam(String name);
+
+    Team registerNewTeam(String name);
+}
+""")
+
+add("org/bukkit/event/block/BlockDispenseEvent", """
+package org.bukkit.event.block;
+
+import org.bukkit.event.Cancellable;
+import org.bukkit.inventory.ItemStack;
+
+public class BlockDispenseEvent extends BlockEvent implements Cancellable {
+    private boolean cancelled;
+
+    public ItemStack getItem() {
+        return null;
+    }
+
+    public void setItem(ItemStack item) {
+    }
+
+    @Override
+    public boolean isCancelled() {
+        return cancelled;
+    }
+
+    @Override
+    public void setCancelled(boolean cancel) {
+        this.cancelled = cancel;
+    }
+}
+""")
+
 
 
 def main(argv):

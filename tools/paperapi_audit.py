@@ -525,6 +525,12 @@ def audit(jar_path, ref):
             continue
         exact = [(owner, descs) for owner, descs in found if member.desc in descs]
         if not exact:
+            # У Player/LivingEntity часть методов приходит из adventure/JDK-интерфейсов,
+            # которых нет в paper-api (Audience#sendActionBar(Component) и т.п.) —
+            # такую подпись проверить нечем, это не ошибка сборки.
+            if member.kind == "method" and loader.has_unresolved_parent(member.owner):
+                inherited.append(member)
+                continue
             union = sorted(set().union(*[descs for _, descs in found]))
             problems["signature"].append((member, union, found[0][0].simple))
             continue

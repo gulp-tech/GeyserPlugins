@@ -27,8 +27,10 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityShootBowEvent;
+import org.bukkit.event.entity.EntityToggleGlideEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.entity.ProjectileLaunchEvent;
+import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemConsumeEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
@@ -123,7 +125,7 @@ public final class VoidCombat extends JavaPlugin implements Listener, CommandExe
     }
 
     private void msg(Player player, String key, String... pairs) {
-        String text = getConfig().getString("messages." + key, "");
+        String text = getConfig().getString("messages." + key, defaultMessage(key));
         if (text == null || text.isEmpty()) {
             return;
         }
@@ -134,12 +136,24 @@ public final class VoidCombat extends JavaPlugin implements Listener, CommandExe
         player.sendMessage(comp((prefix == null ? "" : prefix) + text));
     }
 
+    /** Тексты новых запретов — на случай, если конфиг ещё не обновлён. */
+    private String defaultMessage(String key) {
+        switch (key) {
+            case "elytra-blocked":
+                return "&cЭлитры в этом мире запрещены.";
+            case "firework-blocked-world":
+                return "&cФейерверки в этом мире запрещены.";
+            default:
+                return "";
+        }
+    }
+
     private void msg(CommandSender sender, String key, String... pairs) {
         if (sender instanceof Player) {
             msg((Player) sender, key, pairs);
             return;
         }
-        String text = getConfig().getString("messages." + key, "");
+        String text = getConfig().getString("messages." + key, defaultMessage(key));
         if (text == null) {
             return;
         }
@@ -323,6 +337,7 @@ public final class VoidCombat extends JavaPlugin implements Listener, CommandExe
     }
 
     private void tickCombat() {
+        enforceElytraBan();
         long now = System.currentTimeMillis();
         Iterator<Map.Entry<UUID, Long>> it = combatUntil.entrySet().iterator();
         while (it.hasNext()) {
@@ -758,6 +773,13 @@ public final class VoidCombat extends JavaPlugin implements Listener, CommandExe
     // ------------------------------------------------------------ фейерверки в бою
 
     private boolean blockFirework(Player player) {
+        // Мир из чёрного списка: фейерверки нельзя вообще, даже вне боя.
+        if (isWorldListed("fireworks.banned-worlds", player.getWorld())) {
+            if (shouldSendBlockMessage(player, "firework-world")) {
+                msg(player, "firework-blocked-world");
+            }
+            return true;
+        }
         if (!getConfig().getBoolean("fireworks.block-in-combat", true) || !isInCombat(player)) {
             return false;
         }
@@ -765,6 +787,91 @@ public final class VoidCombat extends JavaPlugin implements Listener, CommandExe
             msg(player, "firework-blocked");
         }
         return true;
+    }
+
+    /**
+     * Список миров из конфига. Если ключа нет (старый config.yml, обновлённый
+     * плагином), запрет всё равно работает для {@code defaults} — иначе после
+     * обновления настройка молча не включилась бы.
+     */
+    private java.util.List<String> worldList(String path, String... defaults) {
+        if (!getConfig().isSet(path)) {
+            return java.util.Arrays.asList(defaults);
+        }
+        return getConfig().getStringList(path);
+    }
+
+    /** Мир перечислен в списке конфига (имена сравниваются без учёта регистра)? */
+    private boolean isWorldListed(String path, org.bukkit.World world) {
+        if (world == null) {
+            return false;
+        }
+        for (String name : worldList(path, "world")) {
+            if (name != null && name.trim().equalsIgnoreCase(world.getName())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // ------------------------------------------------------------ элитры в запрещённых мирах
+
+    private boolean elytraBanned(Player player) {
+        return isWorldListed("elytra.banned-worlds", player.getWorld());
+    }
+
+    /** Взлететь на элитре в запрещённом мире нельзя (приземление не блокируем). */
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onGlideToggle(EntityToggleGlideEvent event) {
+        if (!event.isGliding()) {
+            return;
+        }
+        if (!(event.getEntity() instanceof Player)) {
+            return;
+        }
+        Player player = (Player) event.getEntity();
+        if (!elytraBanned(player)) {
+            return;
+        }
+        event.setCancelled(true);
+        // Клиент Bedrock может кратковременно включить полёт локально до ресинка —
+        // через тик гасим его ещё раз, чтобы элитра не «срабатывала».
+        Bukkit.getScheduler().runTask(this, () -> {
+            if (player.isOnline() && player.isGliding() && elytraBanned(player)) {
+                player.setGliding(false);
+            }
+        });
+        if (shouldSendBlockMessage(player, "elytra")) {
+            msg(player, "elytra-blocked");
+        }
+    }
+
+    /** Влетел в запрещённый мир уже на элитре — сразу опускаем на землю. */
+    @EventHandler
+    public void onWorldChange(PlayerChangedWorldEvent event) {
+        Player player = event.getPlayer();
+        if (player.isGliding() && elytraBanned(player)) {
+            player.setGliding(false);
+        }
+    }
+
+    /**
+     * Страховка: если событие взлёта пропущено (например, игрок уже летел при
+     * включении плагина или мир определился позже), гасим полёт в тике режима боя.
+     */
+    private void enforceElytraBan() {
+        if (worldList("elytra.banned-worlds", "world").isEmpty()) {
+            return;
+        }
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            if (!player.isGliding() || !elytraBanned(player)) {
+                continue;
+            }
+            player.setGliding(false);
+            if (shouldSendBlockMessage(player, "elytra")) {
+                msg(player, "elytra-blocked");
+            }
+        }
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
@@ -781,6 +888,18 @@ public final class VoidCombat extends JavaPlugin implements Listener, CommandExe
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onElytraBoost(PlayerElytraBoostEvent event) {
         if (blockFirework(event.getPlayer())) {
+            event.setCancelled(true);
+        }
+    }
+
+    /** Раздатчик в запрещённом мире тоже не запускает фейерверки. */
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onDispenseFirework(org.bukkit.event.block.BlockDispenseEvent event) {
+        ItemStack item = event.getItem();
+        if (item == null || item.getType() != Material.FIREWORK_ROCKET) {
+            return;
+        }
+        if (isWorldListed("fireworks.banned-worlds", event.getBlock().getWorld())) {
             event.setCancelled(true);
         }
     }

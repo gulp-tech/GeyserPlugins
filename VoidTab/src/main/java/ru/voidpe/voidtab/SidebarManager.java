@@ -296,89 +296,106 @@ public final class SidebarManager {
             return forced.trim().toLowerCase(java.util.Locale.ROOT);
         }
         Hooks.Device d = plugin.hooks().device(player.getUniqueId());
-        return deviceIconName(d);
+        boolean touchIsMobile = plugin.getConfig().getBoolean("nametag.device-detect.touch-is-mobile", true);
+        return deviceIconName(d, touchIsMobile);
     }
 
-    /** Чистое определение по снимку (без Bukkit) — удобно для тестов и диагностики. */
+    /**
+     * Значок устройства по снимку клиента (без Bukkit — удобно для тестов).
+     * <p>Порядок важен. Сначала консоли и VR: они узнаются по модели/ОС однозначно.
+     * Затем мобильные признаки: телефон нередко присылает {@code deviceOs=WINDOWS}
+     * (сторонние клиенты, «Windows-режим» в эмуляторах), но TOUCH-ввод и POCKET-интерфейс
+     * выдают его надёжнее строки ОС. И только потом — настольные ОС.</p>
+     */
     static String deviceIconName(Hooks.Device d) {
-        String os = d.os;
-        String input = d.input;
+        return deviceIconName(d, true);
+    }
+
+    static String deviceIconName(Hooks.Device d, boolean touchIsMobile) {
+        String os = d.os == null ? "UNKNOWN" : d.os.toUpperCase(java.util.Locale.ROOT);
+        String input = d.input == null ? "UNKNOWN" : d.input.toUpperCase(java.util.Locale.ROOT);
+        String ui = d.ui == null ? "UNKNOWN" : d.ui.toUpperCase(java.util.Locale.ROOT);
+        boolean touch = touchIsMobile && input.contains("TOUCH");
         boolean keyboard = input.contains("KEYBOARD");
         boolean controller = input.contains("CONTROLLER");
-        boolean mobileUi = d.ui.contains("POCKET");
+        boolean mobileUi = touchIsMobile && ui.contains("POCKET");
 
-        // 1. Модель устройства — сильнее всего. Порядок важен: Xbox/PS/Switch тоже
-        // присылают ОС UWP/WIN32/LINUX, поэтому консоли проверяем раньше «Windows».
-        if (d.modelContains("XBOX")) {
+        // 1. Консоли, ТВ и VR.
+        if (d.modelContains("XBOX") || os.contains("XBOX")) {
             return "xbox";
         }
-        if (d.modelContains("PLAYSTATION") || d.modelContains("PS4") || d.modelContains("PS5")) {
+        if (d.modelContains("PLAYSTATION") || d.modelContains("PS4") || d.modelContains("PS5")
+                || os.contains("PLAYSTATION") || os.contains("PS4") || os.contains("PS5")
+                || os.contains("SONY")) {
             return "playstation";
         }
-        if (d.modelContains("SWITCH") || d.modelContains("NINTENDO")) {
+        if (d.modelContains("SWITCH") || d.modelContains("NINTENDO")
+                || os.equals("NX") || os.contains("SWITCH") || os.contains("NINTENDO")) {
             return "switch";
         }
-        if (d.modelContains("IPHONE") || d.modelContains("IPAD") || d.modelContains("IPOD")) {
-            return keyboard ? "kbmouse" : "apple";
+        if (os.contains("TVOS")) {
+            return "tv";
         }
-        if (d.modelContains("MACBOOK") || d.modelContains("IMAC") || d.modelContains("MAC ")) {
+        if (input.contains("VR") || os.contains("GEARVR") || os.contains("HOLOLENS")) {
+            return "vr";
+        }
+
+        // 2. Мобильные устройства.
+        boolean mobileOs = Hooks.isMobileOs(os);
+        boolean phoneModel = isPhoneModel(d);
+        boolean appleModel = d.modelContains("IPHONE") || d.modelContains("IPAD") || d.modelContains("IPOD");
+        if (mobileOs || phoneModel || appleModel || touch || mobileUi) {
+            if (os.equals("IOS") || os.contains("IPHONE") || os.contains("IPAD") || appleModel) {
+                return "apple";
+            }
+            if (os.contains("AMAZON") || os.contains("FIRE")) {
+                return "amazon";
+            }
+            // Планшет/телефон с внешней клавиатурой и мышью.
+            if (keyboard && !touch && !mobileUi && (mobileOs || phoneModel)) {
+                return "kbmouse";
+            }
+            return "android";
+        }
+
+        // 3. Настольные ОС.
+        if (d.modelContains("MACBOOK") || d.modelContains("IMAC") || d.modelContains("MAC ")
+                || os.contains("OSX") || os.contains("MAC")) {
             return "mac";
         }
-        if (d.modelContains("WINDOWS")) {
+        if (d.modelContains("WINDOWS") || Hooks.isWindowsOs(os)) {
             return "windows";
         }
-
-        // 2. ОС из клиента.
-        String dev;
-        if (os.contains("GOOGLE") || os.equals("ANDROID")) {
-            dev = "android";                       // Google Play
-        } else if (os.contains("AMAZON")) {
-            dev = "amazon";                        // Fire OS
-        } else if (os.equals("IOS")) {
-            dev = "apple";                         // iPhone / iPad
-        } else if (os.contains("OSX") || os.contains("MAC")) {
-            dev = "mac";                           // macOS
-        } else if (os.contains("TVOS")) {
-            dev = "tv";                            // Apple TV
-        } else if (os.contains("XBOX")) {
-            dev = "xbox";                          // Xbox (совр. клиенты шлют XBOX, а не UWP)
-        } else if (os.contains("PLAYSTATION") || os.contains("PS4") || os.contains("PS5") || os.contains("SONY")) {
-            dev = "playstation";                   // PlayStation 4/5
-        } else if (os.equals("NX") || os.contains("SWITCH") || os.contains("NINTENDO")) {
-            dev = "switch";                        // Nintendo Switch
-        } else if (os.contains("GEARVR") || os.contains("HOLOLENS")) {
-            dev = "vr";                            // VR-гарнитуры
-        } else if (os.contains("LINUX")) {
-            dev = "linux";                         // Linux-клиент
-        } else if (os.contains("DEDICATED")) {
-            dev = "dedicated";                     // подключение через прокси/сервер, не живое устройство
-        } else if (os.contains("UWP") || os.contains("WIN32") || os.contains("WINDOWS")) {
-            // UWP — это и ПК из Microsoft Store, и Xbox; консоли отсеялись моделью выше.
-            dev = "windows";
-        } else {
-            dev = "device";
+        if (os.contains("LINUX")) {
+            return "linux";
+        }
+        if (os.contains("DEDICATED")) {
+            return "dedicated";
         }
 
-        // 3. Режим ввода уточняет картинку.
-        if (input.contains("VR")) {
-            return "vr";                           // играет в VR-шлеме
+        // 4. Ничего не распознали — уточняем по режиму ввода.
+        if (keyboard) {
+            return "kbmouse";
         }
-        boolean mobileOs = dev.equals("android") || dev.equals("apple") || dev.equals("amazon");
-        if (keyboard && (mobileOs || mobileUi)) {
-            return "kbmouse";                      // мобильное устройство/планшет с клавиатурой и мышью
+        if (controller) {
+            return "controller";
         }
-        if (dev.equals("device")) {
-            if (keyboard) {
-                return "windows";                  // неизвестная ОС, но клавиатура+мышь — ПК-сторонний ввод
-            }
-            if (controller) {
-                return "controller";               // неизвестная ОС с геймпадом
-            }
-            if (mobileUi) {
-                return "android";                  // мобильный интерфейс без распознанной ОС
+        return "device";
+    }
+
+    /** Модель похожа на телефон/планшет: так ловятся клиенты, которые врут про ОС. */
+    private static boolean isPhoneModel(Hooks.Device d) {
+        String[] hints = {
+                "IPHONE", "IPAD", "IPOD", "ANDROID", "SAMSUNG", "SM-", "GT-", "PIXEL", "NEXUS",
+                "REDMI", "POCO", "XIAOMI", "HUAWEI", "HONOR", "ONEPLUS", "REALME", "VIVO",
+                "OPPO", "MOTOROLA", "MOTO", "NOKIA", "XPERIA", "INFINIX", "TECNO", "ONEPLUS"
+        };
+        for (String hint : hints) {
+            if (d.modelContains(hint)) {
+                return true;
             }
         }
-        return dev;
+        return false;
     }
 
     /** Человекочитаемое устройство: Windows / Android / iOS / Xbox / ... (тексты — nametag.device-names). */

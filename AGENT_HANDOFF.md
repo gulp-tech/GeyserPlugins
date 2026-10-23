@@ -375,6 +375,64 @@ python3 tools/paperapi_audit.py VoidAntiCheat-2.0.1.jar VoidPvP-1.0.4.jar VoidQu
 Сборка: ECJ против `tools/localbuild/bukkit_stubs.py`; аудит `tools/paperapi_audit.py` — чисто.
 Jar: `VoidPvP-1.0.4.jar` в корне.
 
+### 6.3.6. VoidCombat 1.2.1 — элитры и фейерверки запрещены в мире `world` (23.10.2026)
+
+Запрос: «запретить элитры и фейерверки в мире world».
+
+Новые ключи `VoidCombat/src/main/resources/config.yml` (и только они; остальной файл не менялся):
+
+```yaml
+elytra:
+  banned-worlds: [world]
+fireworks:
+  block-in-combat: true     # было и осталось
+  banned-worlds: [world]
+```
+
+Как работает:
+
+| Событие | Что делает |
+|---|---|
+| `EntityToggleGlideEvent` (isGliding=true) | отменяет взлёт; через 1 тик `setGliding(false)` — Bedrock-клиент успевает локально включить полёт, ресинк обязателен |
+| `PlayerChangedWorldEvent` | если игрок влетел в `world` на элитре — сразу `setGliding(false)` |
+| `tickCombat()` (каждые 10 тиков) | страховка: гасит полёт у всех, кто в запрещённом мире; сообщение не чаще 1 раза в секунду |
+| `PlayerInteractEvent` (фейерверк в руке) | отмена, если мир в `fireworks.banned-worlds` (вне зависимости от боя) |
+| `PlayerElytraBoostEvent` | отмена ускорения элитры фейерверком |
+| `EntityShootBowEvent` (арбалет + ракета) | отмена |
+| `BlockDispenseEvent` (раздатчик) | отмена |
+
+Важно: **старые `config.yml` не перезаписываются**. Если ключа нет, плагин считает, что запрещён `world`
+(`worldList(path, "world")`), а тексты сообщений берутся из `defaultMessage()` —
+`messages.elytra-blocked` / `messages.firework-blocked-world`. То есть после замены jar запрет уже
+включён, даже если файл конфига старый; новые ключи появятся только при ручной правке.
+
+Проверка: `/combat reload`; `/combat info` показывает миры боя, но не эти списки — смотреть конфиг.
+Сборка: ECJ + аудит `tools/paperapi_audit.py` — расхождений нет (кроме adventure-методов `Player`,
+их нет в paper-api, они наследуются от `Audience`). Jar: `VoidCombat-1.2.1.jar`.
+
+### 6.3.7. VoidTab 1.16.1 — почему телефон определялся как Windows и как исправлено
+
+Причина была не в `floodgateEnum` (там правильно `Enum.name()`), а в порядке проверок
+`SidebarManager.deviceIconName(Hooks.Device)`: `modelContains("WINDOWS")` стояло раньше проверки ОС,
+поэтому клиент с ОС `WINDOWS` (или с «windows-подобной» строкой модели) уходил в `windows`.
+
+Порядок в 1.16.1: `XBOX → PLAYSTATION → SWITCH → TV → VR → мобильные (ОС/модель/TOUCH/POCKET) →
+macOS → Windows → Linux → по вводу`. Плюс:
+
+* `Hooks.pickOs()` — если Floodgate говорит Windows, а Geyser из того же логина — Android/iOS,
+  верим мобильной ОС (сторонние клиенты часто врут про Windows);
+* `Hooks.isMobileOs/isWindowsOs` — общие проверки для обоих классов;
+* `inputMode`/`deviceModel`/`uiProfile` в Geyser 2.x читаются методами **без** `get`
+  (`inputMode()`, `deviceModel()`, `uiProfile()`); раньше запрос шёл только `getInputMode/getDeviceModel`
+  и молча возвращал `UNKNOWN` — из-за этого механика «touch → мобильное устройство» не работала;
+* `nametag.device-detect.touch-is-mobile: true` — выключатель этого правила (в `config.yml` и
+  `configs/VoidTab-config.yml`);
+* `nametag.device-overrides.<ник>` остаётся ручным обходом.
+
+Диагностика прежняя: `/voidtab debug <ник>` печатает сырые `Floodgate OS`, `Geyser OS`, `Ввод`,
+`Модель` и итоговый значок. Если у игрока по-прежнему «windows» — нужны именно эти четыре значения.
+Jar: `VoidTab-1.16.1.jar`.
+
 ## 8. Состояние сервера пользователя (по последнему логу)
 
 Purpur 26.2 build 121, Geyser 2.12.0-b1268 (git-master-d14f204), UDP-порт 19139, миры: world, world2, nether, end. Игрок/админ — MUSD38 (привилегия «Создатель»). VoidWardenCity: точки загружены из points.yml — центр и спавн `world2 -648 -42 -544`, GUI-лута загружено 54 предмета. На сервере также стоят **чужие плагины (не наши, не трогать)**: Lmauction/LMstash/LMbuyer/LMRoom, ZNPCsPlus, LiteKits, GeyserEvent, Pl-Hide-Pro, HeadDatabase, CoreProtect, BetterRTP, ViaVersion, AuthMe, Essentials, DeluxeMenus, DecentHolograms и т.д. Их WARN в логе (duplicate keys у Lmauction, дубль UUID пака GeyserEvent, пустой префикс Floodgate) — не наши задачи, если пользователь не попросит.

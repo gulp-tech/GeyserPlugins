@@ -463,14 +463,54 @@ public final class Hooks {
      * FloodgatePlayer.getDeviceOs() возвращает enum org.geysermc.geyser.configuration.DeviceOs.
      */
     public String deviceOs(UUID uuid) {
-        String os = floodgateDeviceOs(uuid);
-        if (os == null || os.isBlank() || os.equals("UNKNOWN")) {
-            String g = geyserEnum(uuid, "deviceOs", "getDeviceOs");
-            if (g != null && !g.isBlank()) {
-                os = g; // Floodgate не ответил — берём напрямую из Geyser
-            }
+        String floodgate = floodgateDeviceOs(uuid);
+        String geyser = geyserEnum(uuid, "deviceOs", "getDeviceOs");
+        return pickOs(floodgate, geyser);
+    }
+
+    /**
+     * Телефоны (и особенно сторонние клиенты) нередко присылают deviceOs=WINDOWS,
+     * хотя Geyser/Floodgate из того же логина знают ANDROID/IOS. Если источники
+     * расходятся так, что один говорит «Windows», а другой — мобильную ОС,
+     * верим мобильной: на телефоне подделать UI/ввод сложнее, чем строку ОС.
+     */
+    static String pickOs(String floodgate, String geyser) {
+        String fg = normalizeOs(floodgate);
+        String gy = normalizeOs(geyser);
+        boolean fgDesktop = isWindowsOs(fg);
+        boolean gyMobile = isMobileOs(gy);
+        if (fgDesktop && gyMobile) {
+            return gy;
         }
-        return os == null || os.isBlank() ? "UNKNOWN" : os;
+        if (!fg.isEmpty() && !fg.equals("UNKNOWN")) {
+            return fg;
+        }
+        if (!gy.isEmpty() && !gy.equals("UNKNOWN")) {
+            return gy;
+        }
+        return "UNKNOWN";
+    }
+
+    private static String normalizeOs(String value) {
+        return value == null ? "" : value.trim().toUpperCase(java.util.Locale.ROOT);
+    }
+
+    /** Windows-семейство, включая UWP/WIN32 и «Windows Phone» (его разбираем отдельно). */
+    static boolean isWindowsOs(String os) {
+        if (os == null || os.isEmpty() || os.contains("PHONE")) {
+            return false;
+        }
+        return os.contains("WINDOWS") || os.contains("UWP") || os.contains("WIN32")
+                || os.contains("WIN10");
+    }
+
+    static boolean isMobileOs(String os) {
+        if (os == null || os.isEmpty() || os.equals("UNKNOWN")) {
+            return false;
+        }
+        return os.contains("GOOGLE") || os.contains("ANDROID") || os.equals("IOS")
+                || os.contains("FIREOS") || os.contains("AMAZON") || os.contains("PHONE")
+                || os.contains("IPHONE") || os.contains("IPAD");
     }
 
     /** Сырое значение Floodgate (для /voidtab debug). */
@@ -549,10 +589,11 @@ public final class Hooks {
     public String inputMode(UUID uuid) {
         String mode = floodgateEnum(uuid, "getInputMode");
         if (mode == null || mode.isBlank() || mode.equals("UNKNOWN")) {
-            String g = geyserEnum(uuid, "inputMode", "getInputMode");
-            if (g != null && !g.isBlank()) {
-                mode = g;
-            }
+            // В Geyser метод лежит в ClientData и называется inputMode(), без "get".
+            mode = geyserClientDataString(uuid, "getInputMode", "inputMode");
+        }
+        if (mode == null || mode.isBlank() || mode.equals("UNKNOWN")) {
+            mode = geyserEnum(uuid, "inputMode", "getInputMode");
         }
         return mode == null || mode.isBlank() ? "UNKNOWN" : mode;
     }
@@ -564,7 +605,8 @@ public final class Hooks {
      * Если Geyser недоступен — пустая строка, все проверки по модели просто пропускаются.
      */
     public String deviceModel(UUID uuid) {
-        String fromGeyser = geyserClientDataString(uuid, "getDeviceModel");
+        // В Geyser 2.x это ClientData#deviceModel() (без "get"), в старых сборках — getDeviceModel().
+        String fromGeyser = geyserClientDataString(uuid, "getDeviceModel", "deviceModel");
         if (fromGeyser != null && !fromGeyser.isBlank()) {
             return fromGeyser;
         }
@@ -589,7 +631,7 @@ public final class Hooks {
     public String uiProfile(UUID uuid) {
         String ui = floodgateEnum(uuid, "getUiProfile");
         if (ui == null || ui.isBlank() || ui.equals("UNKNOWN")) {
-            String fromClient = geyserClientDataString(uuid, "getUiProfile");
+            String fromClient = geyserClientDataString(uuid, "getUiProfile", "uiProfile");
             if (fromClient != null && !fromClient.isBlank()) {
                 ui = fromClient.toUpperCase(java.util.Locale.ROOT);
             }
@@ -598,7 +640,7 @@ public final class Hooks {
     }
 
     /** Любое строковое/перечислимое поле из клиентских данных сессии Geyser. */
-    private String geyserClientDataString(UUID uuid, String getter) {
+    private String geyserClientDataString(UUID uuid, String... getters) {
         if (geyserApi == null || geyserConnectionByUuid == null) {
             return null;
         }
@@ -612,9 +654,14 @@ public final class Hooks {
             if (clientData == null) {
                 return null;
             }
-            Method m = findMethod(clientData.getClass(), getter);
-            Object v = m == null ? null : m.invoke(clientData);
-            return v == null ? null : String.valueOf(v);
+            for (String getter : getters) {
+                Method m = findMethod(clientData.getClass(), getter);
+                Object v = m == null ? null : m.invoke(clientData);
+                if (v != null && !String.valueOf(v).isBlank()) {
+                    return String.valueOf(v);
+                }
+            }
+            return null;
         } catch (Throwable t) {
             return null;
         }
