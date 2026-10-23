@@ -281,8 +281,12 @@ public final class SidebarManager {
     }
 
     /**
-     * Имя иконки устройства: Floodgate DeviceOs (Enum.name) + InputMode.
-     * Телефон/планшет с подключённой клавиатурой и мышью — отдельное устройство kbmouse.
+     * Имя иконки устройства. Источники по убыванию надёжности:
+     * 1) DeviceModel от клиента — самый точный признак (Xbox шлёт «Xbox», ПК — «Windows…»);
+     * 2) DeviceOs из Floodgate/Geyser (GOOGLE, IOS, UWP, PS4, NX, XBOX, LINUX, DEDICATED…);
+     * 3) режим ввода (TOUCH / KEYBOARD_MOUSE / CONTROLLER / VR) — уточняет картинку;
+     * 4) UI-профиль (POCKET — мобильный интерфейс, CLASSIC — ПК/консоль).
+     * Всё берётся одним кэшированным снимком: Hooks.device(uuid).
      */
     public String deviceIconName(Player player) {
         // Ручное переопределение в config.yml (nametag.device-overrides.<ник>) — выше всего:
@@ -291,57 +295,87 @@ public final class SidebarManager {
         if (forced != null && !forced.isBlank()) {
             return forced.trim().toLowerCase(java.util.Locale.ROOT);
         }
-        String os = plugin.hooks().deviceOs(player.getUniqueId());
-        String input = plugin.hooks().inputMode(player.getUniqueId());
-        // Модель устройства — сильный сигнал: Bedrock на Windows шлёт модель ПК/ОС,
-        // и если там Windows — это ПК, что бы клиент ни сказал про ОС.
-        String model = plugin.hooks().deviceModel(player.getUniqueId()).toUpperCase(java.util.Locale.ROOT);
-        if (model.contains("WINDOWS")) {
+        Hooks.Device d = plugin.hooks().device(player.getUniqueId());
+        return deviceIconName(d);
+    }
+
+    /** Чистое определение по снимку (без Bukkit) — удобно для тестов и диагностики. */
+    static String deviceIconName(Hooks.Device d) {
+        String os = d.os;
+        String input = d.input;
+        boolean keyboard = input.contains("KEYBOARD");
+        boolean controller = input.contains("CONTROLLER");
+        boolean mobileUi = d.ui.contains("POCKET");
+
+        // 1. Модель устройства — сильнее всего. Порядок важен: Xbox/PS/Switch тоже
+        // присылают ОС UWP/WIN32/LINUX, поэтому консоли проверяем раньше «Windows».
+        if (d.modelContains("XBOX")) {
+            return "xbox";
+        }
+        if (d.modelContains("PLAYSTATION") || d.modelContains("PS4") || d.modelContains("PS5")) {
+            return "playstation";
+        }
+        if (d.modelContains("SWITCH") || d.modelContains("NINTENDO")) {
+            return "switch";
+        }
+        if (d.modelContains("IPHONE") || d.modelContains("IPAD") || d.modelContains("IPOD")) {
+            return keyboard ? "kbmouse" : "apple";
+        }
+        if (d.modelContains("MACBOOK") || d.modelContains("IMAC") || d.modelContains("MAC ")) {
+            return "mac";
+        }
+        if (d.modelContains("WINDOWS")) {
             return "windows";
         }
-        if (model.contains("IPHONE") || model.contains("IPAD")) {
-            return input.contains("KEYBOARD") ? "kbmouse" : "apple";
-        }
-        // Полное различение по DeviceOs Floodgate (Enum.name): GOOGLE, IOS, UWP, OSX,
-        // AMAZON, GEARVR, HOLOLENS, WIN32, TVOS, PLAYSTATION, NX, XBOX, WINDOWS_PHONE...
+
+        // 2. ОС из клиента.
         String dev;
         if (os.contains("GOOGLE") || os.equals("ANDROID")) {
             dev = "android";                       // Google Play
         } else if (os.contains("AMAZON")) {
-            dev = "amazon";                        // Fire OS (Amazon)
+            dev = "amazon";                        // Fire OS
         } else if (os.equals("IOS")) {
             dev = "apple";                         // iPhone / iPad
         } else if (os.contains("OSX") || os.contains("MAC")) {
-            dev = "mac";                           // Mac OS
+            dev = "mac";                           // macOS
         } else if (os.contains("TVOS")) {
             dev = "tv";                            // Apple TV
-        } else if (os.contains("UWP") || os.contains("WIN32") || os.contains("WINDOWS")) {
-            dev = "windows";                       // PC (вкл. UWP и WINDOWS_PHONE)
         } else if (os.contains("XBOX")) {
-            dev = "xbox";                          // Xbox
+            dev = "xbox";                          // Xbox (совр. клиенты шлют XBOX, а не UWP)
         } else if (os.contains("PLAYSTATION") || os.contains("PS4") || os.contains("PS5") || os.contains("SONY")) {
             dev = "playstation";                   // PlayStation 4/5
-        } else if (os.contains("NX") || os.contains("SWITCH") || os.contains("NINTENDO")) {
+        } else if (os.equals("NX") || os.contains("SWITCH") || os.contains("NINTENDO")) {
             dev = "switch";                        // Nintendo Switch
         } else if (os.contains("GEARVR") || os.contains("HOLOLENS")) {
             dev = "vr";                            // VR-гарнитуры
+        } else if (os.contains("LINUX")) {
+            dev = "linux";                         // Linux-клиент
+        } else if (os.contains("DEDICATED")) {
+            dev = "dedicated";                     // подключение через прокси/сервер, не живое устройство
+        } else if (os.contains("UWP") || os.contains("WIN32") || os.contains("WINDOWS")) {
+            // UWP — это и ПК из Microsoft Store, и Xbox; консоли отсеялись моделью выше.
+            dev = "windows";
         } else {
             dev = "device";
         }
-        // Режим ввода уточняет картинку:
+
+        // 3. Режим ввода уточняет картинку.
         if (input.contains("VR")) {
             return "vr";                           // играет в VR-шлеме
         }
         boolean mobileOs = dev.equals("android") || dev.equals("apple") || dev.equals("amazon");
-        if (input.contains("KEYBOARD") && mobileOs) {
-            return "kbmouse";                      // мобильное устройство с клавиатурой и мышью
+        if (keyboard && (mobileOs || mobileUi)) {
+            return "kbmouse";                      // мобильное устройство/планшет с клавиатурой и мышью
         }
         if (dev.equals("device")) {
-            if (input.contains("KEYBOARD")) {
+            if (keyboard) {
                 return "windows";                  // неизвестная ОС, но клавиатура+мышь — ПК-сторонний ввод
             }
-            if (input.contains("CONTROLLER")) {
+            if (controller) {
                 return "controller";               // неизвестная ОС с геймпадом
+            }
+            if (mobileUi) {
+                return "android";                  // мобильный интерфейс без распознанной ОС
             }
         }
         return dev;
@@ -367,6 +401,8 @@ public final class SidebarManager {
             case "tv": return "TV";
             case "controller": return "Геймпад";
             case "kbmouse": return "Клавиатура+мышь";
+            case "linux": return "Linux";
+            case "dedicated": return "Сервер";
             default: return "Устройство";
         }
     }

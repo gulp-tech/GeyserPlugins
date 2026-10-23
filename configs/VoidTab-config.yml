@@ -144,7 +144,7 @@ nametag:
   # Если у конкретного игрока устройство определилось неправильно (клиент может
   # врать), задай вручную: ник: значение из списка ниже.
   # Значения: windows | android | apple | mac | amazon | xbox | playstation |
-  # switch | vr | tv | controller | kbmouse | device.
+  # switch | vr | tv | controller | kbmouse | linux | dedicated | device.
   # Пример:  MUSD38: windows
   device-overrides: {}
   device-names:
@@ -160,6 +160,8 @@ nametag:
     tv: 'TV'
     controller: 'Геймпад'
     kbmouse: 'Клавиатура+мышь'
+    linux: 'Linux'
+    dedicated: 'Сервер'
     device: 'Устройство'
 
 # ------------------------------------------------------------

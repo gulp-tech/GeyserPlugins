@@ -184,6 +184,7 @@ public final class VoidTab extends JavaPlugin implements Listener, CommandExecut
                     + " (Floodgate=" + hooks.floodgateDeviceOs(player.getUniqueId())
                     + ", Geyser=" + hooks.geyserDeviceOs(player.getUniqueId()) + ")"
                     + ", ввод=" + hooks.inputMode(player.getUniqueId())
+                    + ", UI=" + hooks.uiProfile(player.getUniqueId())
                     + ", модель=" + hooks.deviceModel(player.getUniqueId())
                     + " -> значок " + sidebar.deviceIconName(player));
         }, delay);

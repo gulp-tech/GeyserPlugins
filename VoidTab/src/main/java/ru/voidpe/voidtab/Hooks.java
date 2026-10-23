@@ -7,7 +7,9 @@ import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.entity.Player;
 
 import java.lang.reflect.Method;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 
 /**
@@ -44,6 +46,11 @@ public final class Hooks {
 
     private Method papiSetPlaceholders; // PlaceholderAPI.setPlaceholders (static)
     private boolean papiTried;
+
+    /** Кэш данных об устройстве: рефлексия недешёвая, а ник и скорборд обновляются каждый тик. */
+    private final Map<UUID, Device> deviceCache = new ConcurrentHashMap<>();
+    private final Map<UUID, Long> deviceCacheAt = new ConcurrentHashMap<>();
+    private static final long DEVICE_CACHE_MS = 15_000L;
 
     public Hooks(Logger log) {
         this.log = log;
@@ -550,8 +557,18 @@ public final class Hooks {
         return mode == null || mode.isBlank() ? "UNKNOWN" : mode;
     }
 
-    /** Модель устройства из Floodgate (для диагностики), может быть пустой. */
+    /**
+     * Модель устройства (DeviceModel из клиентских данных Bedrock).
+     * ВАЖНО: Floodgate такого метода НЕ отдаёт (у FloodgatePlayer есть только
+     * DeviceOs/UiProfile/InputMode/версия), поэтому модель читаем из сессии Geyser.
+     * Если Geyser недоступен — пустая строка, все проверки по модели просто пропускаются.
+     */
     public String deviceModel(UUID uuid) {
+        String fromGeyser = geyserClientDataString(uuid, "getDeviceModel");
+        if (fromGeyser != null && !fromGeyser.isBlank()) {
+            return fromGeyser;
+        }
+        // На случай, если в будущих версиях Floodgate модель всё-таки появится.
         if (floodgateApi == null || fgGetPlayer == null) {
             return "";
         }
@@ -565,6 +582,83 @@ public final class Hooks {
             return v == null ? "" : String.valueOf(v);
         } catch (Throwable t) {
             return "";
+        }
+    }
+
+    /** UI-профиль клиента: CLASSIC (ПК/консоль) или POCKET (мобильный интерфейс). */
+    public String uiProfile(UUID uuid) {
+        String ui = floodgateEnum(uuid, "getUiProfile");
+        if (ui == null || ui.isBlank() || ui.equals("UNKNOWN")) {
+            String fromClient = geyserClientDataString(uuid, "getUiProfile");
+            if (fromClient != null && !fromClient.isBlank()) {
+                ui = fromClient.toUpperCase(java.util.Locale.ROOT);
+            }
+        }
+        return ui == null || ui.isBlank() ? "UNKNOWN" : ui;
+    }
+
+    /** Любое строковое/перечислимое поле из клиентских данных сессии Geyser. */
+    private String geyserClientDataString(UUID uuid, String getter) {
+        if (geyserApi == null || geyserConnectionByUuid == null) {
+            return null;
+        }
+        try {
+            Object connection = geyserConnectionByUuid.invoke(geyserApi, uuid);
+            if (connection == null) {
+                return null;
+            }
+            Method clientDataGetter = findMethod(connection.getClass(), "getClientData");
+            Object clientData = clientDataGetter == null ? null : clientDataGetter.invoke(connection);
+            if (clientData == null) {
+                return null;
+            }
+            Method m = findMethod(clientData.getClass(), getter);
+            Object v = m == null ? null : m.invoke(clientData);
+            return v == null ? null : String.valueOf(v);
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
+    /**
+     * Снимок устройства игрока: ОС, режим ввода, UI-профиль и модель.
+     * Кэшируется на 15 секунд — иначе каждый рендер ника/скорборда дёргает рефлексию.
+     */
+    public Device device(UUID uuid) {
+        long now = System.currentTimeMillis();
+        Device cached = deviceCache.get(uuid);
+        Long at = deviceCacheAt.get(uuid);
+        if (cached != null && at != null && now - at < DEVICE_CACHE_MS) {
+            return cached;
+        }
+        Device fresh = new Device(deviceOs(uuid), inputMode(uuid), uiProfile(uuid), deviceModel(uuid));
+        deviceCache.put(uuid, fresh);
+        deviceCacheAt.put(uuid, now);
+        return fresh;
+    }
+
+    /** Сбросить кэш устройства (выход игрока, /voidtab reload). */
+    public void forgetDevice(UUID uuid) {
+        deviceCache.remove(uuid);
+        deviceCacheAt.remove(uuid);
+    }
+
+    /** Одно устройство игрока: то, что реально присылает Bedrock-клиент. */
+    public static final class Device {
+        public final String os;
+        public final String input;
+        public final String ui;
+        public final String model;
+
+        Device(String os, String input, String ui, String model) {
+            this.os = os == null ? "UNKNOWN" : os;
+            this.input = input == null ? "UNKNOWN" : input;
+            this.ui = ui == null ? "UNKNOWN" : ui;
+            this.model = model == null ? "" : model;
+        }
+
+        public boolean modelContains(String needle) {
+            return !model.isEmpty() && model.toUpperCase(java.util.Locale.ROOT).contains(needle);
         }
     }
 
