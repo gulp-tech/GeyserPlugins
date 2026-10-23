@@ -4,7 +4,14 @@ import org.bukkit.configuration.file.FileConfiguration;
 
 import java.util.List;
 
-/** Настройки одной проверки из секции checks.<key>. */
+/**
+ * Настройки одной проверки из секции {@code checks.<key>}.
+ *
+ * <p>{@code buffer} — сколько «очков улик» нужно накопить, чтобы получить
+ * первый VL. Большой буфер = проверка почти не даёт ложных срабатываний, но
+ * и требует устойчивого нарушения. Для физически невозможных событий
+ * (BadPackets) буфер можно выставить в 0 — там сама улика и есть доказательство.</p>
+ */
 public record CheckSettings(
         boolean enabled,
         double maxVl,
@@ -12,6 +19,7 @@ public record CheckSettings(
         double setbackVl,
         double cancelVl,
         double punishVl,
+        double bufferLimit,
         List<String> punishCommands
 ) {
 
@@ -29,11 +37,13 @@ public record CheckSettings(
                 config.getDouble("checks.default.cancel-vl", 0.0));
         double punish = config.getDouble(base + ".punish-vl",
                 config.getDouble("checks.default.punish-vl", 0.0));
+        double buffer = Math.max(0.0, config.getDouble(base + ".buffer",
+                config.getDouble("checks.default.buffer", 2.5)));
         List<String> commands = config.getStringList(base + ".punish-commands");
         if (commands.isEmpty()) {
             commands = config.getStringList("punishments.commands");
         }
-        return new CheckSettings(enabled, maxVl, decay, setback, cancel, punish, List.copyOf(commands));
+        return new CheckSettings(enabled, maxVl, decay, setback, cancel, punish, buffer, List.copyOf(commands));
     }
 
     private static double positive(double value, double fallback) {
@@ -41,14 +51,14 @@ public record CheckSettings(
     }
 
     public boolean shouldSetback(double vl) {
-        return setbackVl > 0 && vl >= setbackVl;
+        return setbackVl > 0 && vl + 1e-9 >= setbackVl;
     }
 
     public boolean shouldCancel(double vl) {
-        return cancelVl > 0 && vl >= cancelVl;
+        return cancelVl > 0 && vl + 1e-9 >= cancelVl;
     }
 
     public boolean shouldPunish(double vl) {
-        return punishVl > 0 && vl >= punishVl && punishVl <= maxVl + 0.0001;
+        return punishVl > 0 && vl + 1e-9 >= punishVl && punishVl <= maxVl + 0.0001;
     }
 }

@@ -4,6 +4,7 @@ import org.bukkit.Location;
 
 import java.util.ArrayDeque;
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
@@ -20,6 +21,7 @@ public final class PlayerData {
     public boolean bedrock;
     public String inputMode = "UNKNOWN";
     public String deviceOs = "UNKNOWN";
+    public String profile = "default";
 
     public boolean bypassAll;
     public boolean excludedHere;
@@ -41,17 +43,21 @@ public final class PlayerData {
     public Location safeLocation;
     public long safeUpdatedMillis;
 
+    // --- Подсистемы с чистой, покрытой тестами логикой.
+    public final Map<CheckId, ViolationState> checks = new EnumMap<>(CheckId.class);
+    public final LagCompensation lag = new LagCompensation();
+    public final PredictionMeter prediction = new PredictionMeter();
+    public final Map<UUID, TargetHistory> targets = new HashMap<>();
+
     // Speed: token bucket в блоках.
-    public double speedTokens = 3.0;
+    public final SpeedBudget speed = new SpeedBudget();
     public long speedRefillNanos;
     public double lastHorizontalBps;
 
     // Вертикальное движение.
     public int airTicks;
-    public int hoverStreak;
-    public int ascentStreak;
-    public int slowFallStreak;
     public int climbStreak;
+    public int slowFallStreak;
     public int jesusTicks;
     public int noclipStreak;
     public double peakY;
@@ -59,10 +65,18 @@ public final class PlayerData {
     public long velocityGraceUntilMillis;
     public long elytraGraceUntilMillis;
 
+    // События мира, которые легально меняют движение.
+    public long riptideUntilMillis;
+    public long pistonUntilMillis;
+    public long explosionUntilMillis;
+    public long lastDamageMillis;
+    public long lastBlockChangeMillis;
+
     // Timer: окно количества position-движений к серверным тикам.
     public long timerWindowStartNanos;
     public int timerWindowStartTick;
     public int timerPackets;
+    public int timerSuspiciousWindows;
 
     // Velocity / AntiKB: ожидаемое перемещение после PlayerVelocityEvent.
     public boolean velocityPending;
@@ -73,16 +87,11 @@ public final class PlayerData {
     public double velocityExpectedBlocks;
     public double velocityTravelBlocks;
 
-    // Подряд идущие нарушения и кулдауны действий.
-    public final Map<CheckId, Double> violations = new EnumMap<>(CheckId.class);
-    public final Map<CheckId, Long> lastFlagMillis = new EnumMap<>(CheckId.class);
-    public final Map<CheckId, Long> lastAlertMillis = new EnumMap<>(CheckId.class);
-    public final Map<CheckId, Long> lastPunishMillis = new EnumMap<>(CheckId.class);
-    public final Map<CheckId, Long> lastSetbackMillis = new EnumMap<>(CheckId.class);
     public boolean setbackRequested;
     public CheckId lastCheck;
     public String lastDetails = "";
     public long lastViolationMillis;
+    public long lastDecayMillis;
 
     // Ограниченные окна событий.
     public final ArrayDeque<Long> swings = new ArrayDeque<>();
@@ -97,6 +106,7 @@ public final class PlayerData {
     public long scaffoldWindowStartMillis;
     public long lastBigRotationMillis;
     public float rotationBeforeAttack;
+    public int cpsHighWindows;
 
     // Транспорт.
     public String vehicleWorld = "";
@@ -105,20 +115,45 @@ public final class PlayerData {
     public long vehicleLastNanos;
     public double vehicleTokens = 5.0;
 
+    // Кэш снимка окружения на тик: Bedrock часто присылает 2 пакета за тик.
+    public int envTick = Integer.MIN_VALUE;
+    public double envX;
+    public double envY;
+    public double envZ;
+    public EnvironmentSnapshot env;
+
     public PlayerData(UUID uuid) {
         this.uuid = uuid;
+        for (CheckId check : CheckId.values()) {
+            checks.put(check, new ViolationState(check));
+        }
+        lastDecayMillis = System.currentTimeMillis();
+    }
+
+    public ViolationState state(CheckId check) {
+        ViolationState state = checks.get(check);
+        if (state == null) {
+            state = new ViolationState(check);
+            checks.put(check, state);
+        }
+        return state;
     }
 
     public double vl(CheckId check) {
-        return violations.getOrDefault(check, 0.0);
+        return state(check).vl();
     }
 
     public void setVl(CheckId check, double value) {
-        if (value <= 0.001) {
-            violations.remove(check);
-        } else {
-            violations.put(check, value);
+        state(check).setVl(value);
+    }
+
+    public TargetHistory history(UUID target) {
+        TargetHistory history = targets.get(target);
+        if (history == null) {
+            history = new TargetHistory();
+            targets.put(target, history);
         }
+        return history;
     }
 
     public void rememberPosition(Location to, int serverTick, long nowNanos, boolean onGround) {
@@ -136,29 +171,38 @@ public final class PlayerData {
 
     public void resetMovement(Location to, int serverTick, long nowNanos, boolean onGround) {
         rememberPosition(to, serverTick, nowNanos, onGround);
-        airTicks = 0;
-        hoverStreak = 0;
-        ascentStreak = 0;
-        slowFallStreak = 0;
-        climbStreak = 0;
-        jesusTicks = 0;
-        noclipStreak = 0;
-        peakY = to.getY();
-        lastDeltaY = 0;
-        speedTokens = Math.max(speedTokens, 2.0);
+        resetAirState();
+        speed.softReset(4.5);
         timerWindowStartNanos = nowNanos;
         timerWindowStartTick = serverTick;
         timerPackets = 0;
         velocityPending = false;
+        env = null;
+        envTick = Integer.MIN_VALUE;
+        lag.reset();
     }
 
     public void resetAirState() {
         airTicks = 0;
-        hoverStreak = 0;
-        ascentStreak = 0;
-        slowFallStreak = 0;
         climbStreak = 0;
+        slowFallStreak = 0;
         jesusTicks = 0;
         peakY = lastY;
+        prediction.reset();
+    }
+
+    /** Сбросить «сколько держится выше порога» у всех проверок (телепорт, setback). */
+    public void clearSustainAll() {
+        for (ViolationState state : checks.values()) {
+            state.clearSustain();
+        }
+    }
+
+    /** Полный сброс подозрений (смерть, ручной /vac reset). */
+    public void clearViolations() {
+        for (ViolationState state : checks.values()) {
+            state.reset();
+        }
+        targets.clear();
     }
 }

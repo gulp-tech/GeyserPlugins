@@ -1,6 +1,7 @@
 package ru.voidpe.anticheat;
 
 import com.destroystokyo.paper.event.player.PlayerElytraBoostEvent;
+import io.papermc.paper.event.player.PlayerArmSwingEvent;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
@@ -30,11 +31,13 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockPistonExtendEvent;
+import org.bukkit.event.block.BlockPistonRetractEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
-import io.papermc.paper.event.player.PlayerArmSwingEvent;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerGameModeChangeEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
@@ -44,7 +47,9 @@ import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.player.PlayerRiptideEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.event.player.PlayerVelocityEvent;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
@@ -77,20 +82,45 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * VoidAntiCheat — Bedrock-only античит для Purpur + Geyser/Floodgate.
+ * VoidAntiCheat — античит VoidPE для Bedrock-игроков (Geyser/Floodgate).
  *
- * <p>Дизайн специально не копирует Java-античиты: Grim/Vulcan на Bedrock
- * обычно просто exempt-ят игрока, а Boar/Themis показывают правильный путь —
- * отдельные Bedrock-допуски, буферы вместо мгновенных банов, компенсация
- * лагов и наказания только за устойчивые серии нарушений.</p>
+ * <p>Философия (по мотивам Grim, Boar, Flint и BedrockGuard):</p>
  *
- * <p>Оптимизация: на PlayerMoveEvent только O(1) примитивы и несколько
- * соседних блоков; миры не сканируются, история позиций не хранится,
- * тяжёлая работа (лог-файл/webhook) уходит в один фоновый поток.</p>
+ * <ul>
+ *   <li><b>Улики, а не мгновенные штрафы.</b> Каждая проверка копит вес в
+ *       буфере; VL растёт только когда буфер переполнен. Повторы внутри
+ *       sample-gap весят вчетверо меньше, поэтому лаг-спайк с пачкой пакетов
+ *       не превращается в пять улик.</li>
+ *   <li><b>Три независимых слоя.</b> Детект (VL) → коррекция (cancel/setback)
+ *       → наказание. Наказание требует, чтобы VL держался выше порога
+ *       несколько секунд, шло несколько разных проверок, пинг был разумным,
+ *       а TPS — нормальным. По умолчанию автобана и кика нет вообще.</li>
+ *   <li><b>Компенсация лагов.</b> Пинг Bedrock через Geyser часто нулевой,
+ *       поэтому джиттер считается по интервалам move-пакетов; на шумном
+ *       канале улика весит меньше, а пороги растут.</li>
+ *   <li><b>Исключения вместо порогов.</b> Вода, паутина, лёд, слизень, мёд,
+ *       сено, порошковый снег, лестницы, строительные леса, транспорт,
+ *       элитра, Levitation, Slow Falling, Riptide, поршни, взрывы, недавний
+ *       урон и опора под ногами отключают соответствующие проверки. Именно
+ *       это даёт ноль ложных срабатываний на честной Bedrock-физике.</li>
+ *   <li><b>Предсказание вертикали.</b> Gravity/drag-модель с допуском:
+ *       наказываем только за набор высоты &gt; 3 блоков в воздухе и за
+ *       зависание &gt; 2 секунд без опоры.</li>
+ *   <li><b>Reach с перемоткой.</b> Хранимая история хитбокса цели: удар
+ *       проверяется по минимальной дистанции в окне пинга, а допуск растёт
+ *       от скорости цели и джиттера.</li>
+ * </ul>
+ *
+ * <p>Оптимизация: на PlayerMoveEvent O(1) примитивов и десяток чтений блоков
+ * с кэшем на тик; история позиций не хранится; тяжёлый I/O — в одном фоновом
+ * потоке.</p>
  */
-public final class VoidAntiCheat extends JavaPlugin implements Listener, CommandExecutor, TabCompleter {
+public class VoidAntiCheat extends JavaPlugin implements Listener, CommandExecutor, TabCompleter {
 
     private static final DateTimeFormatter LOG_TIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    private static final int VL_SUSTAIN_SETBACK = 0;
+    private static final int VL_SUSTAIN_CANCEL = 1;
+    private static final int VL_SUSTAIN_PUNISH = 2;
 
     private final Map<UUID, PlayerData> players = new HashMap<>();
     private final Map<CheckId, CheckSettings> settings = new EnumMap<>(CheckId.class);
@@ -101,19 +131,25 @@ public final class VoidAntiCheat extends JavaPlugin implements Listener, Command
     private BukkitTask secondTask;
     private ExecutorService ioExecutor;
     private HttpClient httpClient;
+    private LagCompensation.Limits lagLimits = LagCompensation.Limits.defaults();
+    /** null — ещё не проверяли; см. fastAttackServer(). */
+    private Boolean fastAttackCache;
 
     private Attribute movementSpeedAttribute;
     private Attribute interactionRangeAttribute;
     private PotionEffectType slowFallingEffect;
     private PotionEffectType jumpBoostEffect;
     private PotionEffectType levitationEffect;
+    private PotionEffectType dolphinsGraceEffect;
     private Enchantment soulSpeedEnchant;
     private Enchantment depthStriderEnchant;
+    private Enchantment frostWalkerEnchant;
 
     @Override
     public void onEnable() {
         saveDefaultConfig();
         loadCheckSettings();
+        loadLagLimits();
         resolveRegistryEntries();
         floodgate = new FloodgateHook(getLogger());
         regions = new RegionHook(getLogger());
@@ -132,12 +168,15 @@ public final class VoidAntiCheat extends JavaPlugin implements Listener, Command
             createData(player, false);
         }
         secondTask = Bukkit.getScheduler().runTaskTimer(this, this::secondTick, 20L, 20L);
-        if (!floodgate.available() && getConfig().getBoolean("settings.bedrock-only", true)
-                && !getConfig().getBoolean("settings.check-all-if-floodgate-missing", true)) {
+        if (!floodgate.available() && confBool("settings.bedrock-only", true)
+                && !confBool("settings.check-all-if-floodgate-missing", true)) {
             getLogger().warning("Floodgate недоступна, а fallback выключен: проверки Bedrock сейчас не работают");
         }
-        getLogger().info("VoidAntiCheat включён: Bedrock-only=" + getConfig().getBoolean("settings.bedrock-only", true)
-                + ", Floodgate=" + floodgate.available() + ", проверок=" + settings.size());
+        getLogger().info("VoidAntiCheat включён: Bedrock-only=" + confBool("settings.bedrock-only", true)
+                + ", Floodgate=" + floodgate.available()
+                + ", проверок=" + settings.size()
+                + ", коррекция=" + confBool("settings.enforcement", true)
+                + ", автонаказания=" + confBool("settings.auto-punish", false));
     }
 
     @Override
@@ -161,8 +200,10 @@ public final class VoidAntiCheat extends JavaPlugin implements Listener, Command
         slowFallingEffect = Registry.EFFECT.get(NamespacedKey.minecraft("slow_falling"));
         jumpBoostEffect = Registry.EFFECT.get(NamespacedKey.minecraft("jump_boost"));
         levitationEffect = Registry.EFFECT.get(NamespacedKey.minecraft("levitation"));
+        dolphinsGraceEffect = Registry.EFFECT.get(NamespacedKey.minecraft("dolphins_grace"));
         soulSpeedEnchant = Registry.ENCHANTMENT.get(NamespacedKey.minecraft("soul_speed"));
         depthStriderEnchant = Registry.ENCHANTMENT.get(NamespacedKey.minecraft("depth_strider"));
+        frostWalkerEnchant = Registry.ENCHANTMENT.get(NamespacedKey.minecraft("frost_walker"));
     }
 
     private void loadCheckSettings() {
@@ -172,8 +213,38 @@ public final class VoidAntiCheat extends JavaPlugin implements Listener, Command
         }
     }
 
+    private void loadLagLimits() {
+        lagLimits = new LagCompensation.Limits(
+                confDouble("compensation.ping-factor-per-100ms", 0.020),
+                confDouble("compensation.max-ping-factor", 0.12),
+                confDouble("compensation.jitter-factor-per-ms", 0.0012),
+                confDouble("compensation.max-jitter-factor", 0.30),
+                confDouble("compensation.tps-factor-per-point", 0.05),
+                confDouble("compensation.max-tps-factor", 0.45),
+                confDouble("compensation.spike-interval-ms", 900.0),
+                confDouble("compensation.unstable-hold-ms", 2500.0)).sanitized();
+    }
+
     private CheckSettings setting(CheckId check) {
         return settings.get(check);
+    }
+
+    // ------------------------------------------------------------ конфиг-хелперы
+
+    private boolean confBool(String path, boolean fallback) {
+        return getConfig().getBoolean(path, fallback);
+    }
+
+    private int confInt(String path, int fallback) {
+        return getConfig().getInt(path, fallback);
+    }
+
+    private long confLong(String path, long fallback) {
+        return getConfig().getLong(path, fallback);
+    }
+
+    private double confDouble(String path, double fallback) {
+        return getConfig().getDouble(path, fallback);
     }
 
     private Component comp(String legacy) {
@@ -189,28 +260,34 @@ public final class VoidAntiCheat extends JavaPlugin implements Listener, Command
 
     private PlayerData createData(Player player, boolean joinGrace) {
         PlayerData data = new PlayerData(player.getUniqueId());
-        boolean bedrockOnly = getConfig().getBoolean("settings.bedrock-only", true);
+        boolean bedrockOnly = confBool("settings.bedrock-only", true);
         if (!bedrockOnly) {
             data.bedrock = true;
         } else if (floodgate.available()) {
             data.bedrock = floodgate.isBedrock(player.getUniqueId());
         } else {
-            data.bedrock = getConfig().getBoolean("settings.check-all-if-floodgate-missing", true);
+            data.bedrock = confBool("settings.check-all-if-floodgate-missing", true);
         }
         if (data.bedrock && floodgate.available()) {
             data.inputMode = floodgate.inputMode(player.getUniqueId());
             data.deviceOs = floodgate.deviceOs(player.getUniqueId());
         }
+        data.profile = data.bedrock ? "bedrock" : "java";
         data.bypassAll = player.hasPermission("voidanticheat.bypass");
         data.excludedHere = isExcluded(player.getLocation());
         long now = System.currentTimeMillis();
         if (joinGrace) {
-            data.graceUntilMillis = now + getConfig().getLong("settings.join-grace-ms", 3500L);
+            data.graceUntilMillis = now + confLong("settings.join-grace-ms", 3500L);
         }
         data.resetMovement(player.getLocation(), Bukkit.getCurrentTick(), System.nanoTime(), player.isOnGround());
         updateSafeLocation(player, player.getLocation(), data);
         players.put(player.getUniqueId(), data);
         return data;
+    }
+
+    /** Только для тестов/диагностики: состояние без создания. */
+    PlayerData peek(Player player) {
+        return player == null ? null : players.get(player.getUniqueId());
     }
 
     private PlayerData data(Player player) {
@@ -219,11 +296,11 @@ public final class VoidAntiCheat extends JavaPlugin implements Listener, Command
     }
 
     private boolean isBedrockOnlyMode() {
-        return getConfig().getBoolean("settings.bedrock-only", true);
+        return confBool("settings.bedrock-only", true);
     }
 
     private boolean shouldCheck(Player player, PlayerData data) {
-        if (!getConfig().getBoolean("settings.enabled", true) || player == null || data == null) {
+        if (!confBool("settings.enabled", true) || player == null || data == null) {
             return false;
         }
         if (isBedrockOnlyMode() && !data.bedrock) {
@@ -273,8 +350,9 @@ public final class VoidAntiCheat extends JavaPlugin implements Listener, Command
     public void onTeleport(PlayerTeleportEvent event) {
         PlayerData data = data(event.getPlayer());
         if (event.getTo() != null) {
-            grantGrace(data, getConfig().getLong("settings.teleport-grace-ms", 1750L));
+            grantGrace(data, confLong("settings.teleport-grace-ms", 1750L));
             data.resetMovement(event.getTo(), Bukkit.getCurrentTick(), System.nanoTime(), event.getPlayer().isOnGround());
+            data.clearSustainAll();
             updateSafeLocation(event.getPlayer(), event.getTo(), data);
         }
     }
@@ -282,17 +360,19 @@ public final class VoidAntiCheat extends JavaPlugin implements Listener, Command
     @EventHandler(priority = EventPriority.MONITOR)
     public void onRespawn(PlayerRespawnEvent event) {
         PlayerData data = data(event.getPlayer());
-        grantGrace(data, getConfig().getLong("settings.respawn-grace-ms", 3500L));
+        grantGrace(data, confLong("settings.respawn-grace-ms", 3500L));
         data.resetMovement(event.getRespawnLocation(), Bukkit.getCurrentTick(), System.nanoTime(), true);
         data.safeLocation = event.getRespawnLocation().clone();
+        data.clearSustainAll();
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onWorldChange(PlayerChangedWorldEvent event) {
         PlayerData data = data(event.getPlayer());
-        grantGrace(data, getConfig().getLong("settings.world-change-grace-ms", 2500L));
+        grantGrace(data, confLong("settings.world-change-grace-ms", 2500L));
         data.resetMovement(event.getPlayer().getLocation(), Bukkit.getCurrentTick(), System.nanoTime(),
                 event.getPlayer().isOnGround());
+        data.clearSustainAll();
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
@@ -301,23 +381,91 @@ public final class VoidAntiCheat extends JavaPlugin implements Listener, Command
         grantGrace(data, 1000L);
         data.resetMovement(event.getPlayer().getLocation(), Bukkit.getCurrentTick(), System.nanoTime(),
                 event.getPlayer().isOnGround());
+        data.clearSustainAll();
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onDeath(PlayerDeathEvent event) {
         PlayerData data = players.get(event.getEntity().getUniqueId());
         if (data != null) {
-            data.violations.clear();
-            grantGrace(data, getConfig().getLong("settings.respawn-grace-ms", 3500L));
+            data.clearViolations();
+            grantGrace(data, confLong("settings.respawn-grace-ms", 3500L));
+        }
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onPlayerDamage(EntityDamageEvent event) {
+        if (!(event.getEntity() instanceof Player player)) {
+            return;
+        }
+        PlayerData data = players.get(player.getUniqueId());
+        if (data == null) {
+            return;
+        }
+        data.lastDamageMillis = System.currentTimeMillis();
+        grantGrace(data, confLong("settings.damage-grace-ms", 500L));
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onPistonExtend(BlockPistonExtendEvent event) {
+        gracePiston(event.getBlock());
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onPistonRetract(BlockPistonRetractEvent event) {
+        gracePiston(event.getBlock());
+    }
+
+    /** Поршень двигает игрока без PlayerVelocityEvent — без грейса это чистый ложный Fly/Speed. */
+    private void gracePiston(Block piston) {
+        World world = piston.getWorld();
+        if (world == null) {
+            return;
+        }
+        long until = System.currentTimeMillis() + confLong("settings.piston-grace-ms", 1200L);
+        Location base = piston.getLocation();
+        double radiusSq = Math.pow(confDouble("settings.piston-grace-radius", 4.0), 2.0);
+        for (Player player : world.getPlayers()) {
+            if (player.getLocation().distanceSquared(base) > radiusSq) {
+                continue;
+            }
+            PlayerData data = players.get(player.getUniqueId());
+            if (data != null) {
+                data.pistonUntilMillis = Math.max(data.pistonUntilMillis, until);
+                grantGrace(data, 600L);
+            }
+        }
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onExplosion(EntityExplodeEvent event) {
+        Location center = event.getLocation();
+        World world = center.getWorld();
+        if (world == null) {
+            return;
+        }
+        long until = System.currentTimeMillis() + confLong("settings.explosion-grace-ms", 1200L);
+        double radiusSq = Math.pow(confDouble("settings.explosion-grace-radius", 10.0), 2.0);
+        for (Player player : world.getPlayers()) {
+            if (player.getLocation().distanceSquared(center) > radiusSq) {
+                continue;
+            }
+            PlayerData data = players.get(player.getUniqueId());
+            if (data != null) {
+                data.explosionUntilMillis = Math.max(data.explosionUntilMillis, until);
+                grantGrace(data, 700L);
+            }
         }
     }
 
     // ------------------------------------------------------------ нарушения
 
     /**
-     * Добавляет VL. Возвращает true, если событие по этой проверке уже надо отменить.
-     * Setback для движения не делается прямо здесь: ставится флаг, а обработчик
-     * PlayerMoveEvent применит его через event.setTo без лишнего телепорта.
+     * Записывает улику. Возвращает true, если действие по этой проверке
+     * сейчас надо отменить (cancel-vl + устойчивость + enforcement).
+     *
+     * <p>Setback и наказание применяются здесь же, но с собственными
+     * требованиями устойчивости и кулдаунами.</p>
      */
     private boolean flag(Player player, PlayerData data, CheckId check, double points, String details) {
         if (points <= 0 || !shouldCheck(player, data)) {
@@ -328,39 +476,96 @@ public final class VoidAntiCheat extends JavaPlugin implements Listener, Command
             return false;
         }
         long now = System.currentTimeMillis();
-        Long lastFlag = data.lastFlagMillis.get(check);
-        if (lastFlag != null && now - lastFlag < 120L) {
-            return cfg.shouldCancel(data.vl(check));
+        ViolationState state = data.state(check);
+        double tps = currentTps();
+        int ping = player.getPing();
+        double confidence = data.lag.confidence(ping, tps);
+        if (data.lag.unstable(now)) {
+            confidence *= 0.55;
         }
-        data.lastFlagMillis.put(check, now);
+        double weighted = points * confidence;
+        double limit = Math.max(0.05, cfg.bufferLimit());
+        if (!state.record(weighted, now, sampleGap(check), limit)) {
+            if (confBool("settings.debug", false)) {
+                getLogger().info("[debug] " + player.getName() + " " + check.key()
+                        + " улика " + formatVl(weighted) + "/" + formatVl(limit)
+                        + " (буфер " + formatVl(state.buffer()) + ") — " + details);
+            }
+            return false;
+        }
 
-        double before = data.vl(check);
-        double after = Math.min(cfg.maxVl(), before + points);
-        data.setVl(check, after);
+        if (state.vl() > cfg.maxVl()) {
+            // VL ограничен: длинная серия нарушений не должна уходить в тысячи
+            // и потом часами не спадать после исправления игрока.
+            state.setVl(cfg.maxVl());
+        }
+        double vl = state.vl();
         data.lastCheck = check;
         data.lastDetails = details;
         data.lastViolationMillis = now;
 
-        maybeAlert(player, data, check, cfg, after, details, now);
+        maybeAlert(player, data, check, cfg, state, details, now);
 
-        if (cfg.shouldSetback(after) && isMovementCheck(check)) {
-            Long lastSetback = data.lastSetbackMillis.get(check);
-            if (lastSetback == null || now - lastSetback >= getConfig().getLong("settings.setback-cooldown-ms", 900L)) {
-                data.setbackRequested = true;
-                data.lastSetbackMillis.put(check, now);
-            }
+        boolean enforcement = confBool("settings.enforcement", true);
+        long aboveSetback = cfg.setbackVl() > 0
+                ? state.aboveForMillis(VL_SUSTAIN_SETBACK, cfg.setbackVl(), now) : 0L;
+        long aboveCancel = cfg.cancelVl() > 0
+                ? state.aboveForMillis(VL_SUSTAIN_CANCEL, cfg.cancelVl(), now) : 0L;
+        long abovePunish = cfg.punishVl() > 0
+                ? state.aboveForMillis(VL_SUSTAIN_PUNISH, cfg.punishVl(), now) : 0L;
+
+        if (!enforcement) {
+            return false;
         }
 
-        if (cfg.shouldPunish(after)) {
-            Long lastPunish = data.lastPunishMillis.get(check);
-            long cooldown = getConfig().getLong("settings.punish-cooldown-seconds", 60L) * 1000L;
-            if (lastPunish == null || now - lastPunish >= cooldown) {
-                data.lastPunishMillis.put(check, now);
-                runPunishments(player, check, cfg, after, details);
-                data.setVl(check, cfg.maxVl() * 0.45);
-            }
+        if (cfg.shouldSetback(vl) && isMovementCheck(check) && !data.lag.unstable(now)
+                && aboveSetback >= confLong("settings.setback-sustain-ms", 700L)
+                && cooldownOk(state, now, confLong("settings.setback-cooldown-ms", 900L))) {
+            data.setbackRequested = true;
+            state.markAction(now);
         }
-        return cfg.shouldCancel(after);
+
+        // Проверки «физически невозможно» (buffer = 0, например BadPackets)
+        // корректируются сразу: устойчивость нужна только эвристикам.
+        long cancelSustain = cfg.bufferLimit() <= 0.05
+                ? 0L : confLong("settings.cancel-sustain-ms", 250L);
+        boolean cancel = cfg.shouldCancel(vl)
+                && aboveCancel >= cancelSustain
+                && cooldownOk(state, now, confLong("settings.cancel-cooldown-ms", 400L));
+        if (cancel) {
+            state.markAction(now);
+        }
+
+        if (cfg.shouldPunish(vl) && confBool("settings.auto-punish", false)
+                && abovePunish >= confLong("settings.punish-min-above-seconds", 20L) * 1000L
+                && ping <= confInt("settings.punish-max-ping", 400)
+                && tps >= confDouble("settings.punish-min-tps", 17.0)
+                && distinctActive(data) >= confInt("settings.punish-min-distinct-checks", 2)
+                && cooldownOk(state, now, confLong("settings.punish-cooldown-seconds", 60L) * 1000L)) {
+            state.markAction(now);
+            runPunishments(player, check, cfg, vl, details);
+            data.setVl(check, cfg.maxVl() * 0.45);
+            state.clearSustain();
+        }
+        return cancel;
+    }
+
+    private boolean cooldownOk(ViolationState state, long now, long cooldownMillis) {
+        long last = state.lastActionMillis();
+        return last == 0L || now - last >= Math.max(0L, cooldownMillis);
+    }
+
+    private long sampleGap(CheckId check) {
+        if (check == CheckId.BADPACKETS) {
+            return 0L;
+        }
+        if (isMovementCheck(check)) {
+            return confLong("settings.sample-gap-movement-ms", 220L);
+        }
+        if (isCombatCheck(check)) {
+            return confLong("settings.sample-gap-combat-ms", 120L);
+        }
+        return confLong("settings.sample-gap-block-ms", 80L);
     }
 
     private boolean isMovementCheck(CheckId check) {
@@ -370,26 +575,45 @@ public final class VoidAntiCheat extends JavaPlugin implements Listener, Command
         };
     }
 
+    private boolean isCombatCheck(CheckId check) {
+        return switch (check) {
+            case REACH, KILLAURA, AUTOCLICKER, VELOCITY -> true;
+            default -> false;
+        };
+    }
+
+    /** Сколько проверок сейчас имеют заметный VL — защита от наказания за одну шумную проверку. */
+    private int distinctActive(PlayerData data) {
+        int count = 0;
+        for (CheckId check : CheckId.values()) {
+            if (data.vl(check) >= 1.0) {
+                count++;
+            }
+        }
+        return count;
+    }
+
     private void maybeAlert(Player player, PlayerData data, CheckId check, CheckSettings cfg,
-                            double vl, String details, long now) {
-        if (vl < getConfig().getDouble("settings.alert-min-vl", 1.0)) {
+                            ViolationState state, String details, long now) {
+        double vl = state.vl();
+        if (vl < confDouble("settings.alert-min-vl", 1.0)) {
             return;
         }
-        Long last = data.lastAlertMillis.get(check);
-        if (last != null && now - last < getConfig().getLong("settings.alert-cooldown-ms", 2500L)) {
+        long last = state.lastAlertMillis();
+        if (last != 0L && now - last < confLong("settings.alert-cooldown-ms", 2500L)) {
             return;
         }
-        data.lastAlertMillis.put(check, now);
+        state.markAlert(now);
 
         String text = replaceAlert(getConfig().getString("messages.alert", ""), player, check, vl, cfg.maxVl(), details);
         String plainText = plain(getConfig().getString("messages.prefix", "") + text);
-        if (getConfig().getBoolean("settings.log-console", true)) {
+        if (confBool("settings.log-console", true)) {
             getLogger().info(plainText);
         }
-        if (getConfig().getBoolean("settings.log-file", true)) {
+        if (confBool("settings.log-file", true)) {
             writeLogLine(plainText);
         }
-        if (getConfig().getBoolean("settings.staff-alerts", true)) {
+        if (confBool("settings.staff-alerts", true)) {
             String hover = replaceAlert(getConfig().getString("messages.alert-hover", ""), player, check, vl, cfg.maxVl(), details);
             Component component = comp(getConfig().getString("messages.prefix", "") + text)
                     .clickEvent(ClickEvent.runCommand("/vac info " + player.getName()))
@@ -400,8 +624,8 @@ public final class VoidAntiCheat extends JavaPlugin implements Listener, Command
                 }
             }
         }
-        if (getConfig().getBoolean("webhook.enabled", false)
-                && vl >= getConfig().getDouble("webhook.min-vl", 10.0)) {
+        if (confBool("webhook.enabled", false)
+                && vl >= confDouble("webhook.min-vl", 10.0)) {
             sendWebhook(plainText);
         }
     }
@@ -410,12 +634,15 @@ public final class VoidAntiCheat extends JavaPlugin implements Listener, Command
         if (text == null) {
             return "";
         }
+        PlayerData data = players.get(player.getUniqueId());
+        double jitter = data == null ? 0.0 : data.lag.deviationMs();
         return text.replace("{player}", player.getName())
                 .replace("{check}", check.display())
                 .replace("{vl}", formatVl(vl))
                 .replace("{max_vl}", formatVl(maxVl))
                 .replace("{details}", details == null ? "" : details)
                 .replace("{ping}", String.valueOf(player.getPing()))
+                .replace("{jitter}", formatVl(jitter))
                 .replace("{tps}", formatVl(currentTps()));
     }
 
@@ -434,7 +661,7 @@ public final class VoidAntiCheat extends JavaPlugin implements Listener, Command
                     .replace("%world%", player.getWorld().getName());
             Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command);
         }
-        if (getConfig().getBoolean("webhook.enabled", false)) {
+        if (confBool("webhook.enabled", false)) {
             sendWebhook(plain(getConfig().getString("messages.prefix", "")
                     + "&cНаказание: " + player.getName() + " — " + check.display() + " VL " + formatVl(vl)
                     + " (" + details + ")"));
@@ -488,9 +715,23 @@ public final class VoidAntiCheat extends JavaPlugin implements Listener, Command
         return String.format(Locale.ROOT, "%.1f", value);
     }
 
+    /** VoidPvP (или другой плагин без кд атаки) делает высокий CPS легальным. */
+    private boolean fastAttackServer() {
+        if (fastAttackCache == null) {
+            PluginManager manager = Bukkit.getPluginManager();
+            fastAttackCache = confBool("settings.fast-attack-server", false)
+                    || manager.getPlugin("VoidPvP") != null;
+            if (fastAttackCache) {
+                getLogger().info("Обнаружен режим без кд атаки: сырой CPS не считается автокликером, "
+                        + "проверяется только ровность интервалов.");
+            }
+        }
+        return fastAttackCache;
+    }
+
     private double currentTps() {
         double[] tps = Bukkit.getTPS();
-        return tps.length == 0 ? 20.0 : tps[0];
+        return tps.length == 0 ? 20.0 : Math.min(20.0, tps[0]);
     }
 
     // ------------------------------------------------------------ setback и безопасная точка
@@ -538,6 +779,7 @@ public final class VoidAntiCheat extends JavaPlugin implements Listener, Command
             grantGrace(data, 650L);
             data.resetMovement(safe, Bukkit.getCurrentTick(), System.nanoTime(), true);
             data.setbackRequested = false;
+            data.clearSustainAll();
         }
         return ok;
     }
@@ -552,20 +794,23 @@ public final class VoidAntiCheat extends JavaPlugin implements Listener, Command
         if (to == null || to.getWorld() == null) {
             return;
         }
-        if (!shouldCheck(player, data)) {
-            data.resetMovement(to, Bukkit.getCurrentTick(), System.nanoTime(), player.isOnGround());
-            return;
-        }
-
         long nowNanos = System.nanoTime();
         long nowMillis = System.currentTimeMillis();
         int tick = Bukkit.getCurrentTick();
 
+        if (!shouldCheck(player, data)) {
+            data.resetMovement(to, tick, nowNanos, player.isOnGround());
+            return;
+        }
+
         if (!isFinite(to.getX()) || !isFinite(to.getY()) || !isFinite(to.getZ())
                 || !isFinite(to.getYaw()) || !isFinite(to.getPitch())
-                || to.getPitch() < -90.5f || to.getPitch() > 90.5f) {
+                || to.getPitch() < -90.5f || to.getPitch() > 90.5f
+                || to.getYaw() < -100_000f || to.getYaw() > 100_000f) {
             flag(player, data, CheckId.BADPACKETS, 2.0, "невозможные координаты/углы");
-            event.setTo(event.getFrom().clone());
+            if (confBool("settings.enforcement", true)) {
+                event.setTo(event.getFrom().clone());
+            }
             data.resetMovement(event.getFrom(), tick, nowNanos, player.isOnGround());
             return;
         }
@@ -582,6 +827,12 @@ public final class VoidAntiCheat extends JavaPlugin implements Listener, Command
         double horizontal = Math.sqrt(dx * dx + dz * dz);
         boolean tickChanged = tick != data.lastServerTick;
         int tickDelta = tickChanged ? Math.max(1, tick - data.lastServerTick) : 0;
+        boolean moved = horizontal > 0.0001 || Math.abs(dy) > 0.0001;
+
+        if (moved) {
+            data.timerPackets++;
+            data.lag.sample(nowNanos, nowMillis, tickDelta, lagLimits);
+        }
 
         float yawDelta = Math.abs(angleDifference(to.getYaw(), data.lastYaw));
         float pitchDelta = Math.abs(to.getPitch() - data.lastPitch);
@@ -590,11 +841,7 @@ public final class VoidAntiCheat extends JavaPlugin implements Listener, Command
             data.rotationBeforeAttack = yawDelta;
         }
 
-        if (horizontal > 0.0001 || Math.abs(dy) > 0.0001) {
-            data.timerPackets++;
-        }
-
-        double teleportDelta = getConfig().getDouble("movement.teleport-delta-blocks", 24.0);
+        double teleportDelta = confDouble("movement.teleport-delta-blocks", 24.0);
         if ((horizontal > teleportDelta || Math.abs(dy) > teleportDelta) && !inGrace(data)) {
             flag(player, data, CheckId.BADPACKETS, 2.0,
                     "скачок позиции " + formatVl(Math.max(horizontal, Math.abs(dy))) + " бл.");
@@ -603,38 +850,48 @@ public final class VoidAntiCheat extends JavaPlugin implements Listener, Command
             return;
         }
 
-        // Транспорт проверяется отдельно: физика игрока-пассажира тут не работает.
+        EnvironmentSnapshot env = scanEnvironment(player, data, to);
+
+        // Транспорт проверяется отдельно: физика пассажира тут не работает.
         if (player.getVehicle() != null) {
-            vehicleCheck(player, data, to, nowNanos);
+            vehicleCheck(player, data, to, nowNanos, nowMillis, env);
             data.rememberPosition(to, tick, nowNanos, player.isOnGround());
             return;
         }
 
-        MovementContext context = movementContext(player, to);
-
-        // Позиции после телепортов/нокбэков/входа не штрафуем, только перебазируемся.
-        if (inGrace(data) || currentTps() < getConfig().getDouble("settings.min-tps-for-movement", 16.0)) {
+        // Грейсы и просадки TPS: не штрафуем, но и не «копим» наверстывание.
+        if (inGrace(data) || currentTps() < confDouble("settings.min-tps-for-movement", 16.0)) {
             data.resetAirState();
+            data.speed.softReset(confDouble("movement.speed-token-cap", 4.5));
             updateSafeLocation(player, to, data);
             data.rememberPosition(to, tick, nowNanos, player.isOnGround());
             return;
         }
 
-        evaluateVelocity(player, data, dx, dz, tick);
+        evaluateVelocity(player, data, dx, dz, tick, env);
 
-        if (player.isGliding()) {
-            elytraCheck(player, data, to, dy, horizontal, nowNanos, tickChanged, context);
+        if (player.isGliding() || env.gliding()) {
+            elytraCheck(player, data, to, dy, horizontal, nowNanos, nowMillis, tickChanged, env);
+            data.speedRefillNanos = nowNanos;
             data.rememberPosition(to, tick, nowNanos, player.isOnGround());
             return;
         }
 
-        if (!context.exemptSpeed()) {
-            speedCheck(player, data, to, horizontal, nowNanos, tickDelta, context);
+        if (!env.speedImmune()) {
+            speedCheck(player, data, to, horizontal, nowNanos, nowMillis, tickDelta, env);
+        }
+
+        // Jesus проверяется отдельно: игрок «на поверхности» воды формально
+        // не в жидкости, но env.inWater() это ловит.
+        if (env.inWater() && !player.isSwimming()) {
+            jesusCheck(player, data, to, horizontal, env);
+        } else {
+            data.jesusTicks = 0;
         }
 
         if (tickChanged) {
-            verticalChecks(player, data, to, dy, horizontal, tickDelta, context, nowMillis);
-            noclipCheck(player, data, to, context);
+            verticalChecks(player, data, to, dy, horizontal, tickDelta, env, nowMillis);
+            noclipCheck(player, data, to, env, nowMillis);
         }
 
         if (data.setbackRequested) {
@@ -649,125 +906,193 @@ public final class VoidAntiCheat extends JavaPlugin implements Listener, Command
         data.rememberPosition(to, tick, nowNanos, player.isOnGround());
     }
 
-    private record MovementContext(boolean inFluid, boolean climbable, boolean cobweb,
-                                   boolean bubbleColumn, boolean levitation, boolean slowFalling) {
-        boolean exemptSpeed() {
-            return false;
+    /**
+     * Дешёвый снимок окружения: десяток чтений блоков, кэш на серверный тик
+     * (Bedrock часто присылает два move-пакета за тик).
+     */
+    private EnvironmentSnapshot scanEnvironment(Player player, PlayerData data, Location to) {
+        int tick = Bukkit.getCurrentTick();
+        if (data.env != null && data.envTick == tick
+                && Math.abs(data.envX - to.getX()) < 0.08
+                && Math.abs(data.envY - to.getY()) < 0.08
+                && Math.abs(data.envZ - to.getZ()) < 0.08) {
+            return data.env;
         }
-
-        boolean exemptVertical() {
-            return inFluid || climbable || cobweb || bubbleColumn || levitation;
+        World world = to.getWorld();
+        if (world == null) {
+            return EnvironmentSnapshot.neutral();
         }
-    }
-
-    private MovementContext movementContext(Player player, Location to) {
+        long now = System.currentTimeMillis();
         Block feet = blockAt(to, 0.05);
         Block below = blockAt(to, -0.25);
-        boolean inFluid = player.isInWater() || isLiquid(feet) || isLiquid(below);
-        boolean climbable = isClimbable(feet) || isClimbable(blockAt(to, 1.05));
-        boolean cobweb = feet != null && (feet.getType() == Material.COBWEB || feet.getType() == Material.POWDER_SNOW);
-        boolean bubble = feet != null && feet.getType() == Material.BUBBLE_COLUMN
-                || below != null && below.getType() == Material.BUBBLE_COLUMN;
-        return new MovementContext(inFluid, climbable, cobweb, bubble,
-                effect(player, levitationEffect) != null,
-                effect(player, slowFallingEffect) != null);
+        Block low = blockAt(to, -0.85);
+        Block head = blockAt(to, 1.05);
+        Material feetType = typeOf(feet);
+        Material belowType = typeOf(below);
+        Material lowType = typeOf(low);
+        Material headType = typeOf(head);
+
+        boolean inWater = player.isInWater() || feetType == Material.WATER
+                || belowType == Material.WATER || headType == Material.WATER;
+        boolean inLava = feetType == Material.LAVA || belowType == Material.LAVA || headType == Material.LAVA;
+        boolean inBubble = feetType == Material.BUBBLE_COLUMN || belowType == Material.BUBBLE_COLUMN
+                || headType == Material.BUBBLE_COLUMN;
+        boolean inCobweb = feetType == Material.COBWEB || headType == Material.COBWEB
+                || belowType == Material.COBWEB;
+        boolean inPowderSnow = feetType == Material.POWDER_SNOW || headType == Material.POWDER_SNOW;
+        boolean climbable = isClimbable(feet) || isClimbable(head) || isClimbable(blockAt(to, -0.55));
+        boolean scaffolding = feetType == Material.SCAFFOLDING || belowType == Material.SCAFFOLDING;
+
+        boolean slime = belowType == Material.SLIME_BLOCK || lowType == Material.SLIME_BLOCK;
+        boolean honey = belowType == Material.HONEY_BLOCK || lowType == Material.HONEY_BLOCK;
+        boolean hay = belowType == Material.HAY_BLOCK || lowType == Material.HAY_BLOCK;
+        boolean ice = isIce(belowType) || isIce(lowType);
+        boolean solidSupport = below != null && below.getType().isSolid() || low != null && low.getType().isSolid();
+
+        boolean entitySupport = false;
+        if (!player.isOnGround() && player.getVehicle() == null) {
+            BoundingBox area = new BoundingBox(to.getX() - 0.55, to.getY() - 1.60, to.getZ() - 0.55,
+                    to.getX() + 0.55, to.getY() - 0.06, to.getZ() + 0.55);
+            for (Entity entity : world.getNearbyEntities(area)) {
+                if (entity.equals(player) || entity instanceof Player) {
+                    continue;
+                }
+                if (entity instanceof LivingEntity || entity instanceof Boat) {
+                    entitySupport = true;
+                    break;
+                }
+            }
+        }
+
+        double surface = 1.0;
+        if (ice) {
+            Material icy = isIce(belowType) ? belowType : lowType;
+            surface = switch (icy) {
+                case BLUE_ICE -> confDouble("movement.blue-ice-factor", 2.35);
+                case PACKED_ICE -> confDouble("movement.packed-ice-factor", 1.95);
+                case FROSTED_ICE -> confDouble("movement.frosted-ice-factor", 1.45);
+                default -> confDouble("movement.ice-factor", 1.70);
+            };
+        } else if (belowType == Material.SOUL_SAND || belowType == Material.SOUL_SOIL
+                || lowType == Material.SOUL_SAND || lowType == Material.SOUL_SOIL) {
+            int soulSpeed = enchantLevel(player.getInventory().getBoots(), soulSpeedEnchant);
+            if (soulSpeed > 0) {
+                surface = 1.0 + soulSpeed * 0.34;
+            }
+        }
+
+        EnvironmentSnapshot snapshot = EnvironmentSnapshot.builder()
+                .inWater(inWater)
+                .inLava(inLava)
+                .inBubble(inBubble)
+                .inCobweb(inCobweb)
+                .inPowderSnow(inPowderSnow)
+                .climbable(climbable)
+                .scaffolding(scaffolding)
+                .slimeSurface(slime)
+                .honeySurface(honey)
+                .haySurface(hay)
+                .iceSurface(ice)
+                .solidSupportBelow(solidSupport)
+                .entitySupportBelow(entitySupport)
+                .vehicle(player.getVehicle() != null)
+                .gliding(player.isGliding())
+                .flying(player.isFlying())
+                .levitation(effect(player, levitationEffect) != null)
+                .slowFalling(effect(player, slowFallingEffect) != null)
+                .frostWalker(enchantLevel(player.getInventory().getBoots(), frostWalkerEnchant) > 0)
+                .riptide(now < data.riptideUntilMillis)
+                .pistonPushed(now < data.pistonUntilMillis)
+                .recentExplosion(now < data.explosionUntilMillis)
+                .recentDamage(data.lastDamageMillis > 0L
+                        && now - data.lastDamageMillis < confLong("settings.damage-grace-ms", 500L))
+                .sneaking(player.isSneaking())
+                .swimming(player.isSwimming())
+                .sleeping(player.isSleeping())
+                .jumpBoost(effectAmplifier(player, jumpBoostEffect))
+                .surfaceSpeedMultiplier(surface)
+                .build();
+
+        data.env = snapshot;
+        data.envTick = tick;
+        data.envX = to.getX();
+        data.envY = to.getY();
+        data.envZ = to.getZ();
+        return snapshot;
     }
 
     private void speedCheck(Player player, PlayerData data, Location to, double horizontal,
-                            long nowNanos, int tickDelta, MovementContext context) {
-        if (data.speedRefillNanos == 0L) {
-            data.speedRefillNanos = nowNanos;
-            data.speedTokens = getConfig().getDouble("movement.speed-token-cap", 4.5);
-        }
-        double elapsed = (nowNanos - data.speedRefillNanos) / 1_000_000_000.0;
+                            long nowNanos, long nowMillis, int tickDelta, EnvironmentSnapshot env) {
+        double rawElapsed = data.speedRefillNanos == 0L ? 0.0 : (nowNanos - data.speedRefillNanos) / 1_000_000_000.0;
         data.speedRefillNanos = nowNanos;
-        if (elapsed > 0.60) {
-            // Долгий лаг/фриз: не превращаем наверстывание пакетов в Speed.
-            data.speedTokens = Math.max(data.speedTokens, 2.0);
+        double cap = confDouble("movement.speed-token-cap", 4.5);
+        double allowed = allowedHorizontalBps(player, data, to, env);
+        double elapsed = LagCompensation.effectiveSeconds(rawElapsed, tickDelta);
+
+        // Долгий фриз/лаг: пакеты придут пачкой, «наверстывание» — не чит.
+        // Сэмпл выбрасываем, токены пополняем консервативно.
+        if (rawElapsed == 0.0 || rawElapsed > confDouble("movement.speed-lag-skip-seconds", 0.60)
+                || data.lag.unstable(nowMillis)) {
+            data.speed.discard(allowed, cap);
             return;
         }
-        double allowed = allowedHorizontalBps(player, to, data, context);
-        double cap = getConfig().getDouble("movement.speed-token-cap", 4.5);
-        // Пакеты после сетевого всплеска могут обрабатываться пачкой в одном тике.
-        // Игрок же перемещался по серверным тикам, поэтому время не занижаем.
-        double effectiveElapsed = Math.max(elapsed, Math.max(0, tickDelta) / 20.0);
-        data.speedTokens = Math.min(cap, data.speedTokens + allowed * Math.max(0.0, effectiveElapsed));
-        data.speedTokens -= horizontal;
-        if (effectiveElapsed > 0.004) {
-            data.lastHorizontalBps = horizontal / effectiveElapsed;
+
+        if (elapsed > 0.004) {
+            data.lastHorizontalBps = horizontal / elapsed;
         }
-        double burst = getConfig().getDouble("movement.speed-burst-blocks", 1.30);
-        if (data.speedTokens < -burst && horizontal > 0.05) {
-            double excess = -data.speedTokens - burst;
-            flag(player, data, CheckId.SPEED, Math.min(3.0, 0.8 + excess * 0.45),
+        double burst = confDouble("movement.speed-burst-blocks", 1.60);
+        double excess = data.speed.update(horizontal, allowed, elapsed, cap, burst);
+        if (excess > 0.0 && horizontal > 0.06) {
+            double points = Math.min(3.0, 0.8 + excess * 0.5);
+            flag(player, data, CheckId.SPEED, points,
                     "горизонтальная скорость " + formatVl(data.lastHorizontalBps) + " бл/с, лимит ~"
                             + formatVl(allowed) + " бл/с");
-            data.speedTokens = -burst * 0.45;
         }
     }
 
-    private double allowedHorizontalBps(Player player, Location to, PlayerData data, MovementContext context) {
-        if (player.isFlying() || player.getVehicle() != null) {
-            return 999.0;
-        }
-        if (context.inFluid()) {
-            double base = player.isSwimming() ? 5.9 : 4.7;
+    private double allowedHorizontalBps(Player player, PlayerData data, Location to, EnvironmentSnapshot env) {
+        double base;
+        if (env.fluidLike()) {
+            base = player.isSwimming() ? 5.9 : 4.7;
             int depthStrider = enchantLevel(player.getInventory().getBoots(), depthStriderEnchant);
-            base += Math.min(3, depthStrider) * 0.65;
-            return applyLagTolerance(base);
-        }
-        double attribute = attributeValue(player, movementSpeedAttribute, 0.1);
-        double bps = attribute * 43.17;
-        if (player.isSneaking()) {
-            bps = Math.min(bps, 1.75);
-        } else if (player.isSprinting()) {
-            bps *= 1.30;
-        }
-        if (!player.isOnGround()) {
-            // Bedrock спринт-прыжки и сохранение инерции шумнее Java модели.
-            bps *= 1.30;
-        }
-        Block below = blockAt(to, -0.35);
-        Material belowType = below == null ? Material.AIR : below.getType();
-        if (isIce(belowType)) {
-            double multiplier = belowType == Material.BLUE_ICE ? 3.0
-                    : belowType == Material.PACKED_ICE ? 2.55 : 2.15;
-            bps *= player.isOnGround() ? multiplier * 0.82 : multiplier;
-        } else if (belowType == Material.SOUL_SAND || belowType == Material.SOUL_SOIL) {
-            int soulSpeed = enchantLevel(player.getInventory().getBoots(), soulSpeedEnchant());
-            if (soulSpeed > 0) {
-                bps *= 1.0 + soulSpeed * 0.34;
+            base += Math.min(3, Math.max(0, depthStrider)) * 0.65;
+            if (effect(player, dolphinsGraceEffect) != null) {
+                // Dolphin's Grace разгоняет до ~9.6 бл/с — без этого любая
+                // проплывка с дельфином давала бы Speed.
+                base = Math.max(base, confDouble("movement.dolphins-grace-bps", 10.0));
             }
+        } else {
+            double attribute = attributeValue(player, movementSpeedAttribute, 0.1);
+            base = attribute * 43.17;
+            if (player.isSneaking()) {
+                base = Math.min(base, 1.75);
+            } else if (player.isSprinting()) {
+                base *= 1.30;
+            }
+            if (!player.isOnGround()) {
+                // Bedrock спринт-прыжки и сохранение инерции шумнее Java-модели.
+                base *= 1.30;
+            }
+            base *= Math.max(1.0, env.surfaceSpeedMultiplier());
         }
         if (System.currentTimeMillis() < data.velocityGraceUntilMillis) {
             Vector velocity = player.getVelocity();
             double velocityBps = Math.sqrt(velocity.getX() * velocity.getX() + velocity.getZ() * velocity.getZ()) * 20.0;
-            bps = Math.max(bps, velocityBps * 1.45);
+            base = Math.max(base, velocityBps * 1.45);
         }
-        return Math.max(3.4, Math.min(42.0, applyLagTolerance(bps)));
-    }
-
-    private Enchantment soulSpeedEnchant() {
-        return soulSpeedEnchant;
-    }
-
-    private double applyLagTolerance(double base) {
-        double tps = currentTps();
-        double tpsFactor = 1.0 + Math.max(0.0, 19.0 - tps) * 0.035;
-        // У Geyser ping часто 0/локальный, поэтому это только мягкая добавка.
-        double pingFactor = 1.0;
-        return base * tpsFactor * pingFactor;
+        double tolerance = data.lag.tolerance(player.getPing(), currentTps(), lagLimits);
+        if (data.bedrock) {
+            tolerance += confDouble("settings.bedrock-extra-tolerance", 0.04);
+        }
+        return Math.max(3.4, Math.min(60.0, base * tolerance));
     }
 
     private void verticalChecks(Player player, PlayerData data, Location to, double rawDy,
-                                double horizontal, int tickDelta, MovementContext context, long nowMillis) {
+                                double horizontal, int tickDelta, EnvironmentSnapshot env, long nowMillis) {
         boolean onGround = player.isOnGround();
         double dy = rawDy / Math.max(1, tickDelta);
 
-        if (player.isFlying() || context.exemptVertical()) {
-            if (context.inFluid()) {
-                jesusCheck(player, data, to, horizontal);
-            }
+        if (env.verticalExempt()) {
             data.resetAirState();
             data.lastDeltaY = dy;
             return;
@@ -775,10 +1100,9 @@ public final class VoidAntiCheat extends JavaPlugin implements Listener, Command
 
         if (onGround) {
             if (!data.lastOnGround) {
-                landingCheck(player, data, to);
+                landingCheck(player, data, to, env, nowMillis);
             } else {
-                // Step виден именно как «земля → земля» с подъёмом выше ванильного за тик.
-                stepCheck(player, data, dy, tickDelta, nowMillis);
+                stepCheck(player, data, dy, tickDelta, env, nowMillis);
             }
             data.resetAirState();
             data.peakY = to.getY();
@@ -786,7 +1110,8 @@ public final class VoidAntiCheat extends JavaPlugin implements Listener, Command
             return;
         }
 
-        if (data.lastOnGround) {
+        boolean leftGround = data.lastOnGround;
+        if (leftGround) {
             data.airTicks = 0;
             data.peakY = Math.max(data.lastY, to.getY());
         }
@@ -794,45 +1119,32 @@ public final class VoidAntiCheat extends JavaPlugin implements Listener, Command
         data.peakY = Math.max(data.peakY, to.getY());
 
         if (tickDelta > 3) {
+            // Слишком большой разрыв между сэмплами: модель неприменима.
             data.resetAirState();
             data.lastDeltaY = dy;
             return;
         }
 
-        boolean afterVelocityGrace = nowMillis >= data.velocityGraceUntilMillis;
+        PredictionMeter.Verdict verdict = data.prediction.tick(rawDy, Math.max(1, tickDelta), leftGround,
+                confDouble("movement.fly-ascent-blocks", 3.4),
+                confInt("movement.fly-hover-ticks", 40));
 
-        // Hover: в воздухе почти нет вертикального движения слишком долго.
-        double hoverMaxDy = getConfig().getDouble("movement.hover-max-dy", 0.040);
-        if (data.airTicks >= 8 && Math.abs(dy) <= hoverMaxDy && afterVelocityGrace && !context.slowFalling()) {
-            data.hoverStreak++;
-            if (data.hoverStreak >= getConfig().getInt("movement.hover-ticks", 5)) {
+        if (!data.lag.unstable(nowMillis)) {
+            if (verdict.impossibleAscent()) {
+                flag(player, data, CheckId.FLY, 2.0,
+                        "набор " + formatVl(verdict.ascent()) + " бл. в воздухе без прыжка, отклонение "
+                                + formatVl(verdict.offset()));
+            } else if (verdict.hover() && !env.hoverExempt()) {
                 flag(player, data, CheckId.FLY, 1.0,
-                        "зависание в воздухе " + data.hoverStreak + " тиков, dy=" + formatVl(dy));
-                data.hoverStreak = 0;
+                        "зависание в воздухе " + verdict.airTicks() + " тиков, dy=" + formatVl(dy));
             }
-        } else {
-            data.hoverStreak = 0;
         }
 
-        // Подъём: после первых тиков прыжка dy должен быстро падать.
-        int jumpAmplifier = effectAmplifier(player, jumpBoostEffect);
-        double allowedUp = data.airTicks <= 2 ? 0.50 + jumpAmplifier * 0.115 : 0.145;
-        if (dy > allowedUp + 0.075 && afterVelocityGrace && !context.slowFalling()) {
-            data.ascentStreak++;
-            if (data.ascentStreak >= getConfig().getInt("movement.ascent-ticks", 3)) {
-                flag(player, data, CheckId.FLY, 1.0,
-                        "подъём без прыжка/нокбэка, dy=" + formatVl(dy) + " бл/тик");
-                data.ascentStreak = 0;
-            }
-        } else {
-            data.ascentStreak = 0;
-        }
-
-        // Слишком медленное падение после разгона вниз.
-        if (data.airTicks >= 14 && dy > -0.22 && data.lastDeltaY < 0.02 && afterVelocityGrace
-                && !context.slowFalling()) {
+        // Слишком медленное падение после разгона вниз (антигравитация / NoFall-подобное).
+        if (!env.hoverExempt() && data.airTicks >= 14 && dy > -0.22 && data.lastDeltaY < 0.02
+                && !data.lag.unstable(nowMillis)) {
             data.slowFallStreak++;
-            if (data.slowFallStreak >= getConfig().getInt("movement.slow-fall-ticks", 6)) {
+            if (data.slowFallStreak >= confInt("movement.slow-fall-ticks", 8)) {
                 flag(player, data, CheckId.FLY, 1.0,
                         "слишком медленное падение, dy=" + formatVl(dy) + " бл/тик");
                 data.slowFallStreak = 0;
@@ -842,10 +1154,10 @@ public final class VoidAntiCheat extends JavaPlugin implements Listener, Command
         }
 
         // Spider/Climb: подъём у стены без лестницы/лианы/воды.
-        if (dy > 0.075 && dy < 0.68 && afterVelocityGrace && isNearWall(to)
-                && !context.climbable() && !context.inFluid()) {
+        if (dy > 0.075 && dy < 0.68 && isNearWall(to) && !env.climbable() && !env.fluidLike()
+                && !data.lag.unstable(nowMillis) && !env.recentDamage()) {
             data.climbStreak++;
-            if (data.climbStreak >= getConfig().getInt("movement.climb-ticks", 8)) {
+            if (data.climbStreak >= confInt("movement.climb-ticks", 10)) {
                 flag(player, data, CheckId.SPIDER, 1.0,
                         "подъём по стене без лестницы, dy=" + formatVl(dy));
                 data.climbStreak = 0;
@@ -857,45 +1169,54 @@ public final class VoidAntiCheat extends JavaPlugin implements Listener, Command
         data.lastDeltaY = dy;
     }
 
-    private void landingCheck(Player player, PlayerData data, Location to) {
+    private void landingCheck(Player player, PlayerData data, Location to, EnvironmentSnapshot env, long nowMillis) {
+        if (env.nofallExempt() || data.lag.unstable(nowMillis)) {
+            return;
+        }
         double drop = data.peakY - to.getY();
-        if (drop < getConfig().getDouble("movement.nofall-min-drop", 5.0)) {
+        if (drop < confDouble("movement.nofall-min-drop", 5.0)) {
             return;
         }
-        Block below = blockAt(to, -0.25);
-        Material belowType = below == null ? Material.AIR : below.getType();
-        if (belowType == Material.SLIME_BLOCK || belowType == Material.HONEY_BLOCK
-                || belowType == Material.POWDER_SNOW || isLiquid(below)) {
+        // Приземление на лодку/моба/полу-блок серверная дистанция падения
+        // не показательна — такие случаи не проверяем.
+        Block landing = blockAt(to, -0.25);
+        if (landing == null || !landing.getType().isSolid()) {
             return;
         }
-        double serverFall = player.getFallDistance();
-        double ratio = getConfig().getDouble("movement.nofall-server-fall-ratio", 0.30);
+        // В Bukkit это float — не меняем на double, иначе NoSuchMethodError.
+        float serverFall = player.getFallDistance();
+        double ratio = confDouble("movement.nofall-server-fall-ratio", 0.30);
         if (serverFall < drop * ratio) {
             flag(player, data, CheckId.NOFALL, 1.2,
                     "падение " + formatVl(drop) + " бл., серверная дистанция " + formatVl(serverFall));
         }
     }
 
-    private void stepCheck(Player player, PlayerData data, double dy, int tickDelta, long nowMillis) {
-        if (tickDelta != 1 || nowMillis < data.velocityGraceUntilMillis) {
+    private void stepCheck(Player player, PlayerData data, double dy, int tickDelta,
+                           EnvironmentSnapshot env, long nowMillis) {
+        if (tickDelta != 1 || nowMillis < data.velocityGraceUntilMillis || env.stepExempt()
+                || data.lag.unstable(nowMillis)) {
             return;
         }
-        if (dy >= getConfig().getDouble("movement.step-min-dy", 0.96)
-                && effect(player, jumpBoostEffect) == null) {
+        if (dy >= confDouble("movement.step-min-dy", 1.02)) {
             flag(player, data, CheckId.STEP, 1.2,
                     "мгновенный подъём на " + formatVl(dy) + " бл. за тик");
         }
     }
 
-    private void jesusCheck(Player player, PlayerData data, Location to, double horizontal) {
+    private void jesusCheck(Player player, PlayerData data, Location to, double horizontal,
+                            EnvironmentSnapshot env) {
+        if (env.jesusExempt()) {
+            data.jesusTicks = 0;
+            return;
+        }
         Block below = blockAt(to, -0.25);
         Block feet = blockAt(to, 0.05);
         boolean standingOnLiquid = isLiquid(below) && !isLiquid(feet)
                 && player.isOnGround() && !player.isSwimming();
-        // Frost Walker превращает воду под ногами в FROSTED_ICE — это уже не liquid.
         if (standingOnLiquid && horizontal > 0.015) {
             data.jesusTicks++;
-            if (data.jesusTicks >= getConfig().getInt("movement.jesus-ticks", 7)) {
+            if (data.jesusTicks >= confInt("movement.jesus-ticks", 9)) {
                 flag(player, data, CheckId.JESUS, 1.0, "ходьба по поверхности жидкости");
                 data.jesusTicks = 0;
             }
@@ -904,8 +1225,9 @@ public final class VoidAntiCheat extends JavaPlugin implements Listener, Command
         }
     }
 
-    private void noclipCheck(Player player, PlayerData data, Location to, MovementContext context) {
-        if (context.inFluid() || context.climbable()) {
+    private void noclipCheck(Player player, PlayerData data, Location to, EnvironmentSnapshot env, long nowMillis) {
+        if (env.noclipExempt() || (data.lastBlockChangeMillis > 0L
+                && nowMillis - data.lastBlockChangeMillis < confLong("settings.block-change-grace-ms", 1500L))) {
             data.noclipStreak = 0;
             return;
         }
@@ -914,7 +1236,7 @@ public final class VoidAntiCheat extends JavaPlugin implements Listener, Command
         boolean inside = isHardSolid(feet) && isHardSolid(head);
         if (inside) {
             data.noclipStreak++;
-            if (data.noclipStreak >= getConfig().getInt("movement.noclip-ticks", 3)) {
+            if (data.noclipStreak >= confInt("movement.noclip-ticks", 4)) {
                 flag(player, data, CheckId.NOCLIP, 1.2,
                         "позиция внутри твёрдых блоков " + name(feet) + "/" + name(head));
                 data.noclipStreak = 0;
@@ -925,33 +1247,35 @@ public final class VoidAntiCheat extends JavaPlugin implements Listener, Command
     }
 
     private void elytraCheck(Player player, PlayerData data, Location to, double rawDy,
-                             double horizontal, long nowNanos, boolean tickChanged,
-                             MovementContext context) {
-        long nowMillis = System.currentTimeMillis();
-        if (tickChanged && !context.inFluid() && nowMillis >= data.elytraGraceUntilMillis
-                && nowMillis >= data.velocityGraceUntilMillis) {
+                             double horizontal, long nowNanos, long nowMillis, boolean tickChanged,
+                             EnvironmentSnapshot env) {
+        if (tickChanged && !env.fluidLike() && nowMillis >= data.elytraGraceUntilMillis
+                && nowMillis >= data.velocityGraceUntilMillis && !data.lag.unstable(nowMillis)) {
             double dy = rawDy;
-            if (dy > getConfig().getDouble("elytra.climb-dy-per-tick", 0.55)) {
-                data.ascentStreak++;
-                if (data.ascentStreak >= getConfig().getInt("elytra.climb-ticks", 4)) {
+            if (dy > confDouble("elytra.climb-dy-per-tick", 0.62)) {
+                data.climbStreak++;
+                if (data.climbStreak >= confInt("elytra.climb-ticks", 6)) {
                     flag(player, data, CheckId.ELYTRA, 1.2,
                             "набор высоты на элитре без фейерверка, dy=" + formatVl(dy));
-                    data.ascentStreak = 0;
+                    data.climbStreak = 0;
                 }
             } else {
-                data.ascentStreak = 0;
+                data.climbStreak = 0;
             }
         }
         if (data.speedRefillNanos > 0L) {
             double elapsed = (nowNanos - data.speedRefillNanos) / 1_000_000_000.0;
-            if (elapsed > 0.01 && horizontal / elapsed > getConfig().getDouble("elytra.max-horizontal-bps", 118.0)) {
+            double limit = confDouble("elytra.max-horizontal-bps", 118.0)
+                    * data.lag.tolerance(player.getPing(), currentTps(), lagLimits);
+            if (elapsed > 0.01 && !data.lag.unstable(nowMillis) && horizontal / elapsed > limit) {
                 flag(player, data, CheckId.ELYTRA, 1.0,
                         "скорость элитры " + formatVl(horizontal / elapsed) + " бл/с");
             }
         }
     }
 
-    private void vehicleCheck(Player player, PlayerData data, Location to, long nowNanos) {
+    private void vehicleCheck(Player player, PlayerData data, Location to, long nowNanos,
+                              long nowMillis, EnvironmentSnapshot env) {
         Entity vehicle = player.getVehicle();
         if (!(vehicle instanceof Boat)) {
             data.vehicleLastNanos = 0L;
@@ -962,7 +1286,7 @@ public final class VoidAntiCheat extends JavaPlugin implements Listener, Command
             data.vehicleX = to.getX();
             data.vehicleZ = to.getZ();
             data.vehicleLastNanos = nowNanos;
-            data.vehicleTokens = getConfig().getDouble("vehicle.burst-blocks", 3.0) + 2.0;
+            data.vehicleTokens = confDouble("vehicle.burst-blocks", 3.0) + 2.0;
             return;
         }
         double elapsed = (nowNanos - data.vehicleLastNanos) / 1_000_000_000.0;
@@ -971,30 +1295,31 @@ public final class VoidAntiCheat extends JavaPlugin implements Listener, Command
         double dz = to.getZ() - data.vehicleZ;
         data.vehicleX = to.getX();
         data.vehicleZ = to.getZ();
-        if (elapsed <= 0.001 || elapsed > 0.60) {
+        if (elapsed <= 0.001 || elapsed > 0.60 || data.lag.unstable(nowMillis)) {
             return;
         }
         Block below = blockAt(vehicle.getLocation(), -0.35);
-        Material belowType = below == null ? Material.AIR : below.getType();
+        Material belowType = typeOf(below);
         double max;
         if (belowType == Material.BLUE_ICE) {
-            max = getConfig().getDouble("vehicle.blue-ice-max-bps", 48.0);
+            max = confDouble("vehicle.blue-ice-max-bps", 48.0);
         } else if (belowType == Material.PACKED_ICE) {
-            max = getConfig().getDouble("vehicle.packed-ice-max-bps", 40.0);
+            max = confDouble("vehicle.packed-ice-max-bps", 40.0);
         } else if (isIce(belowType)) {
-            max = getConfig().getDouble("vehicle.ice-max-bps", 34.0);
-        } else if (isLiquid(below) || vehicle.isInWater()) {
-            max = getConfig().getDouble("vehicle.water-max-bps", 16.0);
+            max = confDouble("vehicle.ice-max-bps", 34.0);
+        } else if (env.fluidLike() || vehicle.isInWater()) {
+            max = confDouble("vehicle.water-max-bps", 16.0);
         } else {
-            max = getConfig().getDouble("vehicle.ground-max-bps", 14.0);
+            max = confDouble("vehicle.ground-max-bps", 14.0);
         }
-        double burst = getConfig().getDouble("vehicle.burst-blocks", 3.0);
+        max *= data.lag.tolerance(player.getPing(), currentTps(), lagLimits);
+        double burst = confDouble("vehicle.burst-blocks", 3.0);
+        double distance = Math.sqrt(dx * dx + dz * dz);
         data.vehicleTokens = Math.min(burst + 2.0, data.vehicleTokens + max * elapsed);
-        data.vehicleTokens -= Math.sqrt(dx * dx + dz * dz);
+        data.vehicleTokens -= distance;
         if (data.vehicleTokens < -burst) {
             flag(player, data, CheckId.VEHICLE, 1.2,
-                    "скорость лодки " + formatVl(Math.sqrt(dx * dx + dz * dz) / elapsed)
-                            + " бл/с, лимит ~" + formatVl(max));
+                    "скорость лодки " + formatVl(distance / elapsed) + " бл/с, лимит ~" + formatVl(max));
             data.vehicleTokens = -burst * 0.45;
         }
     }
@@ -1008,12 +1333,12 @@ public final class VoidAntiCheat extends JavaPlugin implements Listener, Command
         if (!shouldCheck(player, data)) {
             return;
         }
-        grantGrace(data, getConfig().getLong("settings.velocity-grace-ms", 900L));
+        grantGrace(data, confLong("settings.velocity-grace-ms", 900L));
         data.velocityGraceUntilMillis = System.currentTimeMillis()
-                + getConfig().getLong("settings.velocity-grace-ms", 900L);
+                + confLong("settings.velocity-grace-ms", 900L);
         Vector velocity = event.getVelocity();
         double horizontal = Math.sqrt(velocity.getX() * velocity.getX() + velocity.getZ() * velocity.getZ());
-        int ticks = Math.max(1, getConfig().getInt("combat.velocity-check-ticks", 5));
+        int ticks = Math.max(1, confInt("combat.velocity-check-ticks", 5));
         if (horizontal > 0.16) {
             double expected = 0.0;
             double current = horizontal;
@@ -1031,25 +1356,32 @@ public final class VoidAntiCheat extends JavaPlugin implements Listener, Command
         }
     }
 
-    private void evaluateVelocity(Player player, PlayerData data, double dx, double dz, int tick) {
+    private void evaluateVelocity(Player player, PlayerData data, double dx, double dz, int tick,
+                                  EnvironmentSnapshot env) {
         if (!data.velocityPending) {
             return;
         }
         data.velocityTravelBlocks += dx * data.velocityUnitX + dz * data.velocityUnitZ;
-        int ticks = Math.max(1, getConfig().getInt("combat.velocity-check-ticks", 5));
+        int ticks = Math.max(1, confInt("combat.velocity-check-ticks", 5));
         if (tick < data.velocityStartTick + ticks) {
             return;
         }
         data.velocityPending = false;
         double expected = data.velocityExpectedBlocks;
-        if (expected < getConfig().getDouble("combat.velocity-min-expected-blocks", 1.10)) {
+        if (expected < confDouble("combat.velocity-min-expected-blocks", 1.10)) {
+            return;
+        }
+        // Нокбэк гасится трением о землю, водой, лестницей, транспортом и
+        // элитрой — это не AntiKB.
+        if (player.isOnGround() || env.movementImmune() || env.slowFalling()
+                || data.lag.unstable(System.currentTimeMillis())) {
             return;
         }
         if (isWallInDirection(player, data.velocityUnitX, data.velocityUnitZ)) {
             return;
         }
         double ratio = data.velocityTravelBlocks / expected;
-        if (ratio < getConfig().getDouble("combat.velocity-min-travel-ratio", 0.30)) {
+        if (ratio < confDouble("combat.velocity-min-travel-ratio", 0.30)) {
             flag(player, data, CheckId.VELOCITY, 1.2,
                     "нокбэк пройден " + formatVl(Math.max(0.0, ratio * 100.0)) + "% от ожидаемого");
         }
@@ -1059,22 +1391,27 @@ public final class VoidAntiCheat extends JavaPlugin implements Listener, Command
     public void onElytraBoost(PlayerElytraBoostEvent event) {
         PlayerData data = data(event.getPlayer());
         data.elytraGraceUntilMillis = System.currentTimeMillis()
-                + getConfig().getLong("elytra.boost-grace-ms", 4000L);
+                + confLong("elytra.boost-grace-ms", 4000L);
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onRiptide(PlayerRiptideEvent event) {
         PlayerData data = data(event.getPlayer());
         long now = System.currentTimeMillis();
-        data.elytraGraceUntilMillis = now + getConfig().getLong("elytra.boost-grace-ms", 4000L);
+        data.elytraGraceUntilMillis = now + confLong("elytra.boost-grace-ms", 4000L);
         data.velocityGraceUntilMillis = now + 2500L;
+        data.riptideUntilMillis = now + confLong("settings.riptide-grace-ms", 1500L);
         grantGrace(data, 900L);
     }
 
     // ------------------------------------------------------------ бой
 
+    /**
+     * Ранняя проверка Reach. Стоит на LOWEST, потому что именно здесь можно
+     * отменить удар; алерты/буфер общие.
+     */
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
-    public void onAttackHardReach(EntityDamageByEntityEvent event) {
+    public void onAttackReach(EntityDamageByEntityEvent event) {
         if (!(event.getDamager() instanceof Player attacker) || !(event.getEntity() instanceof LivingEntity target)) {
             return;
         }
@@ -1082,13 +1419,77 @@ public final class VoidAntiCheat extends JavaPlugin implements Listener, Command
         if (!shouldCheck(attacker, data) || inGrace(data)) {
             return;
         }
-        double distance = eyeToBoxDistance(attacker, target);
-        double hard = getConfig().getDouble("combat.reach-hard-cancel-blocks", 4.60);
-        if (distance > hard) {
-            flag(attacker, data, CheckId.REACH, 2.0,
-                    "удар на " + formatVl(distance) + " бл. (жёсткий предел " + formatVl(hard) + ")");
-            event.setCancelled(true);
+        long now = System.currentTimeMillis();
+        ReachVerdict verdict = measureReach(attacker, data, target, now);
+        if (verdict.hard()) {
+            flag(attacker, data, CheckId.REACH, 2.0, verdict.details());
+            if (confBool("settings.enforcement", true)) {
+                event.setCancelled(true);
+            }
+        } else if (verdict.distance() > verdict.limit()) {
+            double points = verdict.distance() > verdict.limit() + 0.75 ? 2.0 : 1.0;
+            flag(attacker, data, CheckId.REACH, points, verdict.details());
         }
+    }
+
+    private record ReachVerdict(double distance, double limit, boolean hard, String details) {
+    }
+
+    /**
+     * Двусторонняя компенсация: минимальная дистанция по истории хитбокса
+     * цели за окно пинга + допуск от скорости цели, джиттера и тач-ввода.
+     */
+    private ReachVerdict measureReach(Player attacker, PlayerData data, LivingEntity target, long now) {
+        BoundingBox box = target.getBoundingBox();
+        Vector eye = attacker.getEyeLocation().toVector();
+        double current = boxDistance(eye, box);
+
+        int targetPing = target instanceof Player targetPlayer ? targetPlayer.getPing() : 0;
+        long rewindWindow = Math.min(confLong("combat.reach-rewind-max-ms", 800L),
+                Math.max(150L, attacker.getPing() + targetPing + 120L));
+        TargetHistory history = data.history(target.getUniqueId());
+        double distance = history.minDistance(eye.getX(), eye.getY(), eye.getZ(), now, rewindWindow, current);
+        history.remember(TargetHistory.sample(now,
+                box.getMinX(), box.getMinY(), box.getMinZ(), box.getMaxX(), box.getMaxY(), box.getMaxZ()));
+
+        double limit = "TOUCH".equalsIgnoreCase(data.inputMode)
+                ? confDouble("combat.reach-touch-max-blocks", 3.65)
+                : confDouble("combat.reach-max-blocks", 3.45);
+        if (data.bedrock) {
+            limit += confDouble("settings.bedrock-reach-extra-blocks", 0.10);
+        }
+        double interaction = attributeValue(attacker, interactionRangeAttribute, 3.0);
+        if (interaction > 3.0) {
+            limit = Math.max(limit, interaction + 0.42);
+        }
+        double pingComp = Math.min(confDouble("combat.reach-ping-comp-max-blocks", 0.45),
+                (attacker.getPing() + targetPing) / 100.0
+                        * confDouble("combat.reach-ping-comp-per-100ms", 0.045));
+        limit += pingComp;
+        Vector targetVelocity = target.getVelocity();
+        double targetBps = Math.sqrt(targetVelocity.getX() * targetVelocity.getX()
+                + targetVelocity.getZ() * targetVelocity.getZ()) * 20.0;
+        limit += Math.min(confDouble("combat.reach-move-comp-max-blocks", 0.35),
+                targetBps * confDouble("combat.reach-move-comp-per-bps", 0.02));
+        double tolerance = Math.min(confDouble("combat.reach-max-tolerance", 1.30),
+                data.lag.tolerance(attacker.getPing(), currentTps(), lagLimits));
+        limit *= tolerance;
+
+        double hard = confDouble("combat.reach-hard-cancel-blocks", 4.80) * Math.min(1.15, tolerance);
+        boolean hardHit = distance > hard && distance > limit + 0.70 && !data.lag.unstable(now);
+        String details = "удар на " + formatVl(distance) + " бл., лимит ~" + formatVl(limit)
+                + (hardHit ? " (невозможная дистанция)" : "");
+        return new ReachVerdict(distance, limit, hardHit, details);
+    }
+
+    private static double boxDistance(Vector eye, BoundingBox box) {
+        double nearestX = Math.max(box.getMinX(), Math.min(eye.getX(), box.getMaxX()));
+        double nearestY = Math.max(box.getMinY(), Math.min(eye.getY(), box.getMaxY()));
+        double nearestZ = Math.max(box.getMinZ(), Math.min(eye.getZ(), box.getMaxZ()));
+        double dx = eye.getX() - nearestX;
+        double dy = eye.getY() - nearestY;
+        double dz = eye.getZ() - nearestZ;
+        return Math.sqrt(dx * dx + dy * dy + dz * dz);
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -1102,44 +1503,22 @@ public final class VoidAntiCheat extends JavaPlugin implements Listener, Command
         }
         long now = System.currentTimeMillis();
         recordAttack(data, target, now);
-        if (inGrace(data)) {
+        if (inGrace(data) || data.lag.unstable(now)) {
             return;
         }
 
-        double distance = eyeToBoxDistance(attacker, target);
-        double max = "TOUCH".equalsIgnoreCase(data.inputMode)
-                ? getConfig().getDouble("combat.reach-touch-max-blocks", 3.65)
-                : getConfig().getDouble("combat.reach-max-blocks", 3.45);
-        double interaction = attributeValue(attacker, interactionRangeAttribute, 3.0);
-        if (interaction > 3.0) {
-            max = Math.max(max, interaction + 0.42);
-        }
-        Vector targetVelocity = target.getVelocity();
-        double targetSpeed = Math.sqrt(targetVelocity.getX() * targetVelocity.getX()
-                + targetVelocity.getZ() * targetVelocity.getZ()) * 20.0;
-        if (targetSpeed > 0.5) {
-            double comp = Math.min(getConfig().getDouble("combat.reach-ping-comp-max-blocks", 0.40),
-                    attacker.getPing() / 100.0 * getConfig().getDouble("combat.reach-ping-comp-per-100ms", 0.045));
-            max += comp;
-        }
-        if (distance > max) {
-            double points = distance > max + 0.75 ? 2.0 : 1.0;
-            if (flag(attacker, data, CheckId.REACH, points,
-                    "удар на " + formatVl(distance) + " бл., лимит ~" + formatVl(max))) {
-                // MONITOR уже не может отменить событие; отмена делается hard-проверкой выше.
-            }
-        }
-
-        // KillAura: несколько разных целей за короткое окно.
-        int distinct = distinctTargets(data, now, getConfig().getLong("combat.killaura-window-ms", 1000L));
-        if (distinct >= getConfig().getInt("combat.killaura-multi-targets", 4)) {
-            flag(attacker, data, CheckId.KILLAURA, 1.0,
-                    distinct + " разных целей за 1 сек.");
+        // KillAura: несколько разных целей за короткое окно. Порог заведомо
+        // выше человеческого PvP, плюс буфер.
+        int distinct = distinctTargets(data, now, confLong("combat.killaura-window-ms", 1000L));
+        if (distinct >= confInt("combat.killaura-multi-targets", 5)) {
+            flag(attacker, data, CheckId.KILLAURA, 1.0, distinct + " разных целей за 1 сек.");
             data.attacks.clear();
         }
 
         // Удары сквозь стену: только серией и не на короткой дистанции.
-        if (distance > getConfig().getDouble("combat.killaura-wall-min-distance", 1.60)
+        double distance = eyeToBoxDistance(attacker, target);
+        if (distance > confDouble("combat.killaura-wall-min-distance", 1.90)
+                && attacker.getPing() < confInt("combat.killaura-wall-max-ping", 320)
                 && !attacker.hasLineOfSight(target)) {
             flag(attacker, data, CheckId.KILLAURA, 0.7,
                     "удар без прямой видимости на " + formatVl(distance) + " бл.");
@@ -1167,51 +1546,60 @@ public final class VoidAntiCheat extends JavaPlugin implements Listener, Command
     }
 
     private double eyeToBoxDistance(Player attacker, LivingEntity target) {
-        Vector eye = attacker.getEyeLocation().toVector();
-        BoundingBox box = target.getBoundingBox();
-        double nearestX = Math.max(box.getMinX(), Math.min(eye.getX(), box.getMaxX()));
-        double nearestY = Math.max(box.getMinY(), Math.min(eye.getY(), box.getMaxY()));
-        double nearestZ = Math.max(box.getMinZ(), Math.min(eye.getZ(), box.getMaxZ()));
-        double dx = eye.getX() - nearestX;
-        double dy = eye.getY() - nearestY;
-        double dz = eye.getZ() - nearestZ;
-        return Math.sqrt(dx * dx + dy * dy + dz * dz);
+        return boxDistance(attacker.getEyeLocation().toVector(), target.getBoundingBox());
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onArmSwing(PlayerArmSwingEvent event) {
         Player player = event.getPlayer();
+        if (event.getHand() == EquipmentSlot.OFF_HAND) {
+            return;
+        }
         PlayerData data = data(player);
         if (!shouldCheck(player, data)) {
             return;
         }
         long now = System.currentTimeMillis();
         data.swings.addLast(now);
-        while (!data.swings.isEmpty() && now - data.swings.peekFirst() > 1500L) {
+        while (!data.swings.isEmpty() && now - data.swings.peekFirst() > 3000L) {
             data.swings.removeFirst();
         }
-        while (data.swings.size() > 80) {
+        while (data.swings.size() > 120) {
             data.swings.removeFirst();
         }
+
         int lastSecond = 0;
         for (Long time : data.swings) {
             if (now - time <= 1000L) {
                 lastSecond++;
             }
         }
-        int maxCps = "TOUCH".equalsIgnoreCase(data.inputMode)
-                ? getConfig().getInt("combat.autoclicker-touch-cps", 27)
-                : getConfig().getInt("combat.autoclicker-cps", 24);
-        Long lastFlag = data.lastFlagMillis.get(CheckId.AUTOCLICKER);
-        if (lastSecond > maxCps && (lastFlag == null || now - lastFlag > 1000L)) {
-            flag(player, data, CheckId.AUTOCLICKER, 1.0, "CPS " + lastSecond + " (лимит " + maxCps + ")");
-            return;
+        boolean touch = "TOUCH".equalsIgnoreCase(data.inputMode);
+        // VoidPvP убирает ванильный кулдаун атаки, поэтому высокий CPS там —
+        // штатное поведение, а не автокликер. Оставляем только проверку
+        // машинной ровности интервалов (её спам не даёт).
+        boolean fastAttack = fastAttackServer();
+        int maxCps = touch
+                ? confInt("combat.autoclicker-touch-cps", 27)
+                : confInt("combat.autoclicker-cps", 24);
+        if (!fastAttack && lastSecond > maxCps) {
+            data.cpsHighWindows = Math.min(6, data.cpsHighWindows + 1);
+        } else {
+            data.cpsHighWindows = Math.max(0, data.cpsHighWindows - 1);
         }
-        int sample = getConfig().getInt("combat.autoclicker-sample-clicks", 28);
-        // На тач-устройствах удержание даёт почти идеальный тиковый ритм — это не
-        // доказательство автокликера, поэтому ровность проверяем только мышь/геймпад.
-        if (!"TOUCH".equalsIgnoreCase(data.inputMode)
-                && data.swings.size() >= sample && (lastFlag == null || now - lastFlag > 1500L)) {
+        boolean sustained = !fastAttack && data.cpsHighWindows >= confInt("combat.autoclicker-high-windows", 2);
+        if (sustained) {
+            // Кулдаун здесь не нужен: буфер сам решает, сколько улик нужно
+            // для VL, а искусственная пауза только прятала бы спам.
+            flag(player, data, CheckId.AUTOCLICKER, 1.0,
+                    "CPS " + lastSecond + " (лимит " + maxCps + ") два окна подряд");
+        }
+
+        int sample = confInt("combat.autoclicker-sample-clicks", 32);
+        // На тач-вводе удержание даёт почти идеальный тиковый ритм — это не
+        // автокликер, поэтому ровность проверяем только мышь/геймпад и только
+        // при явно машинной частоте.
+        if (!touch && data.swings.size() >= sample) {
             List<Long> times = new ArrayList<>(data.swings);
             int from = times.size() - sample;
             double total = 0.0;
@@ -1230,9 +1618,9 @@ public final class VoidAntiCheat extends JavaPlugin implements Listener, Command
                     }
                     double deviation = Math.sqrt(variance / intervals.size());
                     double cps = 1000.0 / avg;
-                    if (cps >= getConfig().getDouble("combat.autoclicker-consistent-min-cps", 20.0)
-                            && deviation <= getConfig().getDouble("combat.autoclicker-consistent-max-deviation-ms", 3.5)) {
-                        flag(player, data, CheckId.AUTOCLICKER, 1.0,
+                    if (cps >= confDouble("combat.autoclicker-consistent-min-cps", 26.0)
+                            && deviation <= confDouble("combat.autoclicker-consistent-max-deviation-ms", 1.0)) {
+                        flag(player, data, CheckId.AUTOCLICKER, 1.2,
                                 "слишком ровные клики " + formatVl(cps) + " CPS, отклонение "
                                         + formatVl(deviation) + " мс");
                     }
@@ -1250,11 +1638,12 @@ public final class VoidAntiCheat extends JavaPlugin implements Listener, Command
         if (!shouldCheck(player, data)) {
             return;
         }
+        long now = System.currentTimeMillis();
+        data.lastBlockChangeMillis = now;
         if (blockReachViolation(player, data, event.getBlock())) {
             event.setCancelled(true);
             return;
         }
-        long now = System.currentTimeMillis();
         int tick = Bukkit.getCurrentTick();
         if (data.lastBreakTick == tick) {
             data.breaksThisTick++;
@@ -1264,9 +1653,9 @@ public final class VoidAntiCheat extends JavaPlugin implements Listener, Command
         }
         data.breaks.addLast(now);
         pruneWindow(data.breaks, now, 1000L, 80);
-        int sameTickLimit = getConfig().getInt("world.fastbreak-same-tick", 4);
-        int perSecondLimit = getConfig().getInt("world.fastbreak-per-second", 28);
-        boolean lowTps = currentTps() < getConfig().getDouble("settings.min-tps-for-movement", 16.0);
+        int sameTickLimit = confInt("world.fastbreak-same-tick", 4);
+        int perSecondLimit = confInt("world.fastbreak-per-second", 28);
+        boolean lowTps = currentTps() < confDouble("settings.min-tps-for-movement", 16.0);
         if (!lowTps && (data.breaksThisTick >= sameTickLimit || data.breaks.size() > perSecondLimit)) {
             boolean cancel = flag(player, data, CheckId.FASTBREAK,
                     data.breaksThisTick >= sameTickLimit ? 2.0 : 1.0,
@@ -1286,11 +1675,12 @@ public final class VoidAntiCheat extends JavaPlugin implements Listener, Command
         if (!shouldCheck(player, data)) {
             return;
         }
+        long now = System.currentTimeMillis();
+        data.lastBlockChangeMillis = now;
         if (blockReachViolation(player, data, event.getBlockPlaced())) {
             event.setCancelled(true);
             return;
         }
-        long now = System.currentTimeMillis();
         int tick = Bukkit.getCurrentTick();
         if (data.lastPlaceTick == tick) {
             data.placesThisTick++;
@@ -1300,9 +1690,9 @@ public final class VoidAntiCheat extends JavaPlugin implements Listener, Command
         }
         data.places.addLast(now);
         pruneWindow(data.places, now, 1000L, 80);
-        int sameTickLimit = getConfig().getInt("world.fastplace-same-tick", 4);
-        int perSecondLimit = getConfig().getInt("world.fastplace-per-second", 28);
-        boolean lowTps = currentTps() < getConfig().getDouble("settings.min-tps-for-movement", 16.0);
+        int sameTickLimit = confInt("world.fastplace-same-tick", 4);
+        int perSecondLimit = confInt("world.fastplace-per-second", 28);
+        boolean lowTps = currentTps() < confDouble("settings.min-tps-for-movement", 16.0);
         if (!lowTps && (data.placesThisTick >= sameTickLimit || data.places.size() > perSecondLimit)) {
             boolean cancel = flag(player, data, CheckId.FASTPLACE,
                     data.placesThisTick >= sameTickLimit ? 2.0 : 1.0,
@@ -1320,12 +1710,13 @@ public final class VoidAntiCheat extends JavaPlugin implements Listener, Command
     private boolean blockReachViolation(Player player, PlayerData data, Block block) {
         Location center = block.getLocation().add(0.5, 0.5, 0.5);
         double distance = player.getEyeLocation().distance(center);
-        double hard = getConfig().getDouble("world.blockreach-hard-cancel-blocks", 7.0);
-        double max = getConfig().getDouble("world.blockreach-max-blocks", 6.20);
+        double tolerance = data.lag.tolerance(player.getPing(), currentTps(), lagLimits);
+        double hard = confDouble("world.blockreach-hard-cancel-blocks", 7.0) * Math.min(1.2, tolerance);
+        double max = confDouble("world.blockreach-max-blocks", 6.20) * tolerance;
         if (distance > hard) {
             flag(player, data, CheckId.BLOCKREACH, 2.0,
                     "блок на " + formatVl(distance) + " бл. (жёсткий предел " + formatVl(hard) + ")");
-            return true;
+            return confBool("settings.enforcement", true);
         }
         if (distance > max) {
             return flag(player, data, CheckId.BLOCKREACH, 1.0,
@@ -1346,17 +1737,17 @@ public final class VoidAntiCheat extends JavaPlugin implements Listener, Command
         }
         // У Bedrock есть легальное быстрое строительство вперёд, поэтому смотрим
         // только строгую серию блоков строго под ногами на скорости и без взгляда вниз.
-        if (data.lastHorizontalBps < getConfig().getDouble("world.scaffold-min-speed-bps", 3.0)
-                || loc.getPitch() > getConfig().getDouble("world.scaffold-max-pitch", 55.0)) {
+        if (data.lastHorizontalBps < confDouble("world.scaffold-min-speed-bps", 3.0)
+                || loc.getPitch() > confDouble("world.scaffold-max-pitch", 55.0)) {
             return;
         }
-        long window = getConfig().getLong("world.scaffold-window-ms", 5000L);
+        long window = confLong("world.scaffold-window-ms", 5000L);
         if (now - data.scaffoldWindowStartMillis > window) {
             data.scaffoldWindowStartMillis = now;
             data.scaffoldPlaces = 0;
         }
         data.scaffoldPlaces++;
-        if (data.scaffoldPlaces >= getConfig().getInt("world.scaffold-places-in-window", 3)) {
+        if (data.scaffoldPlaces >= confInt("world.scaffold-places-in-window", 4)) {
             boolean cancel = flag(player, data, CheckId.SCAFFOLD, 1.0,
                     "серия блоков строго под ногами на скорости " + formatVl(data.lastHorizontalBps) + " бл/с");
             data.scaffoldPlaces = 0;
@@ -1380,6 +1771,7 @@ public final class VoidAntiCheat extends JavaPlugin implements Listener, Command
     private void secondTick() {
         long now = System.currentTimeMillis();
         int tick = Bukkit.getCurrentTick();
+        long cleanResetMillis = confLong("settings.vl-reset-clean-seconds", 90L) * 1000L;
         for (Player player : Bukkit.getOnlinePlayers()) {
             PlayerData data = players.get(player.getUniqueId());
             if (data == null) {
@@ -1388,12 +1780,19 @@ public final class VoidAntiCheat extends JavaPlugin implements Listener, Command
             data.bypassAll = player.hasPermission("voidanticheat.bypass");
             data.excludedHere = isExcluded(player.getLocation());
 
-            // Затухание VL.
+            long elapsed = data.lastDecayMillis == 0L ? 1000L : Math.max(0L, now - data.lastDecayMillis);
+            data.lastDecayMillis = now;
             for (CheckId check : CheckId.values()) {
-                double vl = data.vl(check);
-                if (vl > 0) {
-                    data.setVl(check, vl - setting(check).decayPerSecond());
+                CheckSettings cfg = setting(check);
+                ViolationState state = data.state(check);
+                state.decay(cfg == null ? 0.12 : cfg.decayPerSecond(), elapsed);
+                if (cleanResetMillis > 0L && state.vl() <= 0.0
+                        && state.cleanForMillis(now) >= cleanResetMillis) {
+                    state.reset();
                 }
+            }
+            if (now - data.lastViolationMillis > 10_000L) {
+                data.targets.clear();
             }
 
             timerCheck(player, data, tick, now);
@@ -1407,22 +1806,32 @@ public final class VoidAntiCheat extends JavaPlugin implements Listener, Command
             data.timerWindowStartNanos = System.nanoTime();
             data.timerWindowStartTick = tick;
             data.timerPackets = 0;
+            data.timerSuspiciousWindows = 0;
             return;
         }
-        int windowTicks = Math.max(40, getConfig().getInt("movement.timer-window-ticks", 100));
+        int windowTicks = Math.max(40, confInt("movement.timer-window-ticks", 100));
         int elapsedTicks = tick - data.timerWindowStartTick;
         if (elapsedTicks < windowTicks) {
             return;
         }
         double ratio = data.timerPackets / (double) Math.max(1, elapsedTicks);
-        double allowedRatio = getConfig().getDouble("movement.timer-ratio", 1.24);
-        if (player.getPing() > 250) {
-            allowedRatio += 0.08;
+        double allowedRatio = confDouble("movement.timer-ratio", 1.50);
+        allowedRatio += Math.min(0.25, Math.max(0, player.getPing() - 200) / 1000.0);
+        allowedRatio += Math.max(0.0, 19.5 - currentTps()) * 0.10;
+        int extra = confInt("movement.timer-extra-packets", 40);
+        boolean suspicious = ratio > allowedRatio && data.timerPackets > elapsedTicks + extra
+                && !data.lag.unstable(nowMillis)
+                && currentTps() >= confDouble("settings.min-tps-for-movement", 16.0);
+        if (suspicious) {
+            data.timerSuspiciousWindows = Math.min(6, data.timerSuspiciousWindows + 1);
+        } else {
+            data.timerSuspiciousWindows = Math.max(0, data.timerSuspiciousWindows - 1);
         }
-        int extra = getConfig().getInt("movement.timer-extra-packets", 24);
-        if (ratio > allowedRatio && data.timerPackets > elapsedTicks + extra) {
+        if (data.timerSuspiciousWindows >= confInt("movement.timer-windows", 3)) {
             flag(player, data, CheckId.TIMER, ratio > 1.5 ? 2.0 : 1.0,
-                    "движений " + data.timerPackets + " за " + elapsedTicks + " тиков (x" + formatVl(ratio) + ")");
+                    "движений " + data.timerPackets + " за " + elapsedTicks + " тиков (x"
+                            + formatVl(ratio) + ")");
+            data.timerSuspiciousWindows = 0;
         }
         data.timerWindowStartNanos = System.nanoTime();
         data.timerWindowStartTick = tick;
@@ -1452,6 +1861,10 @@ public final class VoidAntiCheat extends JavaPlugin implements Listener, Command
         }
         return world.getBlockAt((int) Math.floor(location.getX()),
                 (int) Math.floor(location.getY() + dy), (int) Math.floor(location.getZ()));
+    }
+
+    private Material typeOf(Block block) {
+        return block == null ? Material.AIR : block.getType();
     }
 
     private boolean isLiquid(Block block) {
@@ -1562,6 +1975,7 @@ public final class VoidAntiCheat extends JavaPlugin implements Listener, Command
             case "reload" -> {
                 reloadConfig();
                 loadCheckSettings();
+                loadLagLimits();
                 tell(sender, "reloaded");
                 return true;
             }
@@ -1591,6 +2005,11 @@ public final class VoidAntiCheat extends JavaPlugin implements Listener, Command
                         "{input}", data.inputMode,
                         "{device}", data.deviceOs,
                         "{ping}", String.valueOf(target.getPing()));
+                tell(sender, "info-lag",
+                        "{interval}", formatVl(data.lag.intervalMs()),
+                        "{jitter}", formatVl(data.lag.deviationMs()),
+                        "{tolerance}", String.format(Locale.ROOT, "%.2f",
+                                data.lag.tolerance(target.getPing(), currentTps(), lagLimits)));
                 List<CheckId> active = new ArrayList<>();
                 for (CheckId check : CheckId.values()) {
                     if (data.vl(check) > 0) {
@@ -1605,7 +2024,8 @@ public final class VoidAntiCheat extends JavaPlugin implements Listener, Command
                         tell(sender, "info-line",
                                 "{check}", check.display(),
                                 "{vl}", formatVl(data.vl(check)),
-                                "{max_vl}", formatVl(setting(check).maxVl()));
+                                "{max_vl}", formatVl(setting(check).maxVl()),
+                                "{buffer}", formatVl(data.state(check).buffer()));
                     }
                 }
                 if (data.lastCheck != null) {
@@ -1628,10 +2048,10 @@ public final class VoidAntiCheat extends JavaPlugin implements Listener, Command
                         tell(sender, "check-not-found");
                         return true;
                     }
-                    data.setVl(check, 0.0);
+                    data.state(check).reset();
                     scope = " (" + check.display() + ")";
                 } else {
-                    data.violations.clear();
+                    data.clearViolations();
                 }
                 tell(sender, "reset-done", "{player}", target.getName(), "{scope}", scope);
                 return true;
@@ -1660,10 +2080,11 @@ public final class VoidAntiCheat extends JavaPlugin implements Listener, Command
                     return true;
                 }
                 tell(sender, "status",
-                        "{state}", getConfig().getString(getConfig().getBoolean("settings.enabled", true)
+                        "{state}", getConfig().getString(confBool("settings.enabled", true)
                                 ? "messages.state-on" : "messages.state-off", ""),
                         "{floodgate}", floodgate.available() ? "подключён" : "fallback",
                         "{tracked}", String.valueOf(players.size()),
+                        "{enforcement}", confBool("settings.enforcement", true) ? "вкл" : "только алерты",
                         "{tps}", formatVl(currentTps()));
                 return true;
             }
