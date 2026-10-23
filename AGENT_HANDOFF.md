@@ -252,8 +252,52 @@ Found interface org.bukkit.World, but class was expected at VoidPvP.applyTo(Void
 Проверка перед установкой (быстро, без сервера):
 
 ```bash
-python3 tools/paper_api_audit.py VoidAntiCheat-2.0.1.jar VoidPvP-1.0.1.jar VoidQuiet-1.0.0.jar
+python3 tools/paperapi_audit.py VoidAntiCheat-2.0.1.jar VoidPvP-1.0.2.jar VoidQuiet-1.0.0.jar VoidNick-1.0.0.jar
 ```
+
+`tools/paper_api_audit.py` оставлен обёрткой над `paperapi_audit.py` (старое имя из документации
+продолжает работать). Аудитор учитывает наследование интерфейсов (`Audience.sendMessage`),
+вложенные типы (`EntityDamageEvent$DamageCause`) и enum-константы, поэтому не шумит ложными
+срабатываниями. Код возврата: 0 — чисто, 1 — есть расхождения, 2 — часть типов не проверена
+(adventure-классы вне paper-api).
+
+### 6.3.3. VoidNick 1.0.0 — смена ника «с нуля» (только консоль)
+
+Задача: игрок хочет начать заново под другим ником. Прокси (Velocity/Bungee) на сервере нет,
+поэтому **настоящее имя аккаунта и UUID не меняются** — плагин подменяет ник на стороне сервера
+(чат, таб-лист, скорборд, вход/выход) и стирает всё, что делало игрока «старым». В F3 и в логах
+ядра остаётся настоящее имя.
+
+Команды (из консоли; в игре прав нет намеренно):
+
+```
+/voidnick set <старый> <новый>   переименовать и сбросить
+/voidnick revert <ник>           вернуть ник, права и данные целиком
+/voidnick info <ник>             что записано по игроку
+/voidnick list                   все переименованные
+/voidnick history [ник]          журнал операций
+/voidnick reload                 перечитать конфиг
+```
+
+Порядок `set`: снимок (группы LuckPerms + баланс) → архив файлов
+`playerdata/`, `stats/`, `advancements/` в `plugins/VoidNick/archives/<дата>/` → сброс: OP,
+`lp user <ник> clear` + `lp user <ник> parent add <default-group>`, обнуление баланса,
+команды из `reset.commands` → запись в `data.yml` и `journal.yml` → сообщение в консоль.
+`revert` возвращает OP (флаг `was-op`), группы/primary-группу, баланс (`deposit`), файлы из
+архива и выполняет `reset.restore-commands`.
+
+Ограничения, о которых надо помнить:
+
+- ник в LuckPerms/экономике ищется по **настоящему** имени — так и задумано, команды идут по нему;
+- жёстко прописанные имена в чужих YAML (регионы, дома Essentials и т.п.) автоматом не правятся —
+  для этого есть `reset.commands` / `reset.restore-commands`;
+- файлы `playerdata` нельзя переносить у играющего игрока → `rename.require-offline: true`;
+- `world:` в `config.yml` задаёт мир, из которого берутся `playerdata/stats/advancements`
+  (пусто — первый загруженный мир).
+
+Проверено: ECJ-компиляция против заглушек (`tools/localbuild/bukkit_stubs.py`) + аудит
+`tools/paperapi_audit.py` — расхождений с настоящим Paper API нет; jar `VoidNick-1.0.0.jar`
+собран (7 классов).
 
 ## 8. Состояние сервера пользователя (по последнему логу)
 
