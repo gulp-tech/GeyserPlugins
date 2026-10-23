@@ -40,7 +40,11 @@ import java.util.Set;
  * {@code GameProtocol}: SUPPORTED_BEDROCK_CODECS, SUPPORTED_BEDROCK_PROTOCOLS
  * и SUPPORTED_BEDROCK_VERSIONS. Единственная проверка версии в Geyser —
  * {@code UpstreamPacketHandler.setCorrectCodec()} — после этого пропускает
- * такие клиенты, и сессия дальше работает на кодеке своей версии.</p>
+ * такие клиенты, и сессия дальше работает на кодеке своей версии.
+ * Дополнительно (иначе вход умирал на LoginPacket) в реестры
+ * {@code BlockRegistries.BLOCKS}, {@code Registries.ITEMS} и
+ * {@code Registries.TAGS} для старых протоколов подставляются маппинги
+ * младшей родной версии — см. {@link #patchRegistries()}.</p>
  *
  * <p>Обращение к ядру — только рефлексией: расширение компилируется против
  * одного Geyser API, а ставится на любой актуальный Geyser. Любая ошибка
@@ -74,6 +78,7 @@ public final class VoidVersionsExtension implements Extension {
             logger().warning("VoidVersions: не удалось прочитать список версий GameProtocol: " + describe(t));
         }
         updateVersionCommandOutput();
+        patchRegistries();
     }
 
     /**
@@ -118,6 +123,102 @@ public final class VoidVersionsExtension implements Extension {
         } catch (Throwable t) {
             logger().warning("VoidVersions: не удалось обновить вывод /geyser version: " + describe(unwrap(t))
                     + " — команда покажет диапазон Geyser по умолчанию, на сам вход старых клиентов это не влияет.");
+        }
+    }
+
+    // ------------------------------------------------- патч реестров
+
+    /**
+     * Одних кодеков для входа старого клиента мало: сразу после LoginPacket
+     * Geyser делает {@code BlockRegistries.BLOCKS.forVersion(protocol)} и
+     * {@code Registries.ITEMS.forVersion(protocol)}, а в этих реестрах ключи
+     * есть только под родные версии. Для протокола ниже минимального
+     * {@code forVersion} бросает «No appropriate value for version» — и сессия
+     * умирает с «An internal error occurred!» ещё до входа в мир.
+     *
+     * <p>Поэтому для каждого добавленного нами протокола регистрируем в
+     * BLOCKS / ITEMS / TAGS те же маппинги, что у самой старой родной версии
+     * Geyser. Старый клиент получит палитру блоков и предметы «как у 26.30»:
+     * блоки и предметы новее его версии могут отображаться не тем, чем
+     * являются, но вход и обычная игра работают.</p>
+     */
+    private void patchRegistries() {
+        try {
+            ClassLoader cl = VoidVersionsExtension.class.getClassLoader();
+            List<Integer> protocols = supportedProtocols(cl);
+            if (protocols.isEmpty()) {
+                logger().warning("VoidVersions: список протоколов GameProtocol пуст — реестры не патчу.");
+                return;
+            }
+            patchOneRegistry(cl, "org.geysermc.geyser.registry.BlockRegistries", "BLOCKS", protocols);
+            patchOneRegistry(cl, "org.geysermc.geyser.registry.Registries", "ITEMS", protocols);
+            patchOneRegistry(cl, "org.geysermc.geyser.registry.Registries", "TAGS", protocols);
+        } catch (Throwable t) {
+            logger().warning("VoidVersions: патч реестров не удался: " + describe(unwrap(t))
+                    + " — старые клиенты, скорее всего, не смогут зайти (internal error при входе).");
+        }
+    }
+
+    /** Все протоколы из GameProtocol.SUPPORTED_BEDROCK_PROTOCOLS (fastutil IntList — читаем рефлексией). */
+    private static List<Integer> supportedProtocols(ClassLoader cl) throws Exception {
+        Class<?> gameProtocol = Class.forName(GAME_PROTOCOL, false, cl);
+        Object list = gameProtocol.getField("SUPPORTED_BEDROCK_PROTOCOLS").get(null);
+        List<Integer> out = new ArrayList<>();
+        try {
+            int size = (Integer) list.getClass().getMethod("size").invoke(list);
+            Method getInt = list.getClass().getMethod("getInt", int.class);
+            for (int i = 0; i < size; i++) {
+                out.add((Integer) getInt.invoke(list, i));
+            }
+        } catch (Throwable t) {
+            if (list instanceof Iterable<?> iterable) {
+                for (Object o : iterable) {
+                    if (o instanceof Number n) {
+                        out.add(n.intValue());
+                    }
+                }
+            }
+        }
+        return out;
+    }
+
+    /** Дописывает в один VersionedRegistry старые протоколы со значением младшего родного ключа. */
+    private void patchOneRegistry(ClassLoader cl, String className, String fieldName, List<Integer> protocols) {
+        String name = className.substring(className.lastIndexOf('.') + 1) + "." + fieldName;
+        try {
+            Object registry = Class.forName(className, false, cl).getField(fieldName).get(null);
+            @SuppressWarnings("unchecked")
+            java.util.Map<Object, Object> map =
+                    (java.util.Map<Object, Object>) registry.getClass().getMethod("get").invoke(registry);
+            if (map == null || map.isEmpty()) {
+                logger().warning("VoidVersions: реестр " + name + " пуст — пропускаю (патч применён слишком рано?).");
+                return;
+            }
+            int minKey = Integer.MAX_VALUE;
+            Object baseValue = null;
+            for (java.util.Map.Entry<Object, Object> e : map.entrySet()) {
+                int key = ((Number) e.getKey()).intValue();
+                if (key < minKey) {
+                    minKey = key;
+                    baseValue = e.getValue();
+                }
+            }
+            if (baseValue == null) {
+                logger().warning("VoidVersions: реестр " + name + ": не нашёл базовых маппингов.");
+                return;
+            }
+            Method register = registry.getClass().getMethod("register", Object.class, Object.class);
+            int added = 0;
+            for (int protocol : protocols) {
+                if (protocol < minKey && !map.containsKey(protocol)) {
+                    register.invoke(registry, protocol, baseValue);
+                    added++;
+                }
+            }
+            logger().info("VoidVersions: реестр " + name + ": добавлено старых протоколов: " + added
+                    + " (маппинги — от младшей родной версии, протокол " + minKey + ").");
+        } catch (Throwable t) {
+            logger().warning("VoidVersions: реестр " + name + " не пропатчен: " + describe(unwrap(t)));
         }
     }
 
@@ -363,6 +464,7 @@ public final class VoidVersionsExtension implements Extension {
         // кодеки пропускаются), а вывод /geyser version обновляем заново.
         patched = false;
         patchProtocols();
+        patchRegistries();
     }
 
     /** Класс BedrockCodec (тип поля CODEC) — нужен, чтобы найти processCodec по сигнатуре. */
