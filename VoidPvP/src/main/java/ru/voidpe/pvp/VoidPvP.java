@@ -52,6 +52,9 @@ public final class VoidPvP extends JavaPlugin
     private volatile Settings settings;
     private Attribute attackSpeedAttribute;
 
+    /** Предупреждение о неприменённом атрибуте — один раз, чтобы не спамить лог. */
+    private boolean speedWarned;
+
     /** Исходные значения ATTACK_SPEED по игрокам (чтобы вернуть как было). */
     private final Map<UUID, Double> originalAttackSpeed = new HashMap<>();
 
@@ -74,6 +77,10 @@ public final class VoidPvP extends JavaPlugin
         for (Player player : Bukkit.getOnlinePlayers()) {
             applyTo(player);
         }
+        // Атрибуты может пересобрать другой плагин (или ядро при смене мира):
+        // без периодического переприменения задержка атаки «возвращается сама».
+        long refresh = Math.max(20L, getConfig().getLong("attack-speed.refresh-ticks", 40L));
+        Bukkit.getScheduler().runTaskTimer(this, this::refreshAll, refresh, refresh);
         getLogger().info("VoidPvP включён: " + settings.summary());
     }
 
@@ -90,8 +97,17 @@ public final class VoidPvP extends JavaPlugin
     // ------------------------------------------------------------------
 
     private static Attribute resolveAttackSpeed() {
-        // В новых версиях имя «attack_speed», в старых — «generic.attack_speed».
-        // Любая ошибка здесь не должна мешать остальным функциям плагина.
+        // 1. Константа API — самый надёжный путь: она есть во всех версиях,
+        //    где атрибуты переехали в реестр (1.21.2+), и не зависит от строки имени.
+        try {
+            Attribute constant = Attribute.ATTACK_SPEED;
+            if (constant != null) {
+                return constant;
+            }
+        } catch (Throwable ignored) {
+            // старый API без константы — идём в реестр
+        }
+        // 2. Реестр: в новых версиях имя «attack_speed», в старых — «generic.attack_speed».
         try {
             Attribute attribute = Registry.ATTRIBUTE.get(NamespacedKey.minecraft("attack_speed"));
             if (attribute == null) {
@@ -120,6 +136,32 @@ public final class VoidPvP extends JavaPlugin
         originalAttackSpeed.putIfAbsent(player.getUniqueId(), instance.getBaseValue());
         if (instance.getBaseValue() != current.attackSpeedValue) {
             instance.setBaseValue(current.attackSpeedValue);
+        }
+        // Проверка «атрибут реально применился». Если другой плагин или ядро
+        // пересобрали атрибуты, getValue() вернёт прежнее значение — тогда
+        // предупреждаем один раз, а не молчим: именно из-за тишины в 1.0.0
+        // казалось, что «плагин не убирает задержку».
+        double applied = instance.getValue();
+        if (applied < current.attackSpeedValue * 0.5) {
+            if (!speedWarned) {
+                speedWarned = true;
+                getLogger().warning("Сервер не применил ATTACK_SPEED: запрошено "
+                        + current.attackSpeedValue + ", получилось " + applied
+                        + ". Задержка атаки останется. Проверь другие плагины, меняющие атрибуты.");
+            }
+        } else {
+            speedWarned = false;
+        }
+    }
+
+    /** Раз в refresh-ticks переприменяем значение: атрибуты могут сбросить. */
+    private void refreshAll() {
+        Settings current = settings;
+        if (current == null || !current.enabled || !current.attackSpeedEnabled) {
+            return;
+        }
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            applyTo(player);
         }
     }
 
@@ -221,6 +263,16 @@ public final class VoidPvP extends JavaPlugin
                 + " &8| &7×&e" + trim(current.multiplier)));
         sender.sendMessage(color("&7Задержка атаки убрана: " + onOff(current.attackSpeedEnabled && attackSpeedAttribute != null)
                 + " &8| &7нет неуязвимости: " + onOff(current.noInvulnerability)));
+        if (sender instanceof Player self && attackSpeedAttribute != null) {
+            AttributeInstance own = self.getAttribute(attackSpeedAttribute);
+            if (own != null) {
+                double value = own.getValue();
+                double period = value > 0 ? 20.0 / value : -1;
+                sender.sendMessage(color("&7ATTACK_SPEED сейчас: &e" + trim(value)
+                        + " &8(&7задержка &e" + (period < 0 ? "?" : trim(Math.round(period * 100) / 100.0))
+                        + " &7тик&8)"));
+            }
+        }
         sender.sendMessage(color("&7Право: " + (current.require == null || current.require.isEmpty()
                 ? "&aу всех" : "&e" + current.require)));
         return true;

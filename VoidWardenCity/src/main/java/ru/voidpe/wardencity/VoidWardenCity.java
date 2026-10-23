@@ -25,9 +25,15 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockBurnEvent;
+import org.bukkit.event.block.BlockFromToEvent;
+import org.bukkit.event.block.BlockIgniteEvent;
 import org.bukkit.event.block.BlockExplodeEvent;
+import org.bukkit.event.block.BlockPistonExtendEvent;
+import org.bukkit.event.block.BlockPistonRetractEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
+import org.bukkit.event.entity.EntityChangeBlockEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
@@ -79,6 +85,9 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
     private final Map<UUID, Long> tpCooldowns = new HashMap<>();
     /** Голограммы над сундуками: ключ сундука -> UUID стенда. */
     private final Map<String, UUID> holograms = new HashMap<>();
+
+    /** Когда игроку последний раз писали «здесь нельзя строить» — антиспам (мс). */
+    private final Map<UUID, Long> protectionMessages = new HashMap<>();
 
     private record LootEntry(Material material, String command, int chance, int min, int max,
                              String name, int customModelData, String itemModel,
@@ -1157,42 +1166,139 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
     public void onQuitCity(PlayerQuitEvent event) {
         insideCity.remove(event.getPlayer().getUniqueId());
         tpCooldowns.remove(event.getPlayer().getUniqueId());
+        protectionMessages.remove(event.getPlayer().getUniqueId());
     }
 
     // ------------------------------------------------------------- защита
 
+    /**
+     * Защита города. По умолчанию ВКЛЮЧЕНА: город — это данж, а не стройплощадка.
+     * Старые ключи (protection.prevent-break / prevent-place) больше не читаются —
+     * в них по умолчанию стояло false, из-за чего город спокойно разбирали.
+     *
+     * <p>Выключается целиком через {@code protection.enabled: false}; обход даёт
+     * право из {@code protection.bypass-permission} (по умолчанию
+     * {@code voidwardencity.admin}).</p>
+     */
+    private boolean protectionEnabled() {
+        return getConfig().getBoolean("protection.enabled", true);
+    }
+
+    /** Отдельный вид защиты можно выключить, не снимая всю защиту города. */
+    private boolean protectionOption(String key, boolean fallback) {
+        return getConfig().getBoolean("protection." + key, fallback);
+    }
+
+    private boolean canBuild(Player player) {
+        String permission = getConfig().getString("protection.bypass-permission", "voidwardencity.admin");
+        return permission != null && !permission.isEmpty() && player.hasPermission(permission);
+    }
+
+    /** Не чаще раза в N секунд: иначе попытка ломать спамит чат. */
+    private void denyProtection(Player player) {
+        long now = System.currentTimeMillis();
+        long cooldown = Math.max(0L, getConfig().getLong("protection.message-cooldown-seconds", 3L)) * 1000L;
+        Long last = protectionMessages.get(player.getUniqueId());
+        if (last != null && now - last < cooldown) {
+            return;
+        }
+        protectionMessages.put(player.getUniqueId(), now);
+        send(player, msg("protected"));
+    }
+
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onBreak(BlockBreakEvent event) {
-        if (getConfig().getBoolean("protection.prevent-break", false)
-                && inCity(event.getBlock().getLocation())
-                && !event.getPlayer().hasPermission("voidwardencity.admin")) {
+        if (!protectionEnabled() || !protectionOption("block-break", true)) {
+            return;
+        }
+        if (inCity(event.getBlock().getLocation()) && !canBuild(event.getPlayer())) {
             event.setCancelled(true);
-            send(event.getPlayer(), msg("protected"));
-        }
-    }
-
-    /** При включённой защите взрывы не разносят сундуки города. */
-    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
-    public void onExplodeBlocks(EntityExplodeEvent event) {
-        if (getConfig().getBoolean("protection.prevent-break", false)) {
-            event.blockList().removeIf(b -> b.getType() == Material.CHEST && inCity(b.getLocation()));
-        }
-    }
-
-    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
-    public void onExplodeBlocks(BlockExplodeEvent event) {
-        if (getConfig().getBoolean("protection.prevent-break", false)) {
-            event.blockList().removeIf(b -> b.getType() == Material.CHEST && inCity(b.getLocation()));
+            denyProtection(event.getPlayer());
         }
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onPlace(BlockPlaceEvent event) {
-        if (getConfig().getBoolean("protection.prevent-place", false)
-                && inCity(event.getBlock().getLocation())
-                && !event.getPlayer().hasPermission("voidwardencity.admin")) {
+        if (!protectionEnabled() || !protectionOption("block-place", true)) {
+            return;
+        }
+        if (inCity(event.getBlock().getLocation()) && !canBuild(event.getPlayer())) {
             event.setCancelled(true);
-            send(event.getPlayer(), msg("protected"));
+            denyProtection(event.getPlayer());
+        }
+    }
+
+    /** Взрывы (крипер, TNT, кровать, витер) не выносят в городе ни один блок. */
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onExplodeBlocks(EntityExplodeEvent event) {
+        if (protectionEnabled() && protectionOption("explosions", true)) {
+            event.blockList().removeIf(block -> inCity(block.getLocation()));
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onExplodeBlocks(BlockExplodeEvent event) {
+        if (protectionEnabled() && protectionOption("explosions", true)) {
+            event.blockList().removeIf(block -> inCity(block.getLocation()));
+        }
+    }
+
+    /** Поршни не двигают блоки города и не вытаскивают их наружу. */
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onPistonExtend(BlockPistonExtendEvent event) {
+        if (protectionEnabled() && protectionOption("pistons", true)
+                && inCity(event.getBlock().getLocation())) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onPistonRetract(BlockPistonRetractEvent event) {
+        if (protectionEnabled() && protectionOption("pistons", true)
+                && inCity(event.getBlock().getLocation())) {
+            event.setCancelled(true);
+        }
+    }
+
+    /** Огонь не появляется и не распространяется в городе. */
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onIgnite(BlockIgniteEvent event) {
+        if (protectionEnabled() && protectionOption("fire", true)
+                && inCity(event.getBlock().getLocation())) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onBurn(BlockBurnEvent event) {
+        if (protectionEnabled() && protectionOption("fire", true)
+                && inCity(event.getBlock().getLocation())) {
+            event.setCancelled(true);
+        }
+    }
+
+    /** Эндермены и прочие сущности не забирают и не подменяют блоки города. */
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onEntityChangeBlock(EntityChangeBlockEvent event) {
+        if (!protectionEnabled() || !protectionOption("entity-change-block", true)) {
+            return;
+        }
+        if (event.getEntity() instanceof Player) {
+            return;
+        }
+        if (inCity(event.getBlock().getLocation())) {
+            event.setCancelled(true);
+        }
+    }
+
+    /** Вода и лава не заливают город — ни изнутри, ни снаружи. */
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onLiquidFlow(BlockFromToEvent event) {
+        if (!protectionEnabled() || !protectionOption("liquid-flow", true)) {
+            return;
+        }
+        if (inCity(event.getBlock().getLocation()) || inCity(event.getToBlock().getLocation())) {
+            event.setCancelled(true);
         }
     }
 

@@ -99,6 +99,10 @@ add("org/bukkit/attribute/Attribute", """
 package org.bukkit.attribute;
 
 public interface Attribute {
+    Attribute ATTACK_SPEED = new AttributeStub("attack_speed");
+    Attribute MOVEMENT_SPEED = new AttributeStub("movement_speed");
+    Attribute ENTITY_INTERACTION_RANGE = new AttributeStub("entity_interaction_range");
+
     String key();
 }
 """)
@@ -398,6 +402,28 @@ public interface Entity {
     double getHeight();
     double getWidth();
     boolean isValid();
+    void remove();
+    void setCustomName(String name);
+    String getCustomName();
+    void setCustomNameVisible(boolean visible);
+    boolean teleport(Location location);
+}
+""")
+
+add("org/bukkit/entity/HumanEntity", """
+package org.bukkit.entity;
+
+import org.bukkit.GameMode;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.PlayerInventory;
+
+public interface HumanEntity extends LivingEntity {
+    String getName();
+    Inventory getInventory$placeholder();
+    PlayerInventory getInventory();
+    Inventory getEnderChest();
+    GameMode getGameMode();
+    boolean hasPermission(String permission);
 }
 """)
 
@@ -485,8 +511,23 @@ import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.meta.ItemMeta;
 
 public class ItemStack {
+    private final org.bukkit.Material type;
+    private int amount;
+
+    public ItemStack(org.bukkit.Material type) { this(type, 1); }
+
+    public ItemStack(org.bukkit.Material type, int amount) {
+        this.type = type;
+        this.amount = amount;
+    }
+
+    public org.bukkit.Material getType() { return type; }
+    public int getAmount() { return amount; }
+    public void setAmount(int amount) { this.amount = amount; }
     public ItemMeta getItemMeta() { return null; }
+    public void setItemMeta(ItemMeta meta) { }
     public int getEnchantmentLevel(Enchantment enchantment) { return 0; }
+    public boolean isAir() { return type == null || type == org.bukkit.Material.AIR; }
 }
 """)
 
@@ -1016,8 +1057,15 @@ package org.bukkit.event.block;
 
 import org.bukkit.block.Block;
 
-public class BlockPistonExtendEvent extends BlockEvent {
+import java.util.List;
+
+public class BlockPistonExtendEvent extends BlockEvent implements org.bukkit.event.Cancellable {
+    private boolean cancelled;
+
     public BlockPistonExtendEvent(Block block) { super(block); }
+    public List<Block> getBlocks() { return List.of(); }
+    @Override public boolean isCancelled() { return cancelled; }
+    @Override public void setCancelled(boolean cancel) { this.cancelled = cancel; }
 }
 """)
 
@@ -1026,8 +1074,15 @@ package org.bukkit.event.block;
 
 import org.bukkit.block.Block;
 
-public class BlockPistonRetractEvent extends BlockEvent {
+import java.util.List;
+
+public class BlockPistonRetractEvent extends BlockEvent implements org.bukkit.event.Cancellable {
+    private boolean cancelled;
+
     public BlockPistonRetractEvent(Block block) { super(block); }
+    public List<Block> getBlocks() { return List.of(); }
+    @Override public boolean isCancelled() { return cancelled; }
+    @Override public void setCancelled(boolean cancel) { this.cancelled = cancel; }
 }
 """)
 
@@ -1086,6 +1141,332 @@ add("org/bukkit/entity/EntityType", """
 package org.bukkit.entity;
 
 public enum EntityType { PLAYER, ZOMBIE, SKELETON, CREEPER, ENDERMAN }
+""")
+
+
+add("org/bukkit/event/block/BlockExplodeEvent", """
+package org.bukkit.event.block;
+
+import org.bukkit.block.Block;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class BlockExplodeEvent extends BlockEvent implements org.bukkit.event.Cancellable {
+    private final List<Block> blocks = new ArrayList<>();
+    private boolean cancelled;
+
+    public BlockExplodeEvent(Block block) { super(block); }
+    public List<Block> blockList() { return blocks; }
+    @Override public boolean isCancelled() { return cancelled; }
+    @Override public void setCancelled(boolean cancel) { this.cancelled = cancel; }
+}
+""")
+
+add("org/bukkit/event/block/BlockBurnEvent", """
+package org.bukkit.event.block;
+
+import org.bukkit.block.Block;
+
+public class BlockBurnEvent extends BlockEvent implements org.bukkit.event.Cancellable {
+    private boolean cancelled;
+
+    public BlockBurnEvent(Block block) { super(block); }
+    @Override public boolean isCancelled() { return cancelled; }
+    @Override public void setCancelled(boolean cancel) { this.cancelled = cancel; }
+}
+""")
+
+add("org/bukkit/event/block/BlockFromToEvent", """
+package org.bukkit.event.block;
+
+import org.bukkit.block.Block;
+
+public class BlockFromToEvent extends BlockEvent implements org.bukkit.event.Cancellable {
+    private final Block to;
+    private boolean cancelled;
+
+    public BlockFromToEvent(Block from, Block to) {
+        super(from);
+        this.to = to;
+    }
+
+    public Block getToBlock() { return to; }
+    @Override public boolean isCancelled() { return cancelled; }
+    @Override public void setCancelled(boolean cancel) { this.cancelled = cancel; }
+}
+""")
+
+add("org/bukkit/event/block/BlockIgniteEvent", """
+package org.bukkit.event.block;
+
+import org.bukkit.block.Block;
+
+public class BlockIgniteEvent extends BlockEvent implements org.bukkit.event.Cancellable {
+    public enum IgniteCause { LAVA, FLINT_AND_STEEL, SPREAD, LIGHTNING, FIREBALL, EXPLOSION }
+
+    private final IgniteCause cause;
+    private boolean cancelled;
+
+    public BlockIgniteEvent(Block block, IgniteCause cause) {
+        super(block);
+        this.cause = cause;
+    }
+
+    public IgniteCause getCause() { return cause; }
+    @Override public boolean isCancelled() { return cancelled; }
+    @Override public void setCancelled(boolean cancel) { this.cancelled = cancel; }
+}
+""")
+
+add("org/bukkit/event/entity/EntityChangeBlockEvent", """
+package org.bukkit.event.entity;
+
+import org.bukkit.block.Block;
+import org.bukkit.entity.Entity;
+
+public class EntityChangeBlockEvent extends EntityEvent implements org.bukkit.event.Cancellable {
+    private final Block block;
+    private boolean cancelled;
+
+    public EntityChangeBlockEvent(Entity entity, Block block) {
+        super(entity);
+        this.block = block;
+    }
+
+    public Block getBlock() { return block; }
+    @Override public boolean isCancelled() { return cancelled; }
+    @Override public void setCancelled(boolean cancel) { this.cancelled = cancel; }
+}
+""")
+
+add("org/bukkit/event/entity/EntityDeathEvent", """
+package org.bukkit.event.entity;
+
+import org.bukkit.entity.LivingEntity;
+
+public class EntityDeathEvent extends EntityEvent {
+    public EntityDeathEvent(LivingEntity entity) { super(entity); }
+    public LivingEntity getEntity() { return (LivingEntity) super.getEntity(); }
+}
+""")
+
+add("org/bukkit/block/Chest", """
+package org.bukkit.block;
+
+import org.bukkit.inventory.Inventory;
+
+public interface Chest extends Block {
+    Inventory getInventory();
+    Inventory getBlockInventory();
+}
+""")
+
+add("org/bukkit/entity/ArmorStand", """
+package org.bukkit.entity;
+
+public interface ArmorStand extends LivingEntity {
+    void setVisible(boolean visible);
+    void setMarker(boolean marker);
+    void setCustomNameVisible(boolean visible);
+    boolean isMarker();
+    void setGravity(boolean gravity);
+}
+""")
+
+add("org/bukkit/entity/Warden", """
+package org.bukkit.entity;
+
+public interface Warden extends LivingEntity {
+}
+""")
+
+add("org/bukkit/inventory/Inventory", """
+package org.bukkit.inventory;
+
+import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.entity.HumanEntity;
+
+public interface Inventory {
+    ItemStack[] getContents();
+    void setContents(ItemStack[] items);
+    int getSize();
+    ItemStack getItem(int slot);
+    void setItem(int slot, ItemStack item);
+    void addItem(ItemStack... items);
+    java.util.HashMap<Integer, ItemStack> addItem(ItemStack item);
+    ItemStack[] getStorageContents();
+    void setStorageContents(ItemStack[] items);
+    InventoryHolder getHolder();
+    Location getLocation();
+    boolean isEmpty();
+    java.util.List<HumanEntity> getViewers();
+    void clear();
+}
+""")
+
+add("org/bukkit/inventory/InventoryHolder", """
+package org.bukkit.inventory;
+
+public interface InventoryHolder {
+    Inventory getInventory();
+}
+""")
+
+add("org/bukkit/event/inventory/InventoryEvent", """
+package org.bukkit.event.inventory;
+
+import org.bukkit.event.Event;
+import org.bukkit.inventory.Inventory;
+
+public abstract class InventoryEvent extends Event {
+    private final Inventory inventory;
+
+    protected InventoryEvent(Inventory inventory) { this.inventory = inventory; }
+    public Inventory getInventory() { return inventory; }
+}
+""")
+
+add("org/bukkit/event/inventory/InventoryOpenEvent", """
+package org.bukkit.event.inventory;
+
+import org.bukkit.entity.HumanEntity;
+import org.bukkit.inventory.Inventory;
+
+public class InventoryOpenEvent extends InventoryEvent {
+    private final HumanEntity player;
+
+    public InventoryOpenEvent(Inventory inventory, HumanEntity player) {
+        super(inventory);
+        this.player = player;
+    }
+
+    public HumanEntity getPlayer() { return player; }
+}
+""")
+
+add("org/bukkit/event/inventory/InventoryCloseEvent", """
+package org.bukkit.event.inventory;
+
+import org.bukkit.entity.HumanEntity;
+import org.bukkit.inventory.Inventory;
+
+public class InventoryCloseEvent extends InventoryEvent {
+    private final HumanEntity player;
+
+    public InventoryCloseEvent(Inventory inventory, HumanEntity player) {
+        super(inventory);
+        this.player = player;
+    }
+
+    public HumanEntity getPlayer() { return player; }
+}
+""")
+
+add("org/bukkit/event/inventory/InventoryClickEvent", """
+package org.bukkit.event.inventory;
+
+import org.bukkit.entity.HumanEntity;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemStack;
+
+public class InventoryClickEvent extends InventoryEvent implements org.bukkit.event.Cancellable {
+    private final HumanEntity whoClicked;
+    private final ItemStack currentItem;
+    private final int slot;
+    private boolean cancelled;
+
+    public InventoryClickEvent(Inventory inventory, HumanEntity whoClicked, ItemStack currentItem, int slot) {
+        super(inventory);
+        this.whoClicked = whoClicked;
+        this.currentItem = currentItem;
+        this.slot = slot;
+    }
+
+    public HumanEntity getWhoClicked() { return whoClicked; }
+    public ItemStack getCurrentItem() { return currentItem; }
+    public int getSlot() { return slot; }
+    @Override public boolean isCancelled() { return cancelled; }
+    @Override public void setCancelled(boolean cancel) { this.cancelled = cancel; }
+}
+""")
+
+add("org/bukkit/potion/PotionType", """
+package org.bukkit.potion;
+
+public enum PotionType { WATER, MUNDANE, THICK, AWKWARD, SWIFTNESS, SLOWNESS, STRENGTH, HEALING, HARMING, POISON, REGENERATION }
+""")
+
+add("org/bukkit/inventory/meta/EnchantmentStorageMeta", """
+package org.bukkit.inventory.meta;
+
+import org.bukkit.enchantments.Enchantment;
+
+public interface EnchantmentStorageMeta extends ItemMeta {
+    boolean addStoredEnchant(Enchantment enchantment, int level, boolean ignoreLevelRestriction);
+    int getStoredEnchantLevel(Enchantment enchantment);
+}
+""")
+
+add("org/bukkit/inventory/meta/PotionMeta", """
+package org.bukkit.inventory.meta;
+
+import org.bukkit.potion.PotionType;
+
+public interface PotionMeta extends ItemMeta {
+    void setBasePotionType(PotionType type);
+    void setBasePotionData(PotionType type);
+}
+""")
+
+add("org/bukkit/configuration/file/YamlConfiguration", """
+package org.bukkit.configuration.file;
+
+public class YamlConfiguration extends FileConfiguration {
+    private final java.util.Map<String, Object> values = new java.util.LinkedHashMap<>();
+
+    public static YamlConfiguration loadConfiguration(java.io.File file) throws java.io.IOException {
+        return new YamlConfiguration();
+    }
+
+    public void loadFromString(String contents) { }
+    public String saveToString() { return ""; }
+    public void save(java.io.File file) { }
+    public java.util.Set<String> getKeys(boolean deep) { return values.keySet(); }
+    public boolean contains(String path) { return values.containsKey(path); }
+    public boolean isConfigurationSection(String path) { return false; }
+    public java.util.List<java.util.Map<?, ?>> getMapList(String path) { return java.util.List.of(); }
+    public Object get(String path) { return values.get(path); }
+    public void set(String path, Object value) { values.put(path, value); }
+
+    @Override public boolean getBoolean(String path, boolean def) {
+        Object value = values.get(path);
+        return value instanceof Boolean b ? b : def;
+    }
+    @Override public int getInt(String path, int def) {
+        Object value = values.get(path);
+        return value instanceof Number n ? n.intValue() : def;
+    }
+    @Override public long getLong(String path, long def) {
+        Object value = values.get(path);
+        return value instanceof Number n ? n.longValue() : def;
+    }
+    @Override public double getDouble(String path, double def) {
+        Object value = values.get(path);
+        return value instanceof Number n ? n.doubleValue() : def;
+    }
+    @Override public String getString(String path, String def) {
+        Object value = values.get(path);
+        return value instanceof String s ? s : def;
+    }
+    @Override public String getString(String path) { return getString(path, null); }
+    @Override @SuppressWarnings("unchecked")
+    public java.util.List<String> getStringList(String path) {
+        Object value = values.get(path);
+        return value instanceof java.util.List<?> list ? (java.util.List<String>) list : java.util.List.of();
+    }
+}
 """)
 
 # ------------------------------------------------------------------ сервер
@@ -1149,6 +1530,22 @@ public final class Bukkit {
                 return player;
             }
         }
+        return null;
+    }
+
+    public static org.bukkit.World getWorld(String name) { return worlds.get(name); }
+    public static org.bukkit.World getWorld(java.util.UUID id) { return worlds.values().stream().findFirst().orElse(null); }
+    public static final java.util.Map<String, org.bukkit.World> worlds = new java.util.HashMap<>();
+
+    public static org.bukkit.entity.Entity getEntity(java.util.UUID id) { return null; }
+
+    public static org.bukkit.inventory.Inventory createInventory(
+            org.bukkit.inventory.InventoryHolder holder, int size, String title) {
+        return null;
+    }
+
+    public static org.bukkit.inventory.Inventory createInventory(
+            org.bukkit.inventory.InventoryHolder holder, int size, net.kyori.adventure.text.Component title) {
         return null;
     }
 
