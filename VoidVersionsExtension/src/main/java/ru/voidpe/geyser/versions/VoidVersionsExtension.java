@@ -34,9 +34,9 @@ import java.util.Set;
  * Bedrock вплоть до 1.7.</p>
  *
  * <p>Расширение при инициализации Geyser (до приёма подключений) находит
- * в classpath кодеки версий от 1.20 и новее, прогоняет их через штатный
- * {@code CodecProcessor.processCodec} Geyser (те же «санитарные» правки
- * сериализаторов, что и у родных версий) и регистрирует в списках
+ * в classpath кодеки версий от 1.20 и новее, прогоняет их через собственную
+ * санитизацию (наборы «пакет → сериализатор» из {@code CodecProcessor}, но
+ * без версионных подмен — см. {@link Sanitizer}) и регистрирует в списках
  * {@code GameProtocol}: SUPPORTED_BEDROCK_CODECS, SUPPORTED_BEDROCK_PROTOCOLS
  * и SUPPORTED_BEDROCK_VERSIONS. Единственная проверка версии в Geyser —
  * {@code UpstreamPacketHandler.setCorrectCodec()} — после этого пропускает
@@ -58,8 +58,38 @@ public final class VoidVersionsExtension implements Extension {
     private static final String VERSION_COMMAND = "org.geysermc.geyser.command.defaults.VersionCommand";
     private static final String MINECRAFT_VERSION_IMPL = "org.geysermc.geyser.impl.MinecraftVersionImpl";
     private static final String CODEC_CLASS_NAME = "org.cloudburstmc.protocol.bedrock.codec.v%d.Bedrock_v%d";
+    private static final String PACKET_PREFIX = "org.cloudburstmc.protocol.bedrock.packet.";
+
+    /**
+     * Serverbound-пакеты, которые Geyser считает незаконными (EDU, отладка,
+     * редактор, подклиент) — сериализатор бросает исключение. Список 1-в-1
+     * с ветками {@code ILLEGAL_SERIALIZER} в {@code CodecProcessor.processCodec}.
+     */
+    private static final String[] ILLEGAL_PACKETS = {
+            "PhotoTransferPacket", "LabTablePacket", "CodeBuilderSourcePacket", "CreatePhotoPacket",
+            "NpcRequestPacket", "PhotoInfoRequestPacket", "ClientCheatAbilityPacket", "CraftingEventPacket",
+            "ClientCacheBlobStatusPacket", "SubClientLoginPacket", "SubChunkRequestPacket", "GameTestRequestPacket",
+            "DebugInfoPacket", "EditorNetworkPacket", "ScriptMessagePacket"
+    };
+
+    /** Пакеты, которые Geyser молча игнорирует ({@code IGNORED_SERIALIZER}). */
+    private static final String[] IGNORED_PACKETS = {
+            "ClientToServerHandshakePacket", "EntityFallPacket", "MapCreateLockedCopyPacket", "MapInfoRequestPacket",
+            "SettingsCommandPacket", "AnvilDamagePacket", "ClientCacheStatusPacket", "SimpleEventPacket",
+            "MultiplayerSettingsPacket", "EmoteListPacket"
+    };
+
+    /** Игнорируются, только если НЕ включён {@code Geyser.ReceiptPackets} (как в Geyser). */
+    private static final String[] RECEIPT_PACKETS = {
+            "RefreshEntitlementsPacket", "PurchaseReceiptPacket"
+    };
+
+    /** Глушится при выключенных квитанциях, но только с протокола 944 (26.10). */
+    private static final String PARTY_PACKET = "PartyChangedPacket";
 
     private volatile boolean patched;
+    /** Последний прочитанный конфиг — нужен выводу /geyser version и логам. */
+    private volatile Config config;
 
     @Subscribe
     public void onPreInitialize(GeyserPreInitializeEvent event) {
@@ -85,16 +115,26 @@ public final class VoidVersionsExtension implements Extension {
      * Команда {@code /geyser version} показывает диапазон версий из поля
      * {@code SUPPORTED_BEDROCK_RANGE} класса VersionCommand. Оно считается
      * один раз в статическом инициализаторе (и только как «первая - последняя»),
-     * поэтому заменяем его полным списком версий уже после нашего патча —
-     * тогда {@code geyser version} честно перечисляет все версии, включая
-     * добавленные расширением. Поле final, пишем через Unsafe; любая ошибка
-     * здесь некритична и просто логируется.
+     * поэтому переписываем его уже после нашего патча. Формат выбирается
+     * в конфиге ({@code version-command-format}): {@code full} — весь список
+     * версий (видно, что патч сработал), {@code range} — «первая - последняя»,
+     * как показывает стоковый Geyser. Поле final, пишем через Unsafe; любая
+     * ошибка здесь некритична и просто логируется.
      */
     private void updateVersionCommandOutput() {
+        if (config != null && !config.enabled()) {
+            return; // расширение выключено — не трогаем даже вывод команды
+        }
         try {
             ClassLoader cl = VoidVersionsExtension.class.getClassLoader();
             Class<?> gameProtocol = Class.forName(GAME_PROTOCOL, false, cl);
-            String fullList = String.valueOf(gameProtocol.getMethod("getAllSupportedBedrockVersions").invoke(null));
+            String shown = String.valueOf(gameProtocol.getMethod("getAllSupportedBedrockVersions").invoke(null));
+            if (config != null && config.versionRangeOnly()) {
+                String range = versionRange(cl);
+                if (!range.isEmpty()) {
+                    shown = range;
+                }
+            }
 
             // initialize=true: статический блок VersionCommand должен отработать
             // ДО записи, иначе он потом сам перезапишет поле своим диапазоном.
@@ -103,19 +143,19 @@ public final class VoidVersionsExtension implements Extension {
             range.setAccessible(true);
             String before = String.valueOf(range.get(null));
             try {
-                range.set(null, fullList);
+                range.set(null, shown);
             } catch (IllegalAccessException | RuntimeException finalField) {
-                writeStaticField(range, fullList);
+                writeStaticField(range, shown);
             }
             // Самопроверка: перечитываем поле — команда покажет именно это значение.
             String after = String.valueOf(range.get(null));
             Field codecsField = gameProtocol.getDeclaredField("SUPPORTED_BEDROCK_CODECS");
             codecsField.setAccessible(true);
             int codecCount = ((List<?>) codecsField.get(null)).size();
-            if (fullList.equals(after)) {
+            if (shown.equals(after)) {
                 logger().info("VoidVersions: /geyser version: было '" + before
-                        + "', теперь команда покажет все поддерживаемые версии."
-                        + " Всего кодеков в GameProtocol: " + codecCount + ".");
+                        + "', теперь команда покажет: " + shown
+                        + ". Всего кодеков в GameProtocol: " + codecCount + ".");
             } else {
                 logger().warning("VoidVersions: запись в VersionCommand не применилась: "
                         + "поле как было '" + before + "', так и осталось '" + after + "'.");
@@ -215,8 +255,13 @@ public final class VoidVersionsExtension implements Extension {
                     added++;
                 }
             }
-            logger().info("VoidVersions: реестр " + name + ": добавлено старых протоколов: " + added
-                    + " (маппинги — от младшей родной версии, протокол " + minKey + ").");
+            if (added > 0) {
+                logger().info("VoidVersions: реестр " + name + ": добавлено старых протоколов: " + added
+                        + " (маппинги — от младшей родной версии, протокол " + minKey + ").");
+            } else {
+                // Повторный патч (например, после /geyser reload) — всё уже на месте.
+                logger().debug("VoidVersions: реестр " + name + ": старые протоколы уже зарегистрированы.");
+            }
         } catch (Throwable t) {
             logger().warning("VoidVersions: реестр " + name + " не пропатчен: " + describe(unwrap(t)));
         }
@@ -236,34 +281,52 @@ public final class VoidVersionsExtension implements Extension {
 
     // ------------------------------------------------------------ конфиг
 
+    /**
+     * Шаблон {@code config.properties}. Он же используется, чтобы дописать
+     * в существующий конфиг ключи, появившиеся в новой версии расширения.
+     */
+    private static final List<String> CONFIG_TEMPLATE = List.of(
+            "# VoidVersionsExtension — расширение диапазона версий Bedrock",
+            "# enabled=false — полностью выключить расширение.",
+            "enabled=true",
+            "# Самая старая версия Minecraft, которую добавляем (клиенты старше отрезаются).",
+            "min-version=1.20.0",
+            "# Диапазон номеров протоколов для поиска кодеков в библиотеке cloudburst.",
+            "scan-from-protocol=560",
+            "scan-to-protocol=2500",
+            "# Номера протоколов, которые НЕ добавлять (через запятую), если какой-то клиент ломается.",
+            "disabled-protocols=",
+            "# Подробный лог по каждой найденной версии.",
+            "verbose=false",
+            "# Санитизация кодеков старых версий: глушилки Geyser (ILLEGAL/IGNORED)",
+            "# для EDU/отладочных/подозрительных пакетов. false — ставить кодеки как есть.",
+            "sanitize=true",
+            "# Как /geyser version показывает Bedrock-версии: full — весь список,",
+            "# range — только «первая - последняя» (как у стокового Geyser).",
+            "version-command-format=full"
+    );
+
     private record Config(boolean enabled, String minVersion, int scanFromProtocol,
-                          int scanToProtocol, Set<Integer> disabledProtocols, boolean verbose) {
+                          int scanToProtocol, Set<Integer> disabledProtocols, boolean verbose,
+                          boolean sanitize, boolean versionRangeOnly) {
 
         static Config load(VoidVersionsExtension ext) {
-            Config defaults = new Config(true, "1.20.0", 560, 2500, Set.of(), false);
+            Config defaults = new Config(true, "1.20.0", 560, 2500, Set.of(), false, true, false);
             try {
                 Path folder = ext.dataFolder();
                 Files.createDirectories(folder);
                 Path file = folder.resolve("config.properties");
-                if (!Files.exists(file)) {
-                    try (BufferedWriter w = Files.newBufferedWriter(file, StandardCharsets.UTF_8)) {
-                        w.write("# VoidVersionsExtension — расширение диапазона версий Bedrock\n");
-                        w.write("# enabled=false — полностью выключить расширение.\n");
-                        w.write("enabled=true\n");
-                        w.write("# Самая старая версия Minecraft, которую добавляем (клиенты старше отрезаются).\n");
-                        w.write("min-version=1.20.0\n");
-                        w.write("# Диапазон номеров протоколов для поиска кодеков в библиотеке cloudburst.\n");
-                        w.write("scan-from-protocol=560\n");
-                        w.write("scan-to-protocol=2500\n");
-                        w.write("# Номера протоколов, которые НЕ добавлять (через запятую), если какой-то клиент ломается.\n");
-                        w.write("disabled-protocols=\n");
-                        w.write("# Подробный лог по каждой найденной версии.\n");
-                        w.write("verbose=false\n");
-                    }
+                boolean created = !Files.exists(file);
+                if (created) {
+                    Files.write(file, CONFIG_TEMPLATE, StandardCharsets.UTF_8);
                 }
                 Properties props = new Properties();
                 try (BufferedReader r = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
                     props.load(r);
+                }
+                if (!created) {
+                    // Файл от прошлой версии: новые ключи дописываем, чтобы их было видно.
+                    appendMissingKeys(ext, file, props);
                 }
                 Set<Integer> disabled = new HashSet<>();
                 String rawDisabled = props.getProperty("disabled-protocols", "");
@@ -285,11 +348,45 @@ public final class VoidVersionsExtension implements Extension {
                         parseInt(props.getProperty("scan-from-protocol"), defaults.scanFromProtocol()),
                         parseInt(props.getProperty("scan-to-protocol"), defaults.scanToProtocol()),
                         Set.copyOf(disabled),
-                        Boolean.parseBoolean(props.getProperty("verbose", "false").trim()));
+                        Boolean.parseBoolean(props.getProperty("verbose", "false").trim()),
+                        Boolean.parseBoolean(props.getProperty("sanitize", "true").trim()),
+                        "range".equalsIgnoreCase(props.getProperty("version-command-format", "full").trim()));
             } catch (IOException | RuntimeException e) {
                 ext.logger().warning("VoidVersions: конфиг не прочитан (" + describe(e)
                         + "), использую значения по умолчанию.");
                 return defaults;
+            }
+        }
+
+        /** Дописывает в существующий конфиг ключи, которых в нём ещё нет. */
+        private static void appendMissingKeys(VoidVersionsExtension ext, Path file, Properties props) {
+            List<String> missing = new ArrayList<>();
+            List<String> comments = new ArrayList<>();
+            for (String line : CONFIG_TEMPLATE) {
+                if (line.startsWith("#")) {
+                    comments.add(line);
+                    continue;
+                }
+                String key = line.substring(0, line.indexOf('='));
+                if (!props.containsKey(key)) {
+                    missing.add("");
+                    missing.addAll(comments);
+                    missing.add(line);
+                }
+                comments.clear();
+            }
+            if (missing.isEmpty()) {
+                return;
+            }
+            try (BufferedWriter w = Files.newBufferedWriter(file, StandardCharsets.UTF_8,
+                    java.nio.file.StandardOpenOption.APPEND)) {
+                w.write("\n# --- добавлено в новой версии расширения ---\n");
+                for (String line : missing) {
+                    w.write(line + "\n");
+                }
+            } catch (IOException e) {
+                ext.logger().warning("VoidVersions: не удалось дописать новые ключи в config.properties: "
+                        + describe(e));
             }
         }
 
@@ -313,6 +410,7 @@ public final class VoidVersionsExtension implements Extension {
         }
         patched = true;
         Config config = Config.load(this);
+        this.config = config;
         if (!config.enabled()) {
             logger().info("VoidVersions: выключено в config.properties — версии не трогаю.");
             return;
@@ -342,20 +440,23 @@ public final class VoidVersionsExtension implements Extension {
                 existing.add((Integer) getProtocol.invoke(codec));
             }
 
-            Method processCodec = null;
-            try {
-                Class<?> processor = Class.forName(CODEC_PROCESSOR, true, cl);
-                processCodec = processor.getDeclaredMethod("processCodec", bedrockCodecClass(codecs.get(0)));
-                processCodec.setAccessible(true);
-            } catch (Throwable t) {
-                logger().warning("VoidVersions: CodecProcessor.processCodec не найден (" + describe(t)
-                        + ") — кодеки будут зарегистрированы без санитарной обработки.");
+            Sanitizer sanitizer = Sanitizer.create(cl, codecs.get(0), config.sanitize());
+            if (sanitizer == null && config.sanitize()) {
+                logger().warning("VoidVersions: санитайзер CodecProcessor недоступен — "
+                        + "кодеки будут зарегистрированы без санитарной обработки.");
             }
+
+            // Библиотека cloudburst может опережать сам Geyser: кодек новее самой
+            // свежей родной версии не имеет в core ни переводчиков, ни палитр,
+            // поэтому такой протокол регистрировать нельзя (клиент зашёл бы, но
+            // игра сломалось бы непредсказуемо).
+            int newestNative = newestNativeProtocol(cl);
 
             int nativeCount = codecs.size();
             List<String> added = new ArrayList<>();
             int scanned = 0;
             int skippedOld = 0;
+            int skippedNewer = 0;
             for (int protocol = config.scanFromProtocol(); protocol <= config.scanToProtocol(); protocol++) {
                 if (existing.contains(protocol) || config.disabledProtocols().contains(protocol)) {
                     continue;
@@ -366,6 +467,10 @@ public final class VoidVersionsExtension implements Extension {
                             false, cl);
                 } catch (ClassNotFoundException | LinkageError e) {
                     continue; // такого протокола в библиотеке нет — норма при сканировании
+                }
+                if (protocol > newestNative) {
+                    skippedNewer++;
+                    continue; // новее самой свежей родной версии этой сборки Geyser
                 }
                 scanned++;
                 final Object rawCodec;
@@ -398,13 +503,13 @@ public final class VoidVersionsExtension implements Extension {
 
                     Object codec = rawCodec;
                     boolean processed = false;
-                    if (processCodec != null) {
+                    if (sanitizer != null) {
                         try {
-                            codec = processCodec.invoke(null, rawCodec);
+                            codec = sanitizer.apply(rawCodec, protocol);
                             processed = true;
                         } catch (Throwable t) {
-                            logger().warning("VoidVersions: processCodec не справился с версией " + mcVersion
-                                    + " (протокол " + protocol + "): " + describe(unwrap(t))
+                            logger().warning("VoidVersions: санитизация версии " + mcVersion
+                                    + " (протокол " + protocol + ") не удалась: " + describe(unwrap(t))
                                     + " — регистрирую кодек как есть.");
                         }
                     }
@@ -426,7 +531,7 @@ public final class VoidVersionsExtension implements Extension {
                     }
 
                     existing.add(protocol);
-                    added.add(mcVersion + " (протокол " + protocol + (processed ? "" : ", без processCodec") + ")");
+                    added.add(mcVersion + " (протокол " + protocol + (processed ? "" : ", без санитизации") + ")");
                     if (config.verbose()) {
                         logger().info("VoidVersions: + " + mcVersion + " (протокол " + protocol + ")");
                     }
@@ -441,9 +546,13 @@ public final class VoidVersionsExtension implements Extension {
             logger().info("VoidVersions: готово за " + (System.currentTimeMillis() - started) + " мс. "
                     + "Родных кодеков: " + nativeCount + ", найдено в библиотеке: " + scanned
                     + ", старше " + config.minVersion() + " пропущено: " + skippedOld
+                    + ", новее этой сборки Geyser (" + newestNative + ") пропущено: " + skippedNewer
                     + ", добавлено кодеков: " + added.size() + ".");
             if (!added.isEmpty()) {
                 logger().info("VoidVersions: теперь принимаются клиенты: " + String.join(", ", added));
+            } else if (scanned == 0 && skippedNewer > 0) {
+                logger().info("VoidVersions: в библиотеке cloudburst есть только кодеки новее этой сборки Geyser "
+                        + "(" + newestNative + ") — они не нужны, добавлять нечего.");
             } else if (scanned == 0) {
                 logger().info("VoidVersions: все доступные кодеки уже зарегистрированы в GameProtocol — добавлять нечего.");
             } else {
@@ -467,14 +576,125 @@ public final class VoidVersionsExtension implements Extension {
         patchRegistries();
     }
 
-    /** Класс BedrockCodec (тип поля CODEC) — нужен, чтобы найти processCodec по сигнатуре. */
-    private static Class<?> bedrockCodecClass(Object codec) {
-        Class<?> type = codec.getClass();
-        while (type != null && !"BedrockCodec".equals(type.getSimpleName())
-                && type.getSuperclass() != null && type.getSuperclass() != Object.class) {
-            type = type.getSuperclass();
+    /** «Первая - последняя» версия из GameProtocol — формат, которым Geyser показывает диапазон сам. */
+    private static String versionRange(ClassLoader cl) throws Exception {
+        Class<?> gameProtocol = Class.forName(GAME_PROTOCOL, false, cl);
+        @SuppressWarnings("unchecked")
+        List<Object> versions = (List<Object>) gameProtocol.getField("SUPPORTED_BEDROCK_VERSIONS").get(null);
+        if (versions.isEmpty()) {
+            return "";
         }
-        return type != null ? type : codec.getClass();
+        Method versionString = versions.get(0).getClass().getMethod("versionString");
+        String first = String.valueOf(versionString.invoke(versions.get(0)));
+        if (versions.size() == 1) {
+            return first;
+        }
+        return first + " - " + versionString.invoke(versions.get(versions.size() - 1));
+    }
+
+    /** Самая свежая родная версия протокола этой сборки Geyser ({@code DEFAULT_BEDROCK_PROTOCOL}). */
+    private static int newestNativeProtocol(ClassLoader cl) {
+        try {
+            Field field = Class.forName(GAME_PROTOCOL, false, cl).getField("DEFAULT_BEDROCK_PROTOCOL");
+            return (Integer) field.get(null);
+        } catch (Throwable t) {
+            // Не прочитали — считаем, что ограничения сверху нет, но не падаем.
+            return Integer.MAX_VALUE;
+        }
+    }
+
+    /**
+     * Санитайзер кодеков для добавляемых (старых) протоколов.
+     *
+     * <p>Штатный {@code CodecProcessor.processCodec} для этого не подходит: он
+     * рассчитан ровно на родные версии и, кроме безобидных «глушилок»,
+     * подменяет сериализаторы на номера версий Geyser (v291/v712/v748/v975…).
+     * Для чужой версии протокола это чужой формат пакетов — битый инвентарь
+     * и экипировка. Поэтому здесь берутся только версионно-независимые наборы
+     * {@code ILLEGAL_SERIALIZER} / {@code IGNORED_SERIALIZER} и применяются
+     * поштучно: пакета нет в этой версии — правило молча пропускается.</p>
+     *
+     * <p>Что теряется: версионные оптимизации чтения (hotbar, entity data,
+     * skin, move player…) — они лишь ускоряют разбор, безопасность даёт
+     * как раз пара ILLEGAL/IGNORED.</p>
+     */
+    private static final class Sanitizer {
+
+        private final ClassLoader cl;
+        private final Method updateSerializer;
+        private final Method build;
+        private final Object illegal;
+        private final Object ignored;
+        private final boolean receiptsEnabled;
+
+        private Sanitizer(ClassLoader cl, Method updateSerializer, Method build,
+                          Object illegal, Object ignored, boolean receiptsEnabled) {
+            this.cl = cl;
+            this.updateSerializer = updateSerializer;
+            this.build = build;
+            this.illegal = illegal;
+            this.ignored = ignored;
+            this.receiptsEnabled = receiptsEnabled;
+        }
+
+        /** {@code null}, если включено в конфиге, но нужных полей в Geyser нет. */
+        static Sanitizer create(ClassLoader cl, Object sampleCodec, boolean enabled) {
+            if (!enabled) {
+                return null;
+            }
+            try {
+                Class<?> processor = Class.forName(CODEC_PROCESSOR, true, cl);
+                Field illegalField = processor.getDeclaredField("ILLEGAL_SERIALIZER");
+                Field ignoredField = processor.getDeclaredField("IGNORED_SERIALIZER");
+                illegalField.setAccessible(true);
+                ignoredField.setAccessible(true);
+                Object illegal = illegalField.get(null);
+                Object ignored = ignoredField.get(null);
+                if (illegal == null || ignored == null) {
+                    return null;
+                }
+                // Сигнатура updateSerializer(Class, BedrockPacketSerializer) — тип
+                // второго параметра берём у самого поля, чтобы не тянуть cloudburst.
+                Class<?> serializerType = illegalField.getType();
+                Object sampleBuilder = sampleCodec.getClass().getMethod("toBuilder").invoke(sampleCodec);
+                Method update = sampleBuilder.getClass().getMethod("updateSerializer", Class.class, serializerType);
+                Method build = sampleBuilder.getClass().getMethod("build");
+                return new Sanitizer(cl, update, build, illegal, ignored,
+                        Boolean.getBoolean("Geyser.ReceiptPackets"));
+            } catch (Throwable t) {
+                return null;
+            }
+        }
+
+        /** Возвращает новый кодек с применёнными правилами; отсутствующие пакеты пропускаются. */
+        Object apply(Object codec, int protocol) throws Exception {
+            Object builder = codec.getClass().getMethod("toBuilder").invoke(codec);
+            for (String packet : ILLEGAL_PACKETS) {
+                applyRule(builder, packet, illegal);
+            }
+            for (String packet : IGNORED_PACKETS) {
+                applyRule(builder, packet, ignored);
+            }
+            if (!receiptsEnabled) {
+                for (String packet : RECEIPT_PACKETS) {
+                    applyRule(builder, packet, ignored);
+                }
+                // Как в Geyser: PartyChangedPacket глушится только с 26.10 (протокол 944).
+                if (protocol >= 944) {
+                    applyRule(builder, PARTY_PACKET, ignored);
+                }
+            }
+            return build.invoke(builder);
+        }
+
+        private void applyRule(Object builder, String packetName, Object serializer) {
+            try {
+                Class<?> packet = Class.forName(PACKET_PREFIX + packetName, false, cl);
+                updateSerializer.invoke(builder, packet, serializer);
+            } catch (Throwable missingPacket) {
+                // Такого пакета в этой версии протокола нет — правило не нужно.
+            }
+        }
     }
 
     private static Method versionProtocolMethod(List<Object> versions) {
