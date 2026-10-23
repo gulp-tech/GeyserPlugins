@@ -35,6 +35,7 @@ import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.inventory.meta.trim.ArmorTrim;
 import org.bukkit.inventory.meta.trim.TrimMaterial;
 import org.bukkit.inventory.meta.trim.TrimPattern;
+import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
@@ -59,6 +60,8 @@ public final class ItemsService implements Listener {
     private final WGHook worldGuard;
     private final WEHook worldEdit;
     private final NamespacedKey idKey;
+    /** Метки старых версий (FaralItems) — чтобы старые предметы в инвентарях продолжали работать. */
+    private final List<NamespacedKey> legacyIdKeys = new ArrayList<>();
     private final NamespacedKey spawnerMobKey; // моб внутри выпавшего из лома спавнера (страховка к BlockStateMeta)
     private final Map<String, CustomItem> items = new LinkedHashMap<>();
     private final Map<UUID, Map<String, Long>> cooldowns = new HashMap<>();
@@ -80,6 +83,12 @@ public final class ItemsService implements Listener {
         this.worldGuard = new WGHook(plugin.getLogger());
         this.worldEdit = new WEHook(plugin.getLogger());
         this.idKey = new NamespacedKey(plugin, "item_id");
+        for (String namespace : new String[]{"faralitems", "faral_items", "faral", "voidpe"}) {
+            try {
+                legacyIdKeys.add(new NamespacedKey(namespace, "item_id"));
+            } catch (IllegalArgumentException ignored) {
+            }
+        }
         this.spawnerMobKey = new NamespacedKey(plugin, "spawner_mob");
         load();
         registerRecipes();
@@ -256,7 +265,9 @@ public final class ItemsService implements Listener {
 
     // ------------------------------------------------------------------ предметы
     public ItemStack createItem(CustomItem item, int amount) {
-        ItemStack stack = new ItemStack(item.material(), Math.max(1, amount));
+        ItemStack stack = new ItemStack(item.material());
+        // У зелий максимальный стак — 1: без ограничения клиент показывал «пустой» стак.
+        stack.setAmount(Math.max(1, Math.min(amount, stack.getMaxStackSize())));
         ItemMeta meta = stack.getItemMeta();
         meta.displayName(component(TextUtil.color(item.displayName())));
         List<Component> lore = new ArrayList<>();
@@ -309,11 +320,64 @@ public final class ItemsService implements Listener {
         return stack;
     }
 
+    /**
+     * Узнаёт предмет по скрытой метке. Поддерживает предметы, выданные старыми
+     * версиями (FaralItems): у них другая метка, и раньше они вообще не узнавались —
+     * из-за этого око эндера улетало как ванильное, а пыль и трапка не работали.
+     * Старая метка при первом использовании переписывается на текущую.
+     */
     public String identify(ItemStack stack) {
         if (stack == null || stack.getType() == Material.AIR || !stack.hasItemMeta()) {
             return null;
         }
-        return stack.getItemMeta().getPersistentDataContainer().get(idKey, PersistentDataType.STRING);
+        ItemMeta meta = stack.getItemMeta();
+        if (meta == null) {
+            return null;
+        }
+        PersistentDataContainer data = meta.getPersistentDataContainer();
+        String current = data.get(idKey, PersistentDataType.STRING);
+        if (current != null && items.containsKey(current)) {
+            return current;
+        }
+        if (plugin.getConfig().getBoolean("identity.migrate-legacy", true)) {
+            for (NamespacedKey legacy : legacyIdKeys) {
+                String old = data.get(legacy, PersistentDataType.STRING);
+                if (old != null && items.containsKey(old)) {
+                    return migrateTag(stack, meta, old);
+                }
+            }
+            if (plugin.getConfig().getBoolean("identity.match-by-name", true)) {
+                String byName = byDisplayName(meta);
+                if (byName != null) {
+                    return migrateTag(stack, meta, byName);
+                }
+            }
+        }
+        return null;
+    }
+
+    /** Переписывает метку предмета на текущую (voiditems:item_id) и возвращает id. */
+    private String migrateTag(ItemStack stack, ItemMeta meta, String id) {
+        meta.getPersistentDataContainer().set(idKey, PersistentDataType.STRING, id);
+        stack.setItemMeta(meta);
+        return id;
+    }
+
+    private String byDisplayName(ItemMeta meta) {
+        if (!meta.hasDisplayName()) {
+            return null;
+        }
+        Component name = meta.displayName();
+        if (name == null) {
+            return null;
+        }
+        String plain = LegacyComponentSerializer.legacySection().serialize(name);
+        for (CustomItem item : items.values()) {
+            if (item.enabled() && plain.equals(TextUtil.color(item.displayName()))) {
+                return item.id();
+            }
+        }
+        return null;
     }
 
     public CustomItem byId(String id) {
@@ -373,9 +437,30 @@ public final class ItemsService implements Listener {
                 .put(item.id(), System.currentTimeMillis() + seconds * 1000L);
     }
 
-    private void consumeMainHand(Player player) {
-        ItemStack hand = player.getInventory().getItemInMainHand();
-        hand.setAmount(hand.getAmount() - 1);
+    /** Явно записывает уменьшённый стак обратно в слот: на Bedrock иначе предмет «не тратится». */
+    private void consume(Player player, EquipmentSlot slot) {
+        boolean main = slot != EquipmentSlot.OFF_HAND;
+        ItemStack hand = handItem(player, slot);
+        if (hand == null || hand.getType() == Material.AIR) {
+            return;
+        }
+        int left = hand.getAmount() - 1;
+        ItemStack updated = left <= 0 ? null : hand.clone();
+        if (updated != null) {
+            updated.setAmount(left);
+        }
+        if (main) {
+            player.getInventory().setItemInMainHand(updated);
+        } else {
+            player.getInventory().setItemInOffHand(updated);
+        }
+        player.updateInventory(); // клиенту Bedrock нужен явный синк слота
+    }
+
+    private static ItemStack handItem(Player player, EquipmentSlot slot) {
+        return slot == EquipmentSlot.OFF_HAND
+                ? player.getInventory().getItemInOffHand()
+                : player.getInventory().getItemInMainHand();
     }
 
     private void msg(Player player, String key, CustomItem item, String... pairs) {
@@ -394,25 +479,38 @@ public final class ItemsService implements Listener {
     }
 
     // ------------------------------------------------------------------ использование (ПКМ)
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = false)
     public void onUse(PlayerInteractEvent event) {
-        if (event.getHand() != EquipmentSlot.HAND) {
-            return;
-        }
         Action action = event.getAction();
         if (action != Action.RIGHT_CLICK_AIR && action != Action.RIGHT_CLICK_BLOCK) {
             return;
         }
         Player player = event.getPlayer();
-        String id = identify(player.getInventory().getItemInMainHand());
+        // Рука берётся из события: на Bedrock "использование в воздухе" иногда приходит
+        // как OFF_HAND, и раньше такие нажатия молча терялись.
+        EquipmentSlot hand = event.getHand() == null ? EquipmentSlot.HAND : event.getHand();
+        if (action == Action.RIGHT_CLICK_BLOCK && event.getClickedBlock() != null
+                && event.getClickedBlock().getType().isInteractable()) {
+            return; // сундук, дверь, кнопка: пусть работает ванильное действие, а не предмет
+        }
+        String id = identify(handItem(player, hand));
         if (id == null) {
             return;
         }
         CustomItem item = byId(id);
-        if (item == null || item.kind() == CustomItem.Kind.POTION || item.kind() == CustomItem.Kind.LOM
-                || item.kind() == CustomItem.Kind.ARMOR || item.kind() == CustomItem.Kind.GEAR) {
-            return; // зелья пьются как обычно, лом работает при ломании блока, броня и инструменты используются как обычные
+        if (item == null) {
+            return;
         }
+        if (item.kind() == CustomItem.Kind.LOM || item.kind() == CustomItem.Kind.ARMOR
+                || item.kind() == CustomItem.Kind.GEAR) {
+            return; // лом работает при ломании блока, броня и инструменты — как обычные
+        }
+        if (item.kind() == CustomItem.Kind.POTION) {
+            // Зелье пьётся ванильным способом: отменять событие нельзя, иначе питьё не начнётся.
+            // Запрет по зонам проверяется в onConsumeCustomPotion.
+            return;
+        }
+        // Свой предмет: ванильное действие (например, бросок ока эндера) не должно срабатывать никогда.
         event.setCancelled(true);
         if (isBanned(player.getLocation())) {
             msg(player, "banned", item);
@@ -432,14 +530,20 @@ public final class ItemsService implements Listener {
             used = useDisorient(player, item);
         }
         if (used) {
-            consumeMainHand(player);
+            consume(player, hand);
             startCooldown(player.getUniqueId(), item);
         }
     }
 
-    /** Кастомные зелья в запретной зоне пить нельзя (раньше зелья были исключением). */
+    /**
+     * Кастомные зелья пьются везде, включая спавн: это расходник, а не боевой предмет.
+     * Если нужно запрещать их в зонах — banned.allow-potions: false.
+     */
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onConsumeCustomPotion(PlayerItemConsumeEvent event) {
+        if (plugin.getConfig().getBoolean("banned.allow-potions", true)) {
+            return;
+        }
         String id = identify(event.getItem());
         CustomItem item = id == null ? null : byId(id);
         if (item == null || item.kind() != CustomItem.Kind.POTION) {
@@ -519,6 +623,12 @@ public final class ItemsService implements Listener {
             setTrapBlock(trap, base.getWorld().getBlockAt(bx, y, bz), Material.AIR);
         }
         setTrapBlock(trap, base.getWorld().getBlockAt(bx, by + 3, bz), light);
+        // Если игрок стоит на краю блока, хитбокс попадает в стену и его зажимает.
+        // Ставим его в центр клетки — на 0.5 блока, без рывков.
+        Location center = new Location(base.getWorld(), bx + 0.5, by, bz + 0.5, base.getYaw(), base.getPitch());
+        if (owner.getLocation().distanceSquared(center) > 0.09) {
+            owner.teleport(center);
+        }
         traps.add(trap);
 
         // кто оказался внутри вместе с хозяином — тот тоже в трапке
@@ -785,14 +895,16 @@ public final class ItemsService implements Listener {
                 other.addPotionEffect(new PotionEffect(e.type(), e.durationSeconds() * 20, e.amplifier(), true, false, true));
             }
             if (item.num("rotate-view", 1) > 0) {
-                Location loc = other.getLocation();
+                // Разворот без телепорта: setRotation не двигает игрока, поэтому
+                // античит не видит "moved too quickly" и ложных флагов не будет.
                 float turn = 120f + ThreadLocalRandom.current().nextFloat() * 120f;
                 if (ThreadLocalRandom.current().nextBoolean()) {
                     turn = -turn;
                 }
-                loc.setYaw(loc.getYaw() + turn);
-                loc.setPitch(Math.max(-60f, Math.min(60f, loc.getPitch() + (ThreadLocalRandom.current().nextFloat() * 50f - 25f))));
-                other.teleport(loc);
+                float yaw = other.getLocation().getYaw() + turn;
+                float pitch = Math.max(-60f, Math.min(60f,
+                        other.getLocation().getPitch() + (ThreadLocalRandom.current().nextFloat() * 50f - 25f)));
+                other.setRotation(yaw, pitch);
             }
             hit++;
         }
@@ -853,7 +965,7 @@ public final class ItemsService implements Listener {
             spawnerMeta.getPersistentDataContainer().set(spawnerMobKey, PersistentDataType.STRING, mob.name());
         }
         spawnerItem.setItemMeta(spawnerMeta);
-        consumeMainHand(player); // лом одноразовый
+        consume(player, EquipmentSlot.HAND); // лом одноразовый
         Bukkit.getScheduler().runTask(plugin, () -> {
             block.setType(Material.AIR, false);
             java.util.Map<Integer, ItemStack> rest = player.getInventory().addItem(spawnerItem);

@@ -99,7 +99,9 @@ public final class VoidItems extends JavaPlugin implements Listener, CommandExec
     // ------------------------------------------------------------------ меню
     public void openMenu(Player player) {
         List<CustomItem> all = new ArrayList<>(service.all());
-        int rows = Math.max(1, Math.min(6, getConfig().getInt("menu.rows", 2)));
+        // Слотов должно хватать на все предметы, даже если в конфиге rows меньше.
+        int needed = Math.max(1, (all.size() + 8) / 9);
+        int rows = Math.max(1, Math.min(6, Math.max(getConfig().getInt("menu.rows", 2), needed)));
         Inventory inv = Bukkit.createInventory(new MenuHolder(), rows * 9,
                 ItemsService.component(TextUtil.color(getConfig().getString("menu.title", "&#C86BFFКастомные предметы"))));
         int slot = 0;

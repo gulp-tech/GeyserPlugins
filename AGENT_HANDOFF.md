@@ -299,6 +299,43 @@ python3 tools/paperapi_audit.py VoidAntiCheat-2.0.1.jar VoidPvP-1.0.2.jar VoidQu
 `tools/paperapi_audit.py` — расхождений с настоящим Paper API нет; jar `VoidNick-1.0.0.jar`
 собран (7 классов).
 
+### 6.3.4. VoidItems 1.8.1 — клик по воздуху, око эндера, зелья на спавне
+
+Жалобы и причины:
+
+1. **Дезориентация улетала как око эндера.** Предмет не узнавался (`identify` смотрел только
+   метку `voiditems:item_id`), поэтому событие не отменялось и срабатывало ванильное действие —
+   око летело к крепости, падало и подбиралось. Теперь `identify` понимает старые метки
+   (`faralitems`, `faral_items`, `faral`, `voidpe`) и, как крайний случай, узнаёт предмет по
+   названию (`identity.migrate-legacy` / `identity.match-by-name`), сразу переписывая метку.
+2. **Клик по воздуху не работал у пыли и трапки.** Bedrock/Geyser отправляет «использование»
+   в воздухе только для предметов с действием. `GLOWSTONE_DUST` и `NETHERITE_SCRAP` такого
+   действия не имеют — нажатие вообще не доходило до сервера (работало только «по земле»).
+   В конфиге материалы заменены на `SNOWBALL` (пыль) и `FIRE_CHARGE` (трапка); ванильный бросок
+   отменяется. Материал можно менять, но у не-«используемых» предметов воздушный клик вернётся
+   к прежнему поведению.
+3. **ПКМ по сундуку/двери** больше не тратит кастомный предмет: если блок интерактивный,
+   работает ванильное действие (`Material#isInteractable`).
+4. **Рука из события.** Раньше обрабатывалась только `HAND`; теперь используется рука из
+   `PlayerInteractEvent`, а расход предмета пишется в тот же слот явно (`setItemInMainHand`),
+   иначе на Bedrock стак не уменьшался.
+5. **Зелья пьются на спавне.** `banned.allow-potions: true` — зелья-расходники не подпадают под
+   запретные зоны (раньше код их запрещал, хотя комментарий конфига обещал обратное).
+6. **Дезориентация без телепорта.** Вместо `teleport` на месте — `Entity#setRotation`: античит
+   не видит «moved too quickly», ложных флагов нет.
+7. **WorldGuard-регионы реально работают.** В `WGHook` искали `contains` через
+   `getMethod(..., point.getClass())`; при объявленном типе-суперклассе поиск падал, исключение
+   глоталось, и регионы (и запрет, и исключение `pvp`) молча не действовали.
+8. Мелочи: `createItem` ограничивает стак `getMaxStackSize` (зелья — 1), меню само расширяется
+   под число предметов, в трапке игрок ставится в центр клетки (не зажимается в стене).
+
+Сборка: `python3 tools/localbuild/bukkit_stubs.py /tmp/stubs` → ECJ → `VoidItems-1.8.1.jar`.
+Заглушки расширены под этот плагин (BlockData, CreatureSpawner, события, PDC, trims, ShapedRecipe).
+Аудит `tools/paperapi_audit.py` нашёл по пути реальные расхождения и они исправлены:
+`ItemMeta#addEnchant` → boolean, `Block#setType/setBlockData` → void,
+`LivingEntity#removePotionEffect` → void (в текущем Paper!), `BlockState#update` → boolean,
+`PlayerInventory#addItem` — только varargs, `Player#openInventory(Inventory)` → `InventoryView`.
+
 ## 8. Состояние сервера пользователя (по последнему логу)
 
 Purpur 26.2 build 121, Geyser 2.12.0-b1268 (git-master-d14f204), UDP-порт 19139, миры: world, world2, nether, end. Игрок/админ — MUSD38 (привилегия «Создатель»). VoidWardenCity: точки загружены из points.yml — центр и спавн `world2 -648 -42 -544`, GUI-лута загружено 54 предмета. На сервере также стоят **чужие плагины (не наши, не трогать)**: Lmauction/LMstash/LMbuyer/LMRoom, ZNPCsPlus, LiteKits, GeyserEvent, Pl-Hide-Pro, HeadDatabase, CoreProtect, BetterRTP, ViaVersion, AuthMe, Essentials, DeluxeMenus, DecentHolograms и т.д. Их WARN в логе (duplicate keys у Lmauction, дубль UUID пака GeyserEvent, пустой префикс Floodgate) — не наши задачи, если пользователь не попросит.

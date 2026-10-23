@@ -82,7 +82,10 @@ public final class WGHook {
                 if (region == null) {
                     continue;
                 }
-                Method contains = region.getClass().getMethod("contains", point.getClass());
+                Method contains = containsMethod(region.getClass(), point.getClass());
+                if (contains == null) {
+                    continue;
+                }
                 Object inside = contains.invoke(region, point);
                 if (Boolean.TRUE.equals(inside)) {
                     return true;
@@ -92,6 +95,28 @@ public final class WGHook {
         } catch (Throwable t) {
             return false;
         }
+    }
+
+    /**
+     * Ищет contains(...) по совместимому типу параметра. Раньше здесь был
+     * getMethod("contains", point.getClass()) — если параметр объявлен как
+     * BlockVector3/интерфейс, поиск падал, ошибка глоталась, и регионы
+     * WorldGuard молча не работали (ни запрет, ни исключение pvp).
+     */
+    private static Method containsMethod(Class<?> regionClass, Class<?> pointClass) {
+        Method fallback = null;
+        for (Method method : regionClass.getMethods()) {
+            if (!"contains".equals(method.getName()) || method.getParameterCount() != 1) {
+                continue;
+            }
+            if (method.getParameterTypes()[0].isAssignableFrom(pointClass)) {
+                return method;
+            }
+            if (fallback == null) {
+                fallback = method;
+            }
+        }
+        return fallback;
     }
 
     /** Для отладки: адаптер локации не нужен наружу, оставлен на будущее. */

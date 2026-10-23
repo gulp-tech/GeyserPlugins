@@ -64,6 +64,14 @@ public final class NamespacedKey {
         this.key = key;
     }
 
+    public NamespacedKey(String namespace, String key) {
+        this.key = key;
+    }
+
+    public NamespacedKey(org.bukkit.plugin.Plugin plugin, String key) {
+        this.key = key;
+    }
+
     public static NamespacedKey minecraft(String key) {
         return new NamespacedKey(key);
     }
@@ -96,6 +104,8 @@ public interface Registry<T> {
     Registry<Enchantment> ENCHANTMENT = StubRegistrySupport.ofEnchantments();
     Registry<PotionEffectType> EFFECT = StubRegistrySupport.ofEffects();
     Registry<PotionEffectType> MOB_EFFECT = Registry.EFFECT;
+    Registry<org.bukkit.inventory.meta.trim.TrimMaterial> TRIM_MATERIAL = key -> null;
+    Registry<org.bukkit.inventory.meta.trim.TrimPattern> TRIM_PATTERN = key -> null;
 
     T get(NamespacedKey key);
 }
@@ -187,6 +197,11 @@ public class PotionEffect {
     private final int amplifier;
 
     public PotionEffect(PotionEffectType type, int duration, int amplifier) {
+        this(type, duration, amplifier, true, true, true);
+    }
+
+    public PotionEffect(PotionEffectType type, int duration, int amplifier,
+                        boolean ambient, boolean particles, boolean icon) {
         this.type = type;
         this.duration = duration;
         this.amplifier = amplifier;
@@ -211,6 +226,21 @@ package org.bukkit.potion;
 
 /** В Paper — абстрактный класс. */
 public abstract class PotionEffectType {
+    public static final PotionEffectType INVISIBILITY = new StubPotionEffectType("invisibility");
+    public static final PotionEffectType GLOWING = new StubPotionEffectType("glowing");
+    public static final PotionEffectType BLINDNESS = new StubPotionEffectType("blindness");
+    public static final PotionEffectType NAUSEA = new StubPotionEffectType("nausea");
+    public static final PotionEffectType SLOWNESS = new StubPotionEffectType("slowness");
+    public static final PotionEffectType SPEED = new StubPotionEffectType("speed");
+    public static final PotionEffectType STRENGTH = new StubPotionEffectType("strength");
+    public static final PotionEffectType JUMP_BOOST = new StubPotionEffectType("jump_boost");
+    public static final PotionEffectType RESISTANCE = new StubPotionEffectType("resistance");
+    public static final PotionEffectType FIRE_RESISTANCE = new StubPotionEffectType("fire_resistance");
+
+    public static PotionEffectType getByName(String name) {
+        return valueOf(name);
+    }
+
     public static PotionEffectType valueOf(String key) {
         return new StubPotionEffectType(key);
     }
@@ -246,6 +276,15 @@ package org.bukkit.enchantments;
 
 /** В Paper — абстрактный класс. */
 public abstract class Enchantment {
+    public static final Enchantment UNBREAKING = new StubEnchantment("unbreaking");
+    public static final Enchantment PROTECTION = new StubEnchantment("protection");
+    public static final Enchantment SHARPNESS = new StubEnchantment("sharpness");
+    public static final Enchantment EFFICIENCY = new StubEnchantment("efficiency");
+
+    public static Enchantment getByName(String name) {
+        return valueOf(name);
+    }
+
     public static Enchantment valueOf(String key) {
         return new StubEnchantment(key);
     }
@@ -294,6 +333,10 @@ public enum Material {
 
     public boolean isSolid() {
         return this != AIR && this != WATER && this != LAVA && this != BUBBLE_COLUMN && this != POWDER_SNOW;
+    }
+
+    public boolean isInteractable() {
+        return this == CHEST;
     }
 
     public boolean isLiquid() {
@@ -461,6 +504,10 @@ public class Location implements Cloneable {
         pitch = value;
     }
 
+    public org.bukkit.block.Block getBlock() {
+        return world == null ? null : world.getBlockAt(getBlockX(), getBlockY(), getBlockZ());
+    }
+
     public int getBlockX() {
         return (int) Math.floor(x);
     }
@@ -527,6 +574,10 @@ public interface World {
 
     List<Player> getPlayers();
 
+    org.bukkit.entity.Item dropItemNaturally(Location location, org.bukkit.inventory.ItemStack stack);
+
+    org.bukkit.entity.Item dropItem(Location location, org.bukkit.inventory.ItemStack stack);
+
     int getMaxHeight();
 
     File getWorldFolder();
@@ -554,6 +605,18 @@ public interface Block {
     int getY();
 
     int getZ();
+
+    void setType(Material type, boolean applyPhysics);
+
+    void setType(Material type);
+
+    void setBlockData(org.bukkit.block.data.BlockData data, boolean applyPhysics);
+
+    void setBlockData(org.bukkit.block.data.BlockData data);
+
+    org.bukkit.block.data.BlockData getBlockData();
+
+    BlockState getState();
 }
 """)
 
@@ -586,7 +649,13 @@ public interface Entity {
 
     boolean teleport(Location location);
 
+    void setRotation(float yaw, float pitch);
+
     void remove();
+
+    void setGlowing(boolean glowing);
+
+    boolean isGlowing();
 }
 """)
 
@@ -632,6 +701,8 @@ import org.bukkit.World;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.inventory.PlayerInventory;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.InventoryView;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
@@ -687,6 +758,20 @@ public interface Player extends LivingEntity, org.bukkit.OfflinePlayer {
     void setPlayerListName(String name);
 
     void kickPlayer(String message);
+
+    void updateInventory();
+
+    void playSound(Location location, String sound, float volume, float pitch);
+
+    InventoryView openInventory(Inventory inventory);
+
+    void openInventory(InventoryView view);
+
+    boolean addPotionEffect(PotionEffect effect);
+
+    void removePotionEffect(PotionEffectType type);
+
+    boolean hasPotionEffect(PotionEffectType type);
 }
 """)
 
@@ -990,6 +1075,8 @@ public interface BukkitScheduler {
     BukkitTask runTaskTimer(Plugin plugin, Runnable task, long delay, long period);
 
     BukkitTask runTask(Plugin plugin, Runnable task);
+
+    BukkitTask runTaskLater(Plugin plugin, Runnable task, long delay);
 }
 """)
 
@@ -1033,6 +1120,10 @@ public interface ConfigurationSection {
     boolean contains(String path);
 
     void set(String path, Object value);
+
+    default java.util.List<java.util.Map<?, ?>> getMapList(String path) {
+        return new java.util.ArrayList<>();
+    }
 }
 """)
 
@@ -1228,6 +1319,10 @@ import org.bukkit.event.Event;
 
 public abstract class PlayerEvent extends Event {
     private final Player player;
+
+    protected PlayerEvent() {
+        this(null);
+    }
 
     protected PlayerEvent(Player player) {
         this.player = player;
@@ -1439,6 +1534,10 @@ import org.bukkit.event.Event;
 public abstract class EntityEvent extends Event {
     private final Entity entity;
 
+    protected EntityEvent() {
+        this(null);
+    }
+
     protected EntityEvent(Entity entity) {
         this.entity = entity;
     }
@@ -1525,6 +1624,10 @@ import org.bukkit.event.Event;
 
 public abstract class BlockEvent extends Event {
     private final Block block;
+
+    protected BlockEvent() {
+        this(null);
+    }
 
     protected BlockEvent(Block block) {
         this.block = block;
@@ -1968,6 +2071,704 @@ public final class Bukkit {
     public static int getCurrentTick() {
         return tick;
     }
+
+    public static boolean addRecipe(org.bukkit.inventory.Recipe recipe) {
+        return true;
+    }
+
+    public static boolean removeRecipe(NamespacedKey key) {
+        return true;
+    }
+
+    public static org.bukkit.inventory.Inventory createInventory(
+            org.bukkit.inventory.InventoryHolder holder, int size, net.kyori.adventure.text.Component title) {
+        return null;
+    }
+
+    public static org.bukkit.block.data.BlockData createBlockData(String data) {
+        return null;
+    }
+}
+""")
+
+
+# ------------------------------------------------------------------ предметы, блоки, события
+# Нужны для VoidItems (кастомные предметы). Виды типов сверены с Paper API:
+# Material — enum, ItemMeta/BlockState/PersistentDataContainer — интерфейсы.
+
+add("org/bukkit/Material", """
+package org.bukkit;
+
+public enum Material {
+    AIR, STONE, DIRT, GRASS_BLOCK, CHEST, SPAWNER, BEDROCK, OBSIDIAN, CRYING_OBSIDIAN,
+    POLISHED_BLACKSTONE, GILDED_BLACKSTONE, SEA_LANTERN, GLOWSTONE_DUST, ENDER_EYE,
+    ENDER_PEARL, FIRE_CHARGE, SNOWBALL, NETHERITE_SCRAP, GOLDEN_PICKAXE, GOLD_INGOT, STICK,
+    POTION, GLASS_BOTTLE, NETHER_WART, BLAZE_POWDER, SUGAR, FERMENTED_SPIDER_EYE, DIAMOND,
+    EMERALD, FEATHER, MAGMA_CREAM, GLOW_INK_SAC, DIAMOND_HELMET, DIAMOND_CHESTPLATE,
+    DIAMOND_LEGGINGS, DIAMOND_BOOTS, DIAMOND_SWORD, DIAMOND_PICKAXE, DIAMOND_AXE,
+    DIAMOND_SHOVEL, DIAMOND_HOE, WATER, LAVA, BARRIER;
+
+    public static Material matchMaterial(String name) {
+        return name == null ? null : STONE;
+    }
+
+    public boolean isInteractable() {
+        return this == CHEST;
+    }
+
+    public boolean isAir() {
+        return this == AIR;
+    }
+
+    public boolean isSolid() {
+        return this != AIR && this != WATER && this != LAVA;
+    }
+
+    public boolean isLiquid() {
+        return this == WATER || this == LAVA;
+    }
+
+    public boolean isBlock() {
+        return this != POTION;
+    }
+
+    public boolean isItem() {
+        return true;
+    }
+
+    public boolean isEdible() {
+        return false;
+    }
+}
+""")
+
+add("org/bukkit/inventory/meta/ItemMeta", """
+package org.bukkit.inventory.meta;
+
+import net.kyori.adventure.text.Component;
+import org.bukkit.enchantments.Enchantment;
+import org.bukkit.inventory.ItemFlag;
+import org.bukkit.persistence.PersistentDataContainer;
+
+import java.util.List;
+
+public interface ItemMeta {
+    boolean hasDisplayName();
+
+    Component displayName();
+
+    void displayName(Component name);
+
+    boolean hasLore();
+
+    List<Component> lore();
+
+    void lore(List<Component> lore);
+
+    boolean addEnchant(Enchantment enchantment, int level, boolean ignoreLevelRestriction);
+
+    void addItemFlags(ItemFlag... flags);
+
+    PersistentDataContainer getPersistentDataContainer();
+}
+""")
+
+add("org/bukkit/inventory/ItemStack", """
+package org.bukkit.inventory;
+
+import org.bukkit.Material;
+import org.bukkit.enchantments.Enchantment;
+import org.bukkit.inventory.meta.ItemMeta;
+
+public class ItemStack implements Cloneable {
+    private Material type;
+    private int amount;
+    private ItemMeta meta;
+
+    public ItemStack(Material type) {
+        this(type, 1);
+    }
+
+    public ItemStack(Material type, int amount) {
+        this.type = type;
+        this.amount = amount;
+    }
+
+    public Material getType() {
+        return type;
+    }
+
+    public int getAmount() {
+        return amount;
+    }
+
+    public void setAmount(int amount) {
+        this.amount = amount;
+    }
+
+    public ItemMeta getItemMeta() {
+        return meta;
+    }
+
+    public boolean setItemMeta(ItemMeta meta) {
+        this.meta = meta;
+        return true;
+    }
+
+    public boolean hasItemMeta() {
+        return meta != null;
+    }
+
+    public int getMaxStackSize() {
+        return type == Material.POTION ? 1 : 64;
+    }
+
+    public int getEnchantmentLevel(Enchantment enchantment) {
+        return 0;
+    }
+
+    public boolean isAir() {
+        return type == null || type == Material.AIR;
+    }
+
+    public boolean isSimilar(ItemStack other) {
+        return other != null && other.type == type;
+    }
+
+    @Override
+    public ItemStack clone() {
+        return new ItemStack(type, amount);
+    }
+}
+""")
+
+add("org/bukkit/inventory/PlayerInventory", """
+package org.bukkit.inventory;
+
+import java.util.HashMap;
+import java.util.Map;
+
+public interface PlayerInventory extends Inventory {
+    ItemStack getBoots();
+
+    ItemStack getItemInMainHand();
+
+    void setItemInMainHand(ItemStack item);
+
+    ItemStack getItemInOffHand();
+
+    void setItemInOffHand(ItemStack item);
+
+    HashMap<Integer, ItemStack> addItem(ItemStack... items);
+}
+""")
+
+add("org/bukkit/inventory/Inventory", """
+package org.bukkit.inventory;
+
+public interface Inventory {
+    ItemStack getItem(int slot);
+
+    void setItem(int slot, ItemStack item);
+
+    int getSize();
+
+    InventoryHolder getHolder();
+}
+""")
+
+add("org/bukkit/inventory/InventoryView", """
+package org.bukkit.inventory;
+
+public abstract class InventoryView {
+    public Inventory getTopInventory() {
+        return null;
+    }
+
+    public Inventory getBottomInventory() {
+        return null;
+    }
+}
+""")
+
+add("org/bukkit/inventory/InventoryHolder", """
+package org.bukkit.inventory;
+
+public interface InventoryHolder {
+    Inventory getInventory();
+}
+""")
+
+add("org/bukkit/inventory/Recipe", """
+package org.bukkit.inventory;
+
+public interface Recipe {
+}
+""")
+
+add("org/bukkit/inventory/ShapedRecipe", """
+package org.bukkit.inventory;
+
+import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
+
+public class ShapedRecipe implements Recipe {
+    public ShapedRecipe(NamespacedKey key, ItemStack result) {
+    }
+
+    public ShapedRecipe shape(String... shape) {
+        return this;
+    }
+
+    public ShapedRecipe setIngredient(char key, Material material) {
+        return this;
+    }
+}
+""")
+
+add("org/bukkit/inventory/ItemFlag", """
+package org.bukkit.inventory;
+
+public enum ItemFlag {
+    HIDE_ENCHANTS, HIDE_ATTRIBUTES, HIDE_UNBREAKABLE, HIDE_DESTROYS, HIDE_PLACED_ON, HIDE_DYE
+}
+""")
+
+add("org/bukkit/inventory/meta/BlockStateMeta", """
+package org.bukkit.inventory.meta;
+
+import org.bukkit.block.BlockState;
+
+public interface BlockStateMeta extends ItemMeta {
+    BlockState getBlockState();
+
+    void setBlockState(BlockState state);
+}
+""")
+
+add("org/bukkit/inventory/meta/ArmorMeta", """
+package org.bukkit.inventory.meta;
+
+import org.bukkit.inventory.meta.trim.ArmorTrim;
+
+public interface ArmorMeta extends ItemMeta {
+    ArmorTrim getTrim();
+
+    void setTrim(ArmorTrim trim);
+}
+""")
+
+add("org/bukkit/inventory/meta/PotionMeta", """
+package org.bukkit.inventory.meta;
+
+import org.bukkit.Color;
+import org.bukkit.potion.PotionEffect;
+
+public interface PotionMeta extends ItemMeta {
+    boolean addCustomEffect(PotionEffect effect, boolean overwrite);
+
+    void clearCustomEffects();
+
+    void setColor(Color color);
+
+    Color getColor();
+}
+""")
+
+add("org/bukkit/inventory/meta/trim/ArmorTrim", """
+package org.bukkit.inventory.meta.trim;
+
+public class ArmorTrim {
+    public ArmorTrim(TrimMaterial material, TrimPattern pattern) {
+    }
+
+    public TrimMaterial getMaterial() {
+        return null;
+    }
+
+    public TrimPattern getPattern() {
+        return null;
+    }
+}
+""")
+
+add("org/bukkit/inventory/meta/trim/TrimMaterial", """
+package org.bukkit.inventory.meta.trim;
+
+public interface TrimMaterial {
+}
+""")
+
+add("org/bukkit/inventory/meta/trim/TrimPattern", """
+package org.bukkit.inventory.meta.trim;
+
+public interface TrimPattern {
+}
+""")
+
+add("org/bukkit/Color", """
+package org.bukkit;
+
+public final class Color {
+    public static Color fromRGB(int red, int green, int blue) {
+        return new Color();
+    }
+
+    public static Color fromRGB(int rgb) {
+        return new Color();
+    }
+}
+""")
+
+add("org/bukkit/persistence/PersistentDataContainer", """
+package org.bukkit.persistence;
+
+import org.bukkit.NamespacedKey;
+
+public interface PersistentDataContainer {
+    <P, C> C get(NamespacedKey key, PersistentDataType<P, C> type);
+
+    <P, C> void set(NamespacedKey key, PersistentDataType<P, C> type, C value);
+
+    boolean has(NamespacedKey key);
+
+    void remove(NamespacedKey key);
+}
+""")
+
+add("org/bukkit/persistence/PersistentDataType", """
+package org.bukkit.persistence;
+
+public interface PersistentDataType<P, C> {
+    PersistentDataType<String, String> STRING = new PersistentDataType<String, String>() {
+    };
+    PersistentDataType<Integer, Integer> INTEGER = new PersistentDataType<Integer, Integer>() {
+    };
+    PersistentDataType<Byte, Byte> BYTE = new PersistentDataType<Byte, Byte>() {
+    };
+}
+""")
+
+add("org/bukkit/block/BlockState", """
+package org.bukkit.block;
+
+import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.World;
+
+public interface BlockState {
+    Material getType();
+
+    World getWorld();
+
+    Location getLocation();
+
+    boolean update(boolean applyPhysics, boolean force);
+
+    boolean update(boolean applyPhysics);
+
+    boolean update();
+
+    org.bukkit.block.data.BlockData getBlockData();
+}
+""")
+
+add("org/bukkit/block/CreatureSpawner", """
+package org.bukkit.block;
+
+import org.bukkit.entity.EntityType;
+
+public interface CreatureSpawner extends BlockState {
+    EntityType getSpawnedType();
+
+    void setSpawnedType(EntityType type);
+}
+""")
+
+add("org/bukkit/block/data/BlockData", """
+package org.bukkit.block.data;
+
+public interface BlockData extends Cloneable {
+    BlockData clone();
+
+    String getAsString();
+
+    String getAsString(boolean hideUnspecified);
+}
+""")
+
+add("org/bukkit/entity/Item", """
+package org.bukkit.entity;
+
+public interface Item extends Entity {
+    org.bukkit.inventory.ItemStack getItemStack();
+
+    void setItemStack(org.bukkit.inventory.ItemStack stack);
+}
+""")
+
+add("org/bukkit/entity/EntityType", """
+package org.bukkit.entity;
+
+public enum EntityType {
+    ARMOR_STAND, ITEM_FRAME, PAINTING, WARDEN, ZOMBIE, SKELETON, SPIDER, CREEPER, BLAZE;
+}
+""")
+
+add("org/bukkit/event/block/Action", """
+package org.bukkit.event.block;
+
+public enum Action {
+    LEFT_CLICK_BLOCK, LEFT_CLICK_AIR, RIGHT_CLICK_BLOCK, RIGHT_CLICK_AIR, PHYSICAL
+}
+""")
+
+add("org/bukkit/event/player/PlayerInteractEvent", """
+package org.bukkit.event.player;
+
+import org.bukkit.block.Block;
+import org.bukkit.event.Cancellable;
+import org.bukkit.event.block.Action;
+import org.bukkit.inventory.EquipmentSlot;
+import org.bukkit.inventory.ItemStack;
+
+public class PlayerInteractEvent extends PlayerEvent implements Cancellable {
+    private boolean cancelled;
+
+    public Action getAction() {
+        return Action.RIGHT_CLICK_AIR;
+    }
+
+    public EquipmentSlot getHand() {
+        return EquipmentSlot.HAND;
+    }
+
+    public Block getClickedBlock() {
+        return null;
+    }
+
+    public ItemStack getItem() {
+        return null;
+    }
+
+    @Override
+    public boolean isCancelled() {
+        return cancelled;
+    }
+
+    @Override
+    public void setCancelled(boolean cancel) {
+        this.cancelled = cancel;
+    }
+}
+""")
+
+add("org/bukkit/event/player/PlayerItemConsumeEvent", """
+package org.bukkit.event.player;
+
+import org.bukkit.event.Cancellable;
+import org.bukkit.inventory.ItemStack;
+
+public class PlayerItemConsumeEvent extends PlayerEvent implements Cancellable {
+    private boolean cancelled;
+
+    public ItemStack getItem() {
+        return null;
+    }
+
+    @Override
+    public boolean isCancelled() {
+        return cancelled;
+    }
+
+    @Override
+    public void setCancelled(boolean cancel) {
+        this.cancelled = cancel;
+    }
+}
+""")
+
+add("org/bukkit/event/block/BlockExplodeEvent", """
+package org.bukkit.event.block;
+
+import org.bukkit.block.Block;
+
+import java.util.List;
+
+public class BlockExplodeEvent extends BlockEvent {
+    public List<Block> blockList() {
+        return java.util.Collections.emptyList();
+    }
+}
+""")
+
+add("org/bukkit/event/entity/EntityExplodeEvent", """
+package org.bukkit.event.entity;
+
+import org.bukkit.block.Block;
+
+import java.util.List;
+
+public class EntityExplodeEvent extends EntityEvent {
+    public List<Block> blockList() {
+        return java.util.Collections.emptyList();
+    }
+}
+""")
+
+
+# Переопределения: методы, которые нужны VoidItems и есть в Paper.
+add("org/bukkit/event/block/BlockPlaceEvent", """
+package org.bukkit.event.block;
+
+import org.bukkit.block.Block;
+import org.bukkit.entity.Player;
+import org.bukkit.event.Cancellable;
+import org.bukkit.inventory.ItemStack;
+
+public class BlockPlaceEvent extends BlockEvent implements Cancellable {
+    private final Player player;
+    private boolean cancelled;
+
+    public BlockPlaceEvent(Block block, Player player) {
+        super(block);
+        this.player = player;
+    }
+
+    public Player getPlayer() {
+        return player;
+    }
+
+    public Block getBlockPlaced() {
+        return getBlock();
+    }
+
+    public ItemStack getItemInHand() {
+        return null;
+    }
+
+    @Override
+    public boolean isCancelled() {
+        return cancelled;
+    }
+
+    @Override
+    public void setCancelled(boolean cancel) {
+        this.cancelled = cancel;
+    }
+}
+""")
+
+add("org/bukkit/event/block/BlockBreakEvent", """
+package org.bukkit.event.block;
+
+import org.bukkit.block.Block;
+import org.bukkit.entity.Player;
+import org.bukkit.event.Cancellable;
+
+public class BlockBreakEvent extends BlockEvent implements Cancellable {
+    private final Player player;
+    private boolean cancelled;
+    private boolean dropItems = true;
+    private int expToDrop;
+
+    public BlockBreakEvent(Block block, Player player) {
+        super(block);
+        this.player = player;
+    }
+
+    public Player getPlayer() {
+        return player;
+    }
+
+    public void setDropItems(boolean drop) {
+        this.dropItems = drop;
+    }
+
+    public boolean isDropItems() {
+        return dropItems;
+    }
+
+    public void setExpToDrop(int amount) {
+        this.expToDrop = amount;
+    }
+
+    public int getExpToDrop() {
+        return expToDrop;
+    }
+
+    @Override
+    public boolean isCancelled() {
+        return cancelled;
+    }
+
+    @Override
+    public void setCancelled(boolean cancel) {
+        this.cancelled = cancel;
+    }
+}
+""")
+
+add("org/bukkit/event/inventory/InventoryClickEvent", """
+package org.bukkit.event.inventory;
+
+import org.bukkit.entity.HumanEntity;
+import org.bukkit.event.Cancellable;
+import org.bukkit.event.Event;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemStack;
+
+public class InventoryClickEvent extends Event implements Cancellable {
+    private boolean cancelled;
+
+    public Inventory getInventory() {
+        return null;
+    }
+
+    public Inventory getClickedInventory() {
+        return null;
+    }
+
+    public HumanEntity getWhoClicked() {
+        return null;
+    }
+
+    public ItemStack getCurrentItem() {
+        return null;
+    }
+
+    public ItemStack getCursor() {
+        return null;
+    }
+
+    public int getSlot() {
+        return 0;
+    }
+
+    @Override
+    public boolean isCancelled() {
+        return cancelled;
+    }
+
+    @Override
+    public void setCancelled(boolean cancel) {
+        this.cancelled = cancel;
+    }
+}
+""")
+
+add("org/bukkit/entity/HumanEntity", """
+package org.bukkit.entity;
+
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.PlayerInventory;
+
+public interface HumanEntity extends LivingEntity {
+    String getName();
+
+    PlayerInventory getInventory();
+
+    Inventory getEnderChest();
 }
 """)
 
