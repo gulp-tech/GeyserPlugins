@@ -39,6 +39,7 @@ public final class VoidItems extends JavaPlugin implements Listener, CommandExec
     public void onEnable() {
         migrateFromFaralItems();
         saveDefaultConfig();
+        migrateConfig();
         service = new ItemsService(this);
         getServer().getPluginManager().registerEvents(this, this);
         getServer().getPluginManager().registerEvents(service, this);
@@ -82,6 +83,45 @@ public final class VoidItems extends JavaPlugin implements Listener, CommandExec
             }
         } catch (Throwable t) {
             getLogger().warning("Не удалось перенести данные FaralItems: " + t.getMessage());
+        }
+    }
+
+    /**
+     * Обновление старого config.yml на диске. Без этого новые ключи и материалы
+     * не появятся: saveDefaultConfig() не перезаписывает существующий файл.
+     * Меняем только те значения, что остались прежними по умолчанию.
+     */
+    private void migrateConfig() {
+        int version = getConfig().getInt("config-version", 1);
+        if (version >= 2) {
+            return;
+        }
+        boolean changed = false;
+        if ("GLOWSTONE_DUST".equalsIgnoreCase(getConfig().getString("items.dust.material", ""))) {
+            // Bedrock не отправляет клик по воздуху для светопыли — снежок отправляет.
+            getConfig().set("items.dust.material", "SNOWBALL");
+            changed = true;
+        }
+        if ("NETHERITE_SCRAP".equalsIgnoreCase(getConfig().getString("items.trapka.material", ""))) {
+            getConfig().set("items.trapka.material", "FIRE_CHARGE");
+            changed = true;
+        }
+        if (!getConfig().isSet("banned.allow-potions")) {
+            getConfig().set("banned.allow-potions", true);
+            changed = true;
+        }
+        if (!getConfig().isSet("identity.migrate-legacy")) {
+            getConfig().set("identity.migrate-legacy", true);
+            changed = true;
+        }
+        if (!getConfig().isSet("identity.match-by-name")) {
+            getConfig().set("identity.match-by-name", true);
+            changed = true;
+        }
+        getConfig().set("config-version", 2);
+        if (changed) {
+            saveConfig();
+            getLogger().info("Конфиг обновлён до версии 2: клик по воздуху, зелья на спавне, узнавание старых предметов.");
         }
     }
 

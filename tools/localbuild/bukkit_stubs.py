@@ -1020,6 +1020,9 @@ public abstract class JavaPlugin implements Plugin {
     public void onDisable() {
     }
 
+    public void saveConfig() {
+    }
+
     public void saveDefaultConfig() {
     }
 
@@ -1118,6 +1121,10 @@ public interface ConfigurationSection {
     Set<String> getKeys(boolean deep);
 
     boolean contains(String path);
+
+    default boolean isSet(String path) {
+        return contains(path);
+    }
 
     void set(String path, Object value);
 

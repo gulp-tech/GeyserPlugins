@@ -299,7 +299,7 @@ python3 tools/paperapi_audit.py VoidAntiCheat-2.0.1.jar VoidPvP-1.0.2.jar VoidQu
 `tools/paperapi_audit.py` — расхождений с настоящим Paper API нет; jar `VoidNick-1.0.0.jar`
 собран (7 классов).
 
-### 6.3.4. VoidItems 1.8.1 — клик по воздуху, око эндера, зелья на спавне
+### 6.3.4. VoidItems 1.8.2 — клик по воздуху, око эндера, зелья на спавне
 
 Жалобы и причины:
 
@@ -329,7 +329,11 @@ python3 tools/paperapi_audit.py VoidAntiCheat-2.0.1.jar VoidPvP-1.0.2.jar VoidQu
 8. Мелочи: `createItem` ограничивает стак `getMaxStackSize` (зелья — 1), меню само расширяется
    под число предметов, в трапке игрок ставится в центр клетки (не зажимается в стене).
 
-Сборка: `python3 tools/localbuild/bukkit_stubs.py /tmp/stubs` → ECJ → `VoidItems-1.8.1.jar`.
+Миграция старого конфига на сервере: при включении плагин сам ставит `config-version: 2`,
+меняет материалы (`GLOWSTONE_DUST` → `SNOWBALL`, `NETHERITE_SCRAP` → `FIRE_CHARGE`) и добавляет
+`banned.allow-potions`, `identity.*`; вручную править YAML не нужно.
+
+Сборка: `python3 tools/localbuild/bukkit_stubs.py /tmp/stubs` → ECJ → `VoidItems-1.8.2.jar`.
 Заглушки расширены под этот плагин (BlockData, CreatureSpawner, события, PDC, trims, ShapedRecipe).
 Аудит `tools/paperapi_audit.py` нашёл по пути реальные расхождения и они исправлены:
 `ItemMeta#addEnchant` → boolean, `Block#setType/setBlockData` → void,
