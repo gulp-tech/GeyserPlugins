@@ -634,6 +634,15 @@ ADVENTURE_CLASSES = {
 # NoSuchMethodError — именно так упал VoidTab 1.16.2:
 #   NoSuchMethodError: LegacyComponentSerializer.deserialize(String)Component
 # (в adventure возвращается TextComponent, а не Component).
+# Методы, у которых сигнатура зависит от версии сервера: в jar они выглядят
+# нормально, но на другой версии падают NoSuchMethodError. Зовите их через
+# собственный помощник (RegistryAccess), а не напрямую.
+#   Registry#get(NamespacedKey) есть в paper-api main, но на 26.x принимает
+#   adventure Key — прямой вызов убил VoidItems 1.8.4 при включении.
+VERSION_FRAGILE = {
+    ("org/bukkit/Registry", "get"),
+}
+
 ADVENTURE_DESCRIPTORS = {
     ("net/kyori/adventure/text/serializer/legacy/LegacyComponentSerializer", "deserialize"):
         "(Ljava/lang/String;)Lnet/kyori/adventure/text/TextComponent;",
@@ -715,6 +724,10 @@ def check_library_kinds(jar_path):
                     continue
                 member_name = pool.get(nat[1][0], ("", ""))[1]
                 member_desc = pool.get(nat[1][1], ("", ""))[1]
+                if (name, member_name) in VERSION_FRAGILE:
+                    problems.append("%s: %s.%s — сигнатура зависит от версии сервера, "
+                                    "используй свой помощник (RegistryAccess)"
+                                    % (entry, name.rsplit("/", 1)[-1], member_name))
                 expected = ADVENTURE_DESCRIPTORS.get((name, member_name))
                 if expected and member_desc != expected:
                     problems.append("%s: %s.%s%s — в adventure %s"

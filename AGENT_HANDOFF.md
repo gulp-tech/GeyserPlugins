@@ -529,6 +529,44 @@ TextComponent, String>`, поэтому `deserialize(String)` возвращае
 Актуальные jar: `VoidAntiCheat-2.0.4`, `VoidItems-1.8.4`, `VoidPvP-1.0.6`,
 `VoidCombat-1.2.3`, `VoidTab-1.16.3`, `VoidNick-1.0.2`, `VoidQuiet-1.0.2`.
 
+### 6.3.11. Registry#get: версионно-зависимая сигнатура (23.10.2026)
+
+`VoidItems 1.8.4` падал при включении:
+
+```
+NoSuchMethodError: 'java.lang.Object org.bukkit.Registry.get(org.bukkit.NamespacedKey)'
+  at ItemsService.enchantment(ItemsService.java:243) → createItem → registerRecipes → <init>
+```
+
+Причина: `Registry#get` менял сигнатуру. В paper-api (`main`) он объявлен как
+`get(NamespacedKey)`, поэтому аудит по исходникам считал вызов корректным, а на
+Paper 26.2 принимает adventure `Key`. Компилятор разницы не видит.
+
+Решение — класс `RegistryAccess` в каждом плагине, где нужны реестры
+(`ru.voidpe.items.RegistryAccess`, `ru.voidpe.pvp.RegistryAccess`, такой же подход
+в `VoidAntiCheat.registryLookup`). Порядок поиска:
+
+1. `get(NamespacedKey)` через рефлексию (1.21.x);
+2. `get(net.kyori.adventure.key.Key)` через рефлексию (26.x);
+3. перебор содержимого реестра (`Registry extends Iterable<? extends Keyed>`) со
+   сравнением ключа строкой — работает на любой версии.
+
+Там, где есть стабильный статический метод, он теперь первый:
+`Enchantment.getByKey(NamespacedKey)`, `PotionEffectType.getByName/getByKey`.
+
+В аудит добавлен список `VERSION_FRAGILE` — прямой `Registry#get` в jar теперь
+считается ошибкой сборки, а не «не проверено».
+
+Заглушки приведены к настоящему API: `Attribute`, `Enchantment`, `PotionEffectType`,
+`TrimMaterial`, `TrimPattern` реализуют `Keyed` с `NamespacedKey getKey()`.
+
+Актуальные jar: `VoidItems-1.8.5`, `VoidPvP-1.0.7` (плюс ранее:
+`VoidAntiCheat-2.0.4`, `VoidCombat-1.2.3`, `VoidTab-1.16.3`, `VoidNick-1.0.2`,
+`VoidQuiet-1.0.2`).
+
+В `VoidTalismans`, `VoidEnchants`, `VoidWardenCity` такие же прямые
+`Registry.*.get(...)` — при их пересборке обязательно переводить на `RegistryAccess`.
+
 ## 8. Состояние сервера пользователя (по последнему логу)
 
 Purpur 26.2 build 121, Geyser 2.12.0-b1268 (git-master-d14f204), UDP-порт 19139, миры: world, world2, nether, end. Игрок/админ — MUSD38 (привилегия «Создатель»). VoidWardenCity: точки загружены из points.yml — центр и спавн `world2 -648 -42 -544`, GUI-лута загружено 54 предмета. На сервере также стоят **чужие плагины (не наши, не трогать)**: Lmauction/LMstash/LMbuyer/LMRoom, ZNPCsPlus, LiteKits, GeyserEvent, Pl-Hide-Pro, HeadDatabase, CoreProtect, BetterRTP, ViaVersion, AuthMe, Essentials, DeluxeMenus, DecentHolograms и т.д. Их WARN в логе (duplicate keys у Lmauction, дубль UUID пака GeyserEvent, пустой префикс Floodgate) — не наши задачи, если пользователь не попросит.

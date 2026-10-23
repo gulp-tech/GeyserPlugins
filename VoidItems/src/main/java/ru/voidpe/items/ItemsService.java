@@ -228,9 +228,11 @@ public final class ItemsService implements Listener {
     }
 
     public static PotionEffectType potionType(String name) {
+        // getByName есть во всех версиях, реестр — только запасной путь
+        // (RegistryAccess сам разбирается с сигнатурой Registry#get).
         PotionEffectType type = PotionEffectType.getByName(name.toUpperCase(Locale.ROOT));
         if (type == null) {
-            type = Registry.EFFECT.get(NamespacedKey.minecraft(name.toLowerCase(Locale.ROOT)));
+            type = RegistryAccess.find(Registry.EFFECT, name);
         }
         return type;
     }
@@ -240,7 +242,10 @@ public final class ItemsService implements Listener {
             return null;
         }
         String normalized = key.toLowerCase(Locale.ROOT).replace("minecraft:", "");
-        Enchantment enchantment = Registry.ENCHANTMENT.get(NamespacedKey.minecraft(normalized));
+        Enchantment enchantment = Enchantment.getByKey(NamespacedKey.minecraft(normalized));
+        if (enchantment == null) {
+            enchantment = RegistryAccess.find(Registry.ENCHANTMENT, normalized);
+        }
         if (enchantment == null) {
             enchantment = Enchantment.getByName(key.toUpperCase(Locale.ROOT));
         }
@@ -251,16 +256,16 @@ public final class ItemsService implements Listener {
         if (key == null || key.isBlank()) {
             return null;
         }
-        return Registry.TRIM_MATERIAL.get(NamespacedKey.minecraft(
-                key.toLowerCase(Locale.ROOT).replace("minecraft:", "")));
+        return RegistryAccess.find(Registry.TRIM_MATERIAL,
+                key.toLowerCase(Locale.ROOT).replace("minecraft:", ""));
     }
 
     private static TrimPattern trimPattern(String key) {
         if (key == null || key.isBlank()) {
             return null;
         }
-        return Registry.TRIM_PATTERN.get(NamespacedKey.minecraft(
-                key.toLowerCase(Locale.ROOT).replace("minecraft:", "")));
+        return RegistryAccess.find(Registry.TRIM_PATTERN,
+                key.toLowerCase(Locale.ROOT).replace("minecraft:", ""));
     }
 
     // ------------------------------------------------------------------ предметы

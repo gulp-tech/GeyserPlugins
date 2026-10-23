@@ -144,7 +144,7 @@ public final class StubRegistrySupport {
 add("org/bukkit/attribute/Attribute", """
 package org.bukkit.attribute;
 
-public interface Attribute {
+public interface Attribute extends org.bukkit.Keyed {
     Attribute ATTACK_SPEED = new StubAttribute("attack_speed");
     Attribute MOVEMENT_SPEED = new StubAttribute("movement_speed");
     Attribute ENTITY_INTERACTION_RANGE = new StubAttribute("entity_interaction_range");
@@ -153,7 +153,7 @@ public interface Attribute {
         return new StubAttribute(key);
     }
 
-    String getKey();
+    org.bukkit.NamespacedKey getKey();
 }
 """)
 
@@ -168,8 +168,8 @@ public final class StubAttribute implements Attribute {
     }
 
     @Override
-    public String getKey() {
-        return key;
+    public org.bukkit.NamespacedKey getKey() {
+        return org.bukkit.NamespacedKey.minecraft(key);
     }
 
     @Override
@@ -229,7 +229,7 @@ add("org/bukkit/potion/PotionEffectType", """
 package org.bukkit.potion;
 
 /** В Paper — абстрактный класс. */
-public abstract class PotionEffectType {
+public abstract class PotionEffectType implements org.bukkit.Keyed {
     public static final PotionEffectType INVISIBILITY = new StubPotionEffectType("invisibility");
     public static final PotionEffectType GLOWING = new StubPotionEffectType("glowing");
     public static final PotionEffectType BLINDNESS = new StubPotionEffectType("blindness");
@@ -250,7 +250,11 @@ public abstract class PotionEffectType {
         return new StubPotionEffectType(key);
     }
 
-    public abstract String getKey();
+    public static PotionEffectType getByKey(org.bukkit.NamespacedKey key) {
+        return key == null ? null : new StubPotionEffectType(key.getKey());
+    }
+
+    public abstract org.bukkit.NamespacedKey getKey();
 }
 """)
 
@@ -265,8 +269,8 @@ public final class StubPotionEffectType extends PotionEffectType {
     }
 
     @Override
-    public String getKey() {
-        return key;
+    public org.bukkit.NamespacedKey getKey() {
+        return org.bukkit.NamespacedKey.minecraft(key);
     }
 
     @Override
@@ -280,7 +284,7 @@ add("org/bukkit/enchantments/Enchantment", """
 package org.bukkit.enchantments;
 
 /** В Paper — абстрактный класс. */
-public abstract class Enchantment {
+public abstract class Enchantment implements org.bukkit.Keyed {
     public static final Enchantment UNBREAKING = new StubEnchantment("unbreaking");
     public static final Enchantment PROTECTION = new StubEnchantment("protection");
     public static final Enchantment SHARPNESS = new StubEnchantment("sharpness");
@@ -290,11 +294,15 @@ public abstract class Enchantment {
         return valueOf(name);
     }
 
+    public static Enchantment getByKey(org.bukkit.NamespacedKey key) {
+        return key == null ? null : new StubEnchantment(key.getKey());
+    }
+
     public static Enchantment valueOf(String key) {
         return new StubEnchantment(key);
     }
 
-    public abstract String getKey();
+    public abstract org.bukkit.NamespacedKey getKey();
 }
 """)
 
@@ -309,8 +317,8 @@ public final class StubEnchantment extends Enchantment {
     }
 
     @Override
-    public String getKey() {
-        return key;
+    public org.bukkit.NamespacedKey getKey() {
+        return org.bukkit.NamespacedKey.minecraft(key);
     }
 
     @Override
@@ -2546,14 +2554,14 @@ public class ArmorTrim {
 add("org/bukkit/inventory/meta/trim/TrimMaterial", """
 package org.bukkit.inventory.meta.trim;
 
-public interface TrimMaterial {
+public interface TrimMaterial extends org.bukkit.Keyed {
 }
 """)
 
 add("org/bukkit/inventory/meta/trim/TrimPattern", """
 package org.bukkit.inventory.meta.trim;
 
-public interface TrimPattern {
+public interface TrimPattern extends org.bukkit.Keyed {
 }
 """)
 
@@ -3578,6 +3586,26 @@ add("net/kyori/adventure/text/TextComponent", """
 package net.kyori.adventure.text;
 
 public interface TextComponent extends Component {
+}
+""")
+
+add("org/bukkit/Keyed", """
+package org.bukkit;
+
+public interface Keyed {
+    NamespacedKey getKey();
+}
+""")
+
+add("net/kyori/adventure/key/Key", """
+package net.kyori.adventure.key;
+
+public interface Key {
+    static Key key(String key) {
+        return null;
+    }
+
+    String value();
 }
 """)
 

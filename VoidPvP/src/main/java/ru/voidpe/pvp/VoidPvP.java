@@ -170,15 +170,8 @@ public final class VoidPvP extends JavaPlugin
             // старый API без константы — идём в реестр
         }
         // 2. Реестр: в новых версиях имя «attack_speed», в старых — «generic.attack_speed».
-        try {
-            Attribute attribute = Registry.ATTRIBUTE.get(NamespacedKey.minecraft("attack_speed"));
-            if (attribute == null) {
-                attribute = Registry.ATTRIBUTE.get(NamespacedKey.minecraft("generic.attack_speed"));
-            }
-            return attribute;
-        } catch (Throwable t) {
-            return null;
-        }
+        // RegistryAccess сам выбирает подходящую сигнатуру Registry#get.
+        return RegistryAccess.find(Registry.ATTRIBUTE, "attack_speed", "generic.attack_speed");
     }
 
     /** Применяет настройки к игроку: убирает задержку атаки (если включено и мир разрешён). */
