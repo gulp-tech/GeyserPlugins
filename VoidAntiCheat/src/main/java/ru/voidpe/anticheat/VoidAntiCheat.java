@@ -1098,6 +1098,19 @@ public class VoidAntiCheat extends JavaPlugin implements Listener, CommandExecut
             return;
         }
 
+        // Сервер сам подбросил игрока: Riptide, wind charge, поршень, прыжковая
+        // платформа, взрыв, любой плагин через setVelocity. Клиент такое не
+        // подделает (getVelocity — серверное значение), поэтому это безопасное
+        // исключение, а не дыра.
+        Vector serverVelocity = player.getVelocity();
+        boolean launchedByServer = nowMillis < data.velocityGraceUntilMillis
+                || (serverVelocity != null && serverVelocity.getY() > confDouble("movement.server-launch-velocity-y", 0.22));
+        if (launchedByServer) {
+            data.resetAirState();
+            data.lastDeltaY = dy;
+            return;
+        }
+
         if (onGround) {
             if (!data.lastOnGround) {
                 landingCheck(player, data, to, env, nowMillis);

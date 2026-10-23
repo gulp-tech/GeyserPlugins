@@ -162,6 +162,9 @@ movement:
   timer-windows: 3
   # Fly: предсказание вертикали. Jump Boost II даёт ~2.6 бл, поэтому порог 3.4.
   fly-ascent-blocks: 3.4
+  # Серверное вертикальное velocity выше этого — подброс плагином/винд-чаржем/
+  # riptide/поршнем: вертикальные проверки на время импульса отключаются.
+  server-launch-velocity-y: 0.22
   fly-hover-ticks: 40
   # NoFall / Step / Jesus / Spider / NoClip.
   nofall-min-drop: 5.0
