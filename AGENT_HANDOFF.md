@@ -95,6 +95,17 @@ DeluxeMenus: `DeluxeMenus-donate.yml` (донат-магазин: разделы
 - `github.com` (HTML/raw) из песочницы отдаёт 404 на любой путь, `raw.githubusercontent.com` вообще недоступен — проверять ссылки для пользователя через `gh api repos/.../contents/<path>` (там есть `download_url` и размер), а не curl'ом страницы.
 - Снапшот воркспейса периодически теряет локальную историю git: восстановление — `git fetch origin` + `git reset --hard origin/<ветка>` (на GitHub коммиты целы). **Важно:** при этом `.git` может откатиться до «Initial commit», а файлы в рабочей папке остаются новыми — `reset --hard` их ПЕРЕЗАПИШЕТ. Поэтому сначала скопировать изменённые файлы в `/tmp`, потом сбрасывать, потом вернуть. Проверка целостности: `git status --short` должен показывать только реально изменённые тома. Бывает и так, что текущая ветка в сессии (`arena/f38c83d1-geyserplugins`) новее «рабочей» `arena/874b2be9-geyserplugins` — сверять `git log` обеих.
 
+## 6.1. Как убрать сообщения входа/выхода и смертей (23.10.2026)
+
+Ни один наш плагин их не шлёт (проверено: VoidTab/VoidCombat/VoidClans/VoidAuthSpawn только слушают события и ничего не бродкастят). Источники — EssentialsX и ванильный геймрул:
+
+- **Вход/выход** — `plugins/Essentials/config.yml`: `hide-join-quit-messages-above: 0`. В исходнике `EssentialsPlayerListener` эта проверка идёт ПЕРВОЙ (`hideJoinQuitMessages() || ...`), поэтому скрывает сообщение даже если задан `custom-*-message`. Значение -1 возвращает сообщения.
+- **Смерти** — там же `death-messages: false` (свои сообщения Essentials) + ванильный геймрул `showDeathMessages=false` в каждом мире (`/execute in minecraft:overworld run gamerule showDeathMessages false` и т.д.). Одно без другого неполно: геймрул глушит ванильные строки, настройка Essentials — его собственные.
+- Приветствие первого входа шлёт **AuthMe** (`configs/AuthMe-commands.yml`, строки 33 и 43, `broadcast ... впервые зашёл`) — если нужно убрать и его, правится там.
+- Формат: в `custom-*-message` `{PLAYER}` подставляет display-name (у нас в нём значки устройства и привилегии из VoidTab), `{USERNAME}` — чистый ник. Если сообщения нужны, но без значков — использовать `{USERNAME}`.
+
+В `configs/Essentials-config.yml` уже выставлены `death-messages: false` и `hide-join-quit-messages-above: 0`.
+
 ## 7.1. GeyserReversion — проверено 23.10.2026, с Geyser 2.12 НЕ совместим
 
 Пользователь предложил попробовать [GeyserReversion](https://github.com/oryxel1/GeyserReversion) вместо самодельного даунгрейда палитры. Разбор исходников (ветка `ouranos`, релиз Build 5 от 30.05.2026):

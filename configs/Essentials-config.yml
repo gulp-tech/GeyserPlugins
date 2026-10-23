@@ -174,7 +174,9 @@ sleep-ignores-vanished-player: true
 afk-list-name: "none"
 broadcast-afk-message: true
 
-death-messages: true
+# Смерти не объявляем: свои сообщения Essentials не шлёт, ванильные выключены
+# геймрулом showDeathMessages=false в каждом мире (см. строку ниже в этом файле).
+death-messages: false
 vanishing-items-policy: keep
 binding-items-policy: keep
 send-info-after-death: false
@@ -184,7 +186,11 @@ custom-quit-message: "none"
 custom-new-username-message: "none"
 use-custom-server-full-message: true
 use-custom-whitelist-message: true
-hide-join-quit-messages-above: -1
+# Вход/выход не объявляем вообще: 0 = скрывать, как только на сервере есть хоть
+# один игрок (то есть всегда). Проверяется раньше custom-*-message, поэтому
+# сообщения скроются даже если они заданы ниже.
+# Если захочется вернуть: -1.
+hide-join-quit-messages-above: 0
 
 no-god-in-worlds:
   #- world_nether
