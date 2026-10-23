@@ -102,6 +102,10 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
 
     /** Шансы, изменённые админом в меню /wcity chances (файл loot-chances.yml). */
     private final Map<String, Integer> chanceOverrides = new HashMap<>();
+    /** Точки города (центр и спавн) живут в отдельном файле points.yml,
+     *  чтобы не слетать при обновлении/удалении config.yml. */
+    private File pointsFile;
+    private YamlConfiguration points;
     /** Переопределённый шанс доп. лута из GUI; null — брать из конфига. */
     private Integer customChanceOverride;
 
@@ -142,6 +146,7 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
     @Override
     public void onEnable() {
         saveDefaultConfig();
+        loadPoints();
         loadChestData();
         loadCustomLoot();
         loadChanceOverrides();
@@ -176,15 +181,110 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
 
     // ------------------------------------------------------------- регион
 
-    private Location cityCenter() {
-        World world = Bukkit.getWorld(getConfig().getString("city.world", "world"));
+    // ------------------------------------------------------------- точки города
+
+    /**
+     * Точки (центр и спавн) хранятся в points.yml, а не в config.yml:
+     * конфиг при обновлениях плагина удаляют/перезаписывают, и точки
+     * «пропадали после перезагрузки». Файл данных от этого не страдает.
+     * При первом запуске значения мигрируют из config.yml (старые точки
+     * и дефолты), дальше источником правды является только points.yml.
+     */
+    private void loadPoints() {
+        pointsFile = new File(getDataFolder(), "points.yml");
+        points = YamlConfiguration.loadConfiguration(pointsFile);
+        boolean migrated = false;
+        if (!points.contains("center.world")) {
+            points.set("center.world", getConfig().getString("city.world", "world"));
+            points.set("center.x", getConfig().getDouble("city.x", 0));
+            points.set("center.y", getConfig().getDouble("city.y", -51));
+            points.set("center.z", getConfig().getDouble("city.z", 0));
+            migrated = true;
+        }
+        if (!points.contains("spawn.world")) {
+            points.set("spawn.world", getConfig().getString("teleport.world",
+                    getConfig().getString("city.world", "world")));
+            points.set("spawn.x", getConfig().getDouble("teleport.x", getConfig().getDouble("city.x", 0)));
+            points.set("spawn.y", getConfig().getDouble("teleport.y", getConfig().getDouble("city.y", -51)));
+            points.set("spawn.z", getConfig().getDouble("teleport.z", getConfig().getDouble("city.z", 0)));
+            points.set("spawn.yaw", getConfig().getDouble("teleport.yaw", 0));
+            points.set("spawn.pitch", getConfig().getDouble("teleport.pitch", 0));
+            migrated = true;
+        }
+        if (migrated && !savePoints()) {
+            getLogger().severe("Не удалось создать points.yml — точки города не будут сохраняться!");
+        }
+        Location center = savedCenter();
+        Location spawn = savedSpawn();
+        if (center != null) {
+            getLogger().info("Город Вардена загружен (points.yml): центр "
+                    + center.getWorld().getName() + " " + center.getBlockX() + " " + center.getBlockY()
+                    + " " + center.getBlockZ() + "; точка появления "
+                    + (spawn == null ? "не задана"
+                            : spawn.getWorld().getName() + " " + spawn.getBlockX() + " " + spawn.getBlockY()
+                                    + " " + spawn.getBlockZ()) + ".");
+        }
+    }
+
+    /** Сохраняет points.yml; false — запись на диск не удалась (уже залогировано). */
+    private boolean savePoints() {
+        try {
+            points.save(pointsFile);
+            return true;
+        } catch (IOException e) {
+            getLogger().severe("Не удалось сохранить points.yml (" + pointsFile.getAbsolutePath()
+                    + "): " + e.getMessage());
+            return false;
+        }
+    }
+
+    /** Перечитывает points.yml с диска и сверяет точку: сохранение должно быть честным. */
+    private boolean verifyPoint(String section, String world, double x, double y, double z) {
+        YamlConfiguration check = YamlConfiguration.loadConfiguration(pointsFile);
+        return world.equals(check.getString(section + ".world", ""))
+                && Math.abs(check.getDouble(section + ".x", Double.NaN) - x) < 0.01
+                && Math.abs(check.getDouble(section + ".y", Double.NaN) - y) < 0.01
+                && Math.abs(check.getDouble(section + ".z", Double.NaN) - z) < 0.01;
+    }
+
+    /** Центр города из points.yml. */
+    private Location savedCenter() {
+        if (points == null) {
+            World world = Bukkit.getWorld(getConfig().getString("city.world", "world"));
+            return world == null ? null : new Location(world,
+                    getConfig().getDouble("city.x", 0),
+                    getConfig().getDouble("city.y", -51),
+                    getConfig().getDouble("city.z", 0));
+        }
+        World world = Bukkit.getWorld(points.getString("center.world", "world"));
         if (world == null) {
             return null;
         }
         return new Location(world,
-                getConfig().getDouble("city.x", 0),
-                getConfig().getDouble("city.y", -51),
-                getConfig().getDouble("city.z", 0));
+                points.getDouble("center.x", 0),
+                points.getDouble("center.y", -51),
+                points.getDouble("center.z", 0));
+    }
+
+    /** Точка появления игроков из points.yml; null — мир точки не загружен. */
+    private Location savedSpawn() {
+        if (points == null) {
+            return null;
+        }
+        World world = Bukkit.getWorld(points.getString("spawn.world", ""));
+        if (world == null) {
+            return null;
+        }
+        return new Location(world,
+                points.getDouble("spawn.x", 0),
+                points.getDouble("spawn.y", -51),
+                points.getDouble("spawn.z", 0),
+                (float) points.getDouble("spawn.yaw", 0),
+                (float) points.getDouble("spawn.pitch", 0));
+    }
+
+    private Location cityCenter() {
+        return savedCenter();
     }
 
     private boolean inCity(Location loc) {
@@ -1108,11 +1208,22 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
                     return true;
                 }
                 Location loc = player.getLocation();
+                // Зеркало в config.yml (совместимость) + источник правды points.yml.
                 getConfig().set("city.world", loc.getWorld().getName());
                 getConfig().set("city.x", loc.getBlockX());
                 getConfig().set("city.y", loc.getBlockY());
                 getConfig().set("city.z", loc.getBlockZ());
                 saveConfig();
+                points.set("center.world", loc.getWorld().getName());
+                points.set("center.x", (double) loc.getBlockX());
+                points.set("center.y", (double) loc.getBlockY());
+                points.set("center.z", (double) loc.getBlockZ());
+                if (!savePoints() || !verifyPoint("center", loc.getWorld().getName(),
+                        loc.getBlockX(), loc.getBlockY(), loc.getBlockZ())) {
+                    send(sender, msgOr("point-save-error",
+                            "&cОШИБКА: точка НЕ сохранилась на диск! Проверь папку плагина (points.yml) и свободное место."));
+                    return true;
+                }
                 send(sender, msg("center-set").replace("{x}", String.valueOf(loc.getBlockX()))
                         .replace("{y}", String.valueOf(loc.getBlockY()))
                         .replace("{z}", String.valueOf(loc.getBlockZ())));
@@ -1124,14 +1235,34 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
                     return true;
                 }
                 Location loc = player.getLocation();
+                double sx = round(loc.getX());
+                double sy = round(loc.getY());
+                double sz = round(loc.getZ());
+                double syaw = round(loc.getYaw());
+                double spitch = round(loc.getPitch());
+                // Зеркало в config.yml (совместимость) + источник правды points.yml.
                 getConfig().set("teleport.world", loc.getWorld().getName());
-                getConfig().set("teleport.x", round(loc.getX()));
-                getConfig().set("teleport.y", round(loc.getY()));
-                getConfig().set("teleport.z", round(loc.getZ()));
-                getConfig().set("teleport.yaw", round(loc.getYaw()));
-                getConfig().set("teleport.pitch", round(loc.getPitch()));
+                getConfig().set("teleport.x", sx);
+                getConfig().set("teleport.y", sy);
+                getConfig().set("teleport.z", sz);
+                getConfig().set("teleport.yaw", syaw);
+                getConfig().set("teleport.pitch", spitch);
                 saveConfig();
-                send(sender, msg("spawn-set"));
+                points.set("spawn.world", loc.getWorld().getName());
+                points.set("spawn.x", sx);
+                points.set("spawn.y", sy);
+                points.set("spawn.z", sz);
+                points.set("spawn.yaw", syaw);
+                points.set("spawn.pitch", spitch);
+                if (!savePoints() || !verifyPoint("spawn", loc.getWorld().getName(), sx, sy, sz)) {
+                    send(sender, msgOr("point-save-error",
+                            "&cОШИБКА: точка НЕ сохранилась на диск! Проверь папку плагина (points.yml) и свободное место."));
+                    return true;
+                }
+                send(sender, msg("spawn-set")
+                        .replace("{x}", String.valueOf(loc.getBlockX()))
+                        .replace("{y}", String.valueOf(loc.getBlockY()))
+                        .replace("{z}", String.valueOf(loc.getBlockZ())));
                 return true;
             }
             case "chest" -> {
@@ -1195,6 +1326,7 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
                     return true;
                 }
                 reloadConfig();
+                loadPoints();
                 loadChanceOverrides();
                 send(sender, msg("reloaded"));
                 return true;
@@ -1234,9 +1366,12 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
             send(player, msg("tp-disabled"));
             return;
         }
-        World world = Bukkit.getWorld(getConfig().getString("teleport.world",
-                getConfig().getString("city.world", "world")));
-        if (world == null) {
+        // Точка появления из points.yml; если её мир недоступен — центр города.
+        Location target = savedSpawn();
+        if (target == null) {
+            target = savedCenter();
+        }
+        if (target == null) {
             send(player, msg("not-set"));
             return;
         }
@@ -1254,12 +1389,6 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
         if (!bypass && cost > 0) {
             Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "points take " + player.getName() + " " + cost);
         }
-        Location target = new Location(world,
-                getConfig().getDouble("teleport.x", getConfig().getDouble("city.x", 0)),
-                getConfig().getDouble("teleport.y", getConfig().getDouble("city.y", -51)),
-                getConfig().getDouble("teleport.z", getConfig().getDouble("city.z", 0)),
-                (float) getConfig().getDouble("teleport.yaw", 0),
-                (float) getConfig().getDouble("teleport.pitch", 0));
         player.teleport(target);
         tpCooldowns.put(player.getUniqueId(),
                 now + Math.max(0L, getConfig().getLong("teleport.cooldown-seconds", 300L)) * 1000L);
@@ -1296,6 +1425,12 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
 
     private String msg(String key) {
         return getConfig().getString("messages." + key, "");
+    }
+
+    /** Сообщение из конфига, а если ключа нет (старый конфиг) — запасной текст. */
+    private String msgOr(String key, String fallback) {
+        String text = msg(key);
+        return text == null || text.isEmpty() ? fallback : text;
     }
 
     private void send(CommandSender sender, String text) {
