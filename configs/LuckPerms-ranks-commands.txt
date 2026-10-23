@@ -58,7 +58,7 @@ lp group knyaz permission set voiddrops.boost.knyaz true
 # --- Император ---
 lp group imperator permission set essentials.sethome.multiple.imperator true
 lp group imperator permission set voiddrops.boost.imperator true
-lp group imperator permission set worldguard.region.max-region-count.10 true
+lp group imperator permission set worldguard.region.max-region-count.8 true
 
 # --- Веса и префиксы (если префиксы уже настроены — блок можно пропустить) ---
 # Вес нужен, чтобы при нескольких группах у игрока показывался старший ранг.
@@ -77,6 +77,20 @@ lp group lord meta setprefix 50 "&#55FFFFЛорд &r"
 lp group knyaz meta setprefix 60 "&#FF55FFКнязь &r"
 lp group imperator meta setprefix 70 "&#FFD93DИмператор &r"
 
+# --- Приваты (лимит регионов WorldGuard) ---
+lp group strannik permission set worldguard.region.max-region-count.4 true
+lp group geroy permission set worldguard.region.max-region-count.5 true
+lp group rycar permission set worldguard.region.max-region-count.6 true
+lp group baron permission set worldguard.region.max-region-count.5 true
+lp group lord permission set worldguard.region.max-region-count.6 true
+lp group knyaz permission set worldguard.region.max-region-count.7 true
+lp group imperator permission set worldguard.region.max-region-count.8 true
+lp group helper permission set worldguard.region.max-region-count.4 true
+lp group moderator permission set worldguard.region.max-region-count.4 true
+lp group sozdatel permission set worldguard.region.max-region-count.12 true
+lp group tiktoker permission set worldguard.region.max-region-count.6 true
+lp group youtuber permission set worldguard.region.max-region-count.6 true
+
 # ============================================================
 # Примечания:
 # * Выдача игроку — как раньше, parent add (НЕ parent set):
@@ -84,6 +98,9 @@ lp group imperator meta setprefix 70 "&#FFD93DИмператор &r"
 # * Киты (/kit strannik и т.д.) выдаёт LiteKits — доступ и кулдауны
 #   настраиваются в нём, не в LuckPerms (кит Князя — раз в 3 дня,
 #   Императора — раз в 7 дней задаются там же).
-# * Если worldguard.region.max-region-count.10 не сработает —
+# * Если worldguard.region.max-region-count.N не сработает —
 #   лимит регионов правится в конфиге WorldGuard по мирам.
+# * Если группы tiktoker/youtuber/sozdatel ещё нет в LuckPerms,
+#   сначала: lp creategroup tiktoker (и т.д.), иначе permission set
+#   напишет, что группа не найдена.
 # ============================================================
