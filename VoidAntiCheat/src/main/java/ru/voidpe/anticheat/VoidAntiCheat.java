@@ -150,7 +150,25 @@ public class VoidAntiCheat extends JavaPlugin implements Listener, CommandExecut
         saveDefaultConfig();
         loadCheckSettings();
         loadLagLimits();
-        resolveRegistryEntries();
+        // Реестры — единственное место, зависящее от версии API. Если в новой
+        // версии сервера что-то переименовали, античит должен работать дальше
+        // с дефолтами, а не выключаться целиком (так было с Registry в 2.0.0:
+        // IncompatibleClassChangeError убивал плагин при включении).
+        try {
+            resolveRegistryEntries();
+        } catch (Throwable failure) {
+            movementSpeedAttribute = null;
+            interactionRangeAttribute = null;
+            slowFallingEffect = null;
+            jumpBoostEffect = null;
+            levitationEffect = null;
+            dolphinsGraceEffect = null;
+            soulSpeedEnchant = null;
+            depthStriderEnchant = null;
+            frostWalkerEnchant = null;
+            getLogger().warning("Не удалось прочитать реестры API (" + failure.getClass().getSimpleName()
+                    + ": " + failure.getMessage() + ") — проверки работают на консервативных значениях по умолчанию");
+        }
         floodgate = new FloodgateHook(getLogger());
         regions = new RegionHook(getLogger());
         ioExecutor = Executors.newSingleThreadExecutor(runnable -> {
