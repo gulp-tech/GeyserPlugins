@@ -25,6 +25,8 @@ import org.bukkit.event.entity.EntityDamageEvent;
 public final class FastCritsListener implements Listener {
 
     private final PvPConfig plugin;
+    /** UUID жертвы -> тик последнего удара, который снял неуязвимость. */
+    private final java.util.Map<java.util.UUID, Integer> lastHitTick = new java.util.HashMap<>();
 
     public FastCritsListener(PvPConfig plugin) {
         this.plugin = plugin;
@@ -60,7 +62,7 @@ public final class FastCritsListener implements Listener {
             applyCrit(event, attacker, victim, settings);
         }
         if (settings.noInvulnerability) {
-            clearInvulnerability(victim);
+            clearInvulnerability(victim, settings);
         }
     }
 
@@ -121,18 +123,34 @@ public final class FastCritsListener implements Listener {
         }
     }
 
+    /** Чистка карты, чтобы она не росла на долгом аптайме. */
+    private void pruneLastHits(int now) {
+        if (lastHitTick.size() < 500) {
+            return;
+        }
+        lastHitTick.entrySet().removeIf(entry -> now - entry.getValue() > 400);
+    }
+
     /**
      * Снимает 0.5-секундную неуязвимость жертвы после нашего удара,
      * чтобы следующий тап тоже нанёс урон. Через тик: ядро само выставит
      * noDamageTicks после события, поэтому обнуляем уже после него.
      */
-    private void clearInvulnerability(Entity victim) {
+    private void clearInvulnerability(Entity victim, VoidPvP.Settings settings) {
         if (!(victim instanceof LivingEntity living)) {
             return;
         }
         if (living.isDead()) {
             return;
         }
+        // Ослабленный режим: слишком частые удары не «пробивают» неуязвимость,
+        // поэтому серия кликов не превращается в мгновенную смерть.
+        int now = Bukkit.getCurrentTick();
+        Integer previous = lastHitTick.put(victim.getUniqueId(), now);
+        if (previous != null && now - previous < settings.minIntervalTicks) {
+            return;
+        }
+        pruneLastHits(now);
         if (!(plugin instanceof Plugin bukkitPlugin)) {
             return; // без сервера (тесты) задачу планировать некуда
         }

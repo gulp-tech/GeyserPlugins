@@ -351,6 +351,8 @@ public final class VoidPvP extends JavaPlugin
         final boolean attackSpeedEnabled;
         final double attackSpeedValue;
         final boolean noInvulnerability;
+        /** Не снимать неуязвимость чаще, чем раз в столько тиков (2 = 0.1 сек). */
+        final int minIntervalTicks;
         final java.util.Set<String> disabledWorlds;
         final String require;
         final String bypassOff;
@@ -377,6 +379,8 @@ public final class VoidPvP extends JavaPlugin
             this.attackSpeedValue = Math.max(0.1, config.getDouble("attack-speed.value", 1024.0));
 
             this.noInvulnerability = master && config.getBoolean("no-invulnerability.enabled", true);
+            this.minIntervalTicks = Math.max(0, Math.min(20,
+                    config.getInt("no-invulnerability.min-interval-ticks", 2)));
 
             java.util.Set<String> worlds = new java.util.LinkedHashSet<>();
             for (String name : config.getStringList("worlds.disabled")) {
@@ -406,7 +410,8 @@ public final class VoidPvP extends JavaPlugin
                     + ", всегда " + (always ? "да" : "нет")
                     + ", ×" + multiplier + "), "
                     + "задержка атаки " + (attackSpeedEnabled ? "убрана" : "обычная")
-                    + ", неуязвимость между ударами " + (noInvulnerability ? "снята" : "обычная");
+                    + ", неуязвимость между ударами " + (noInvulnerability
+                            ? "снята, не чаще раза в " + minIntervalTicks + " тик(ов)" : "обычная");
         }
     }
 }

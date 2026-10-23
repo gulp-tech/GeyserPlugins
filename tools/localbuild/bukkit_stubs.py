@@ -578,6 +578,9 @@ public interface World {
 
     org.bukkit.entity.Item dropItem(Location location, org.bukkit.inventory.ItemStack stack);
 
+    void spawnParticle(org.bukkit.Particle particle, Location location, int count,
+                       double offsetX, double offsetY, double offsetZ, double extra);
+
     int getMaxHeight();
 
     File getWorldFolder();
@@ -656,6 +659,12 @@ public interface Entity {
     void setGlowing(boolean glowing);
 
     boolean isGlowing();
+
+    org.bukkit.entity.EntityType getType();
+
+    double getHeight();
+
+    boolean isValid();
 }
 """)
 
@@ -666,6 +675,14 @@ import org.bukkit.Location;
 
 public interface LivingEntity extends Entity {
     Location getEyeLocation();
+
+    int getNoDamageTicks();
+
+    void setNoDamageTicks(int ticks);
+
+    int getMaximumNoDamageTicks();
+
+    void setMaximumNoDamageTicks(int ticks);
 
     float getFallDistance();
 }
@@ -762,6 +779,8 @@ public interface Player extends LivingEntity, org.bukkit.OfflinePlayer {
     void updateInventory();
 
     void playSound(Location location, String sound, float volume, float pitch);
+
+    void playSound(Location location, org.bukkit.Sound sound, float volume, float pitch);
 
     InventoryView openInventory(Inventory inventory);
 
@@ -2501,6 +2520,26 @@ public interface BlockData extends Cloneable {
     String getAsString();
 
     String getAsString(boolean hideUnspecified);
+}
+""")
+
+add("org/bukkit/Particle", """
+package org.bukkit;
+
+public enum Particle {
+    CRIT, ENCHANTED_HIT, SMOKE, FLAME, CLOUD, EXPLOSION, HAPPY_VILLAGER;
+}
+""")
+
+add("org/bukkit/Sound", """
+package org.bukkit;
+
+/** В Paper 1.21 это ИНТЕРФЕЙС со статическими полями (раньше был enum). */
+public interface Sound {
+    Sound ENTITY_PLAYER_ATTACK_CRIT = null;
+    Sound ENTITY_PLAYER_ATTACK_STRONG = null;
+    Sound ENTITY_PLAYER_ATTACK_WEAK = null;
+    Sound BLOCK_NOTE_BLOCK_PLING = null;
 }
 """)
 
