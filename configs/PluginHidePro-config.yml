@@ -118,6 +118,14 @@ groups:
       - vench anvil
       - combat
       - shopenchants
+      - wcity
+      - donate
+      - privshop
+      - podryvnik
+      - clan
+      - cases
+      - titles
+      - voidtab
     #The list of commands that will be made visible only in tabcomplete
     tabcomplete:
       - spawn
@@ -170,6 +178,14 @@ groups:
       - vench anvil
       - combat
       - shopenchants
+      - wcity
+      - donate
+      - privshop
+      - podryvnik
+      - clan
+      - cases
+      - titles
+      - voidtab
     #If a player is in two groups, the group with the higher priority number is used
     #The minimum value is 0
     priority: 0
