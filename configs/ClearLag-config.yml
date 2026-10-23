@@ -1,0 +1,381 @@
+# ============================================================
+# ClearLag — очистка дропа для VoidPE
+# Стиль: тёмная тема, акцентные цвета NEVERTIME.
+# После правок: /lagg reload
+#
+# ВАЖНО: ClearLag — старый плагин и НЕ понимает hex-цвета &#RRGGBB.
+# Поэтому здесь только &-коды: &8 (тёмно-серый), &5/&d (фиолетовый
+# акцент), &7 (серый текст), &f (белый).
+# ============================================================
+
+config-version: 20
+
+# ------------------------------------------------------------
+# Общие настройки
+# ------------------------------------------------------------
+settings:
+  language: English
+  # Автообновление конфига выключено: файл подогнан под сервер,
+  # обновление может перезаписать сообщения и интервалы.
+  auto-update: false
+  enable-api: true
+  use-internal-tps: true
+
+# ------------------------------------------------------------
+# Сообщения в чат (все оповещения плагина)
+# ------------------------------------------------------------
+global-broadcasts:
+  enabled: true
+  async: false
+  use-permission-for-broadcasts: false
+  permission: bukkit.broadcast
+
+# ------------------------------------------------------------
+# Поиск лаг-спайков (пишет в лог, в чат ничего не выводит)
+# Включать только на время поиска проблемы.
+# ------------------------------------------------------------
+lag-spike-helper:
+  enabled: false
+  min-elapsed-time: 500
+  check-interval: 100
+  follow-stack: true
+
+hopper-limiter:
+  enabled: false
+  transfer-limit: 5
+  check-interval: 1
+
+ram-meter:
+  enabled: false
+  interval: 20
+  ram-limit: 5000
+  commands:
+    - 'lagg killmobs'
+    - 'lagg clear'
+
+# ------------------------------------------------------------
+# /lagg halt — что останавливать
+# ------------------------------------------------------------
+halt-command:
+  remove-entities: true
+  disable-natural-entity-spawning: true
+  halted:
+    fire: true
+    fire-burn: true
+    explosion: true
+    decay: true
+    block-fade: true
+    block-form: true
+    block-spread: true
+    block-natural-change: true
+
+player-speed-limiter:
+  enabled: false
+  move-max-speed: 0.7
+  fly-max-speed: 0.8
+
+# ------------------------------------------------------------
+# Быстрый распад мусорных предметов на земле
+# ------------------------------------------------------------
+item-spawn-age-setter:
+  enabled: false
+  items:
+    stone: 240
+    grass: 240
+    cobblestone: 240
+    log: 240
+    stone_axe: 240
+    stone_pickaxe: 240
+    stone_sword: 240
+    wooden_axe: 240
+    wooden_pickaxe: 240
+    wooden_sword: 240
+    rotten_flesh: 240
+    gravel: 240
+    dirt: 240
+    leather: 200
+    sand: 240
+    bone: 240
+    beef: 240
+    chicken: 160
+    rabbit: 240
+    salmon: 240
+    cactus: 210
+    wool: 180
+    arrow: 160
+    PORKCHOP: 240
+    potato: 240
+    RED_TULIP: 240
+
+mob-breeding-limiter:
+  enabled: false
+  max-mobs: 6
+  check-radius: 15
+
+# Удаление старых логов при запуске: 7 дней
+log-purger:
+  enabled: true
+  days-old: 7
+
+# Что НЕ трогает /lagg area
+area-filter:
+    - Itemframe
+    - Minecart
+    - Wolf
+    - Villager
+    - Horse
+    - ARMOR_STAND
+
+# force-update: false — плагин обновляет конфиг, а не сбрасывает его
+config-updater:
+  force-update: false
+
+mobegg-limiter:
+  enabled: false
+  check-radius: 8
+  max-mobs: 5
+
+chunk-limiter:
+  enabled: false
+  limit: 6000
+  create-new-chunks: true
+
+mob-range:
+  enabled: false
+  zombie: 30
+  skeleton: 30
+  creeper: 20
+
+live-time:
+  enabled: false
+  interval: 10
+  mobtimer: true
+  itemtimer: true
+  arrowtimer: true
+  arrowkilltime: 15
+  moblivetime: 600
+  itemlivetime: 240
+
+tnt-minecart:
+  enabled: false
+  max: 2
+  radius: 6
+
+dispenser-reducer:
+  enabled: false
+  time: 100
+
+tnt-reducer:
+  enabled: false
+  check-radius: 5
+  max-primed: 3
+
+firespread-reducer:
+  enabled: false
+  time: 2000
+
+chunk-entity-limiter:
+  enabled: false
+  limit: 10
+  entities:
+    - Squid
+    - Zombie
+    - Skeleton
+    - Creeper
+    - Chicken
+    - Pig
+    - Sheep
+    - Cow
+    - Horse
+
+per-entity-chunk-entity-limiter:
+  enabled: false
+  entity-limits:
+    - Squid limit:1
+    - Zombie limit:2
+    - Skeleton limit:2
+    - Creeper limit:2
+    - Chicken limit:3
+    - Pig limit:5
+    - Sheep limit:5
+    - Cow limit:5
+    - Horse limit:3 !hasName
+    - Villager limit:4
+    - Arrow limit:4 inGround
+    - Rabbit limit:2
+    - PufferFish limit:2
+    - Silverfish limit:2
+    - TROPICAL_FISH limit:2
+    - COD limit:2
+    - DOLPHIN limit:2
+    - Bat limit:1
+    - Armorstand limit:10
+  passive-cleaner:
+    passive-cleaning-enabled: false
+    check-interval: 20
+    chunk-batch-size: 100
+
+spawn-limiter:
+  enabled: false
+  interval: 15
+  mobs: 300
+  animals: 300
+
+# ------------------------------------------------------------
+# Автоочистка по низкому TPS (страховка между обычными чистками)
+# ------------------------------------------------------------
+tps-meter:
+  enabled: false
+  trigger-broadcast-message: '&8[&dVoidPE&8] &7Сервер перегружен, чистим дроп и мобов.'
+  recover-broadcast-message: '&8[&dVoidPE&8] &7Нагрузка спала, всё в норме.'
+  broadcast-enabled: true
+  interval: 15
+  tps-trigger: 14.0
+  tps-recover: 19.0
+  commands:
+    - 'lagg killmobs'
+    - 'lagg clear'
+  recover-commands: []
+
+# ------------------------------------------------------------
+# /lagg killmobs — кого НЕ удалять
+# remove-named: false — мобы с именем тоже удаляются
+# ------------------------------------------------------------
+kill-mobs:
+   remove-named: false
+   mob-filter:
+   - Villager
+   - Wolf
+   - ARMOR_STAND
+   - Horse
+
+mobspawner:
+  enabled: false
+  max-spawn: 4
+  remove-mobs-on-chunk-unload: true
+
+item-merger:
+  enabled: false
+  radius: 6
+
+# ============================================================
+# ГЛАВНОЕ: автоочистка раз в 15 минут
+# 18000 тиков = 900 секунд = 15 минут
+# ============================================================
+auto-removal:
+  enabled: true
+  broadcast-message: '&8[&dVoidPE&8] &fОчистка: &d+RemoveAmount &fобъектов удалено.'
+  broadcast-removal: true
+  autoremoval-interval: 18000
+  world-filter:
+    # Миры, где чистить НЕ надо. Пусто — чистим везде.
+  boat: false
+  falling-block: true
+  experience-orb: true
+  painting: false
+  projectile: false
+  item: true
+  itemframe: false
+  minecart: false
+  primed-tnt: true
+  item-filter:
+    # Предметы, которые НЕ удаляются. Пример:
+    # - NETHERITE_INGOT
+  remove-entities:
+    - Arrow onGround
+    - Snowball
+    - Egg
+    - Fireball
+    - Boat !isMounted
+    - Minecart !isMounted
+    - MINECART_TNT
+  # Напоминания перед очисткой (time — тик от начала цикла):
+  # 17400 = за 30 сек, 17700 = за 15 сек, 17900 = за 5 сек.
+  warnings:
+        - 'time:17400 msg:&8[&dVoidPE&8] &7Очистка дропа через &d30 сек&7.'
+        - 'time:17700 msg:&8[&dVoidPE&8] &7Очистка дропа через &d15 сек&7.'
+        - 'time:17900 msg:&8[&dVoidPE&8] &7Очистка дропа через &d5 сек&7.'
+
+# ------------------------------------------------------------
+# /lagg clear — ручная очистка
+# ------------------------------------------------------------
+command-remove:
+  world-filter:
+  broadcast-removal: false
+  boat: true
+  falling-block: true
+  experience-orb: true
+  painting: false
+  projectile: true
+  item: true
+  itemframe: false
+  minecart: true
+  primed-tnt: true
+  item-filter:
+  remove-entities:
+
+limit:
+  enabled: false
+  max: 1000
+  check-interval: 60
+  broadcast-message: '&8[&dVoidPE&8] &fЛимит сущностей: &d+RemoveAmount &fудалено.'
+  world-filter:
+  broadcast-removal: true
+  boat: true
+  falling-block: true
+  experience-orb: true
+  painting: false
+  projectile: true
+  item: true
+  itemframe: false
+  minecart: true
+  primed-tnt: true
+  item-filter:
+
+# Свои триггеры очистки. Оставлено выключенным:
+# обычная чистка раз в 15 минут + ручная /lagg clear.
+custom-trigger-removal:
+  enabled: false
+  triggers:
+    trigger1:
+      trigger-type: tps-trigger
+      run-interval: 5
+      tps-trigger: 14.0
+      tps-recover: 19.0
+      jobs:
+        command-executor:
+          commands:
+            - 'lagg killmobs'
+            - 'lagg clear'
+            - 'lagg halt'
+          recover-commands:
+            - 'lagg halt'
+        entity-clearer:
+          execute-job-time: 120
+          warnings:
+            - 'time:60 msg:&8[&dVoidPE&8] &7Очистка сущностей через &d+remaining сек&7.'
+            - 'time:100 msg:&8[&dVoidPE&8] &7Очистка сущностей через &d20 сек&7.'
+            - 'time:110 msg:&8[&dVoidPE&8] &7Очистка сущностей через &d10 сек&7.'
+          world-filter:
+          removeEntities:
+            - item
+            - zombie !hasName
+            - skeleton !hasName
+            - pig !hasName
+            - cow !hasName
+    trigger2:
+      trigger-type: entity-limit-trigger
+      run-interval: 25
+      limit: 200
+      world-filter:
+      entity-limits:
+        - zombie
+        - skeleton
+        - enderman
+      jobs:
+        entity-clearer:
+          world-filter:
+          remove-entities:
+            - zombie
+            - skeleton
+            - enderman

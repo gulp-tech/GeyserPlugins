@@ -567,6 +567,33 @@ Paper 26.2 принимает adventure `Key`. Компилятор разниц
 В `VoidTalismans`, `VoidEnchants`, `VoidWardenCity` такие же прямые
 `Registry.*.get(...)` — при их пересборке обязательно переводить на `RegistryAccess`.
 
+### 6.3.12. ClearLag под стиль VoidPE + предметы без игроков рядом (23.10.2026)
+
+**ClearLag** — готовый конфиг `configs/ClearLag-config.yml` (копировать в
+`plugins/ClearLag/config.yml`, затем `/lagg reload`):
+
+* автоочистка раз в **15 минут**: `auto-removal.autoremoval-interval: 18000`
+  (тики; 18000 / 20 = 900 сек);
+* предупреждения за 30 / 15 / 5 секунд (`warnings` time 17400 / 17700 / 17900 —
+  это тики от начала цикла, не «сколько осталось»);
+* сообщения в стиле сервера: `&8[&dVoidPE&8] …` — **hex `&#RRGGBB` ClearLag не
+  понимает**, это старый плагин, поэтому только `&`-коды (`&8`, `&d`, `&7`, `&f`);
+* `settings.auto-update: false` — чтобы плагин не перезаписал подогнанный конфиг;
+* `log-purger` включён на 7 дней, всё остальное (лимитеры, TPS-метр, чанк-лимитеры)
+  оставлено выключенным, чтобы не влиять на геймплей.
+
+**VoidItems 1.8.6** — предметы работают без игроков рядом. Раньше «дезориентация»
+при отсутствии цели возвращала `false`: предмет не тратился, кулдаун не начинался,
+и выглядело это как «предмет не работает». Теперь есть ключ `require-target`
+у `dust` и `dezorientation`:
+
+* `require-target: false` (по умолчанию) — предмет срабатывает всегда: звук,
+  сообщение, расход и кулдаун; эффект применяется к тем, кто в радиусе (может быть
+  никого);
+* `require-target: true` — прежнее поведение (без цели предмет не тратится).
+
+Текст `messages.no-target` уточнён: «Рядом никого нет — эффект применить не к кому».
+
 ## 8. Состояние сервера пользователя (по последнему логу)
 
 Purpur 26.2 build 121, Geyser 2.12.0-b1268 (git-master-d14f204), UDP-порт 19139, миры: world, world2, nether, end. Игрок/админ — MUSD38 (привилегия «Создатель»). VoidWardenCity: точки загружены из points.yml — центр и спавн `world2 -648 -42 -544`, GUI-лута загружено 54 предмета. На сервере также стоят **чужие плагины (не наши, не трогать)**: Lmauction/LMstash/LMbuyer/LMRoom, ZNPCsPlus, LiteKits, GeyserEvent, Pl-Hide-Pro, HeadDatabase, CoreProtect, BetterRTP, ViaVersion, AuthMe, Essentials, DeluxeMenus, DecentHolograms и т.д. Их WARN в логе (duplicate keys у Lmauction, дубль UUID пака GeyserEvent, пустой префикс Floodgate) — не наши задачи, если пользователь не попросит.

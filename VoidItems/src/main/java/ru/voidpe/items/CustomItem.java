@@ -67,6 +67,10 @@ public final class CustomItem {
         return section == null ? def : section.getString(key, def);
     }
 
+    public boolean bool(String key, boolean def) {
+        return section == null ? def : section.getBoolean(key, def);
+    }
+
     public List<EffectDef> effects(String key) {
         java.util.List<EffectDef> result = new java.util.ArrayList<>();
         if (section == null) {

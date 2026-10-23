@@ -880,7 +880,12 @@ public final class ItemsService implements Listener {
             found++;
         }
         playSound(user, item.str("sound", "entity.firework_rocket.launch"));
-        msg(user, "dust-used", item);
+        boolean requireTarget = item.bool("require-target", false);
+        if (found == 0 && requireTarget) {
+            msg(user, "no-target", item);
+            return false;
+        }
+        msg(user, found == 0 ? "no-target" : "dust-used", item);
         return true;
     }
 
@@ -913,12 +918,16 @@ public final class ItemsService implements Listener {
             }
             hit++;
         }
-        if (hit == 0) {
+        // Раньше без игроков рядом предмет «не срабатывал» и не тратился.
+        // Теперь по умолчанию (require-target: false) он используется всегда:
+        // эффект просто не на кого применить, но звук/сообщение/кулдаун — как обычно.
+        boolean requireTarget = item.bool("require-target", false);
+        if (hit == 0 && requireTarget) {
             msg(user, "no-target", item);
             return false;
         }
         playSound(user, item.str("sound", "entity.wither.ambient"));
-        msg(user, "disorient-used", item);
+        msg(user, hit == 0 ? "no-target" : "disorient-used", item);
         return true;
     }
 

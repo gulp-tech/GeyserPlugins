@@ -61,7 +61,7 @@ messages:
   banned: "&cЗдесь этот предмет запрещён."
   cooldown: "&cПодожди ещё &f{seconds} сек. &c({item}&c)"
   trap-used: "&aТрапка поставлена!"
-  no-target: "&7Рядом никого нет."
+  no-target: "&7Рядом никого нет — эффект применить не к кому."
   trapped-you: "&#FF6B6BТы в трапке игрока {player}!"
   trap-ended: "&7Трапка рассыпалась."
   trap-unbreakable: "&cТрапку нельзя сломать."
@@ -145,6 +145,10 @@ items:
     radius: 15
     glowing-seconds: 10
     cooldown-seconds: 30
+    # false — предмет срабатывает и тратится, даже если рядом никого нет
+    # (звук и сообщение будут, эффект — не на кого). true — старый режим:
+    # без игроков в радиусе предмет не тратится.
+    require-target: false
     sound: "entity.firework_rocket.launch"
     recipe:
       enabled: true
@@ -166,6 +170,8 @@ items:
       - "&cЗамедление III 5 сек + разворот экрана."
     radius: 9
     cooldown-seconds: 45
+    # false — око используется и тратится всегда, даже в одиночку (см. dust).
+    require-target: false
     rotate-view: 1         # 1 — разворачивать экран врагам, 0 — нет
     sound: "entity.wither.ambient"
     effects:
