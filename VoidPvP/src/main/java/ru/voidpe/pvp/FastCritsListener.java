@@ -1,0 +1,141 @@
+package ru.voidpe.pvp;
+
+import org.bukkit.Bukkit;
+import org.bukkit.GameMode;
+import org.bukkit.Location;
+import org.bukkit.Particle;
+import org.bukkit.Sound;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
+import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityDamageEvent;
+
+/**
+ * Обработка ударов: крит в прыжке (в том числе в спринте) и снятие
+ * неуязвимости между ударами — «тап-тап» проходит полностью.
+ *
+ * <p>Работает только на прямые удары игрока (ENTITY_ATTACK): стрелы, взрывы,
+ * огонь и размашистый удар (sweep) остаются ванильными.</p>
+ */
+public final class FastCritsListener implements Listener {
+
+    private final PvPConfig plugin;
+
+    public FastCritsListener(PvPConfig plugin) {
+        this.plugin = plugin;
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onDamage(EntityDamageByEntityEvent event) {
+        VoidPvP.Settings settings = plugin.settings();
+        if (settings == null || !settings.enabled) {
+            return;
+        }
+        // Только прямые удары игрока: стрелы и взрывы не трогаем.
+        if (!(event.getDamager() instanceof Player attacker)) {
+            return;
+        }
+        if (event.getCause() != EntityDamageEvent.DamageCause.ENTITY_ATTACK) {
+            return;
+        }
+        if (attacker.getGameMode() == GameMode.SPECTATOR || attacker.getGameMode() == GameMode.CREATIVE) {
+            return;
+        }
+        Entity victim = event.getEntity();
+        if (victim == attacker) {
+            return;
+        }
+        if (settings.isWorldDisabled(attacker.getWorld().getName())) {
+            return;
+        }
+        if (!plugin.allowed(attacker)) {
+            return;
+        }
+        if (settings.critsEnabled) {
+            applyCrit(event, attacker, victim, settings);
+        }
+        if (settings.noInvulnerability) {
+            clearInvulnerability(victim);
+        }
+    }
+
+    /**
+     * Крит: умножает уже посчитанный урон на множитель из конфига.
+     * Если ванильный крит и так был (падение, не спринт) — не удваиваем.
+     */
+    private void applyCrit(EntityDamageByEntityEvent event, Player attacker, Entity victim,
+                           VoidPvP.Settings settings) {
+        if (settings.ignoredEntities.contains(victim.getType().name())) {
+            return;
+        }
+        boolean airborne = !attacker.isOnGround() || attacker.getFallDistance() > 0.0F;
+        boolean wantCrit = settings.always || (settings.whileAirborne && airborne);
+        if (!wantCrit) {
+            return;
+        }
+        if (vanillaCrit(attacker)) {
+            return; // ванилла уже умножила урон на 1.5
+        }
+        double base = event.getDamage();
+        if (base <= 0.0) {
+            return;
+        }
+        event.setDamage(base * settings.multiplier);
+        showCrit(victim, attacker, settings);
+    }
+
+    /**
+     * Условия ванильного крита: падение, не на земле, не в спринте.
+     * Спринт в ваниле крит отменяет — именно этот случай мы и «докручиваем».
+     */
+    private static boolean vanillaCrit(Player attacker) {
+        return attacker.getFallDistance() > 0.0F
+                && !attacker.isOnGround()
+                && !attacker.isSprinting();
+    }
+
+    /** Частицы и звук крита — на Bedrock клиент сам их не рисует, шлём с сервера. */
+    private static void showCrit(Entity victim, Player attacker, VoidPvP.Settings settings) {
+        Location location = victim.getLocation().add(0.0, victim.getHeight() * 0.5, 0.0);
+        if (settings.particles) {
+            try {
+                location.getWorld().spawnParticle(Particle.CRIT, location, 8, 0.25, 0.25, 0.25, 0.15);
+            } catch (Throwable ignored) {
+                // частица недоступна в этой версии — не критично
+            }
+        }
+        if (settings.sound) {
+            try {
+                attacker.playSound(location, Sound.ENTITY_PLAYER_ATTACK_CRIT, 0.9F, 1.0F);
+                if (victim instanceof Player victimPlayer) {
+                    victimPlayer.playSound(location, Sound.ENTITY_PLAYER_ATTACK_CRIT, 0.5F, 1.0F);
+                }
+            } catch (Throwable ignored) {
+                // звук недоступен в этой версии — не критично
+            }
+        }
+    }
+
+    /**
+     * Снимает 0.5-секундную неуязвимость жертвы после нашего удара,
+     * чтобы следующий тап тоже нанёс урон. Через тик: ядро само выставит
+     * noDamageTicks после события, поэтому обнуляем уже после него.
+     */
+    private void clearInvulnerability(Entity victim) {
+        if (!(victim instanceof LivingEntity living)) {
+            return;
+        }
+        if (living.isDead()) {
+            return;
+        }
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            if (living.isValid() && !living.isDead() && living.getNoDamageTicks() > 0) {
+                living.setNoDamageTicks(0);
+            }
+        });
+    }
+}
