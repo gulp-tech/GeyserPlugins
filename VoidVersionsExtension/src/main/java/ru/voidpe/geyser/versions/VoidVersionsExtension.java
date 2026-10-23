@@ -87,6 +87,9 @@ public final class VoidVersionsExtension implements Extension {
     /** Глушится при выключенных квитанциях, но только с протокола 944 (26.10). */
     private static final String PARTY_PACKET = "PartyChangedPacket";
 
+    /** Верхняя граница перебора номеров пакетов (реальные — до ~400). */
+    private static final int MAX_PACKET_ID = 0x7FF;
+
     private volatile boolean patched;
     /** Последний прочитанный конфиг — нужен выводу /geyser version и логам. */
     private volatile Config config;
@@ -440,11 +443,16 @@ public final class VoidVersionsExtension implements Extension {
                 existing.add((Integer) getProtocol.invoke(codec));
             }
 
-            Sanitizer sanitizer = Sanitizer.create(cl, codecs.get(0), config.sanitize());
+            Sanitizer sanitizer = Sanitizer.create(this, cl, codecs.get(0), config.sanitize());
             if (sanitizer == null && config.sanitize()) {
                 logger().warning("VoidVersions: санитайзер CodecProcessor недоступен — "
                         + "кодеки будут зарегистрированы без санитарной обработки.");
             }
+            // Самый свежий кодек — эталон «какие пакеты вообще бывают»: всё, что
+            // есть у него, но отсутствует в старом кодеке, Geyser может попытаться
+            // отправить старому клиенту (так падало на VoxelShapesPacket: он с
+            // протокола 924, а Geyser шлёт его при входе безусловно).
+            Object referenceCodec = codecs.get(codecs.size() - 1);
 
             // Библиотека cloudburst может опережать сам Geyser: кодек новее самой
             // свежей родной версии не имеет в core ни переводчиков, ни палитр,
@@ -505,7 +513,7 @@ public final class VoidVersionsExtension implements Extension {
                     boolean processed = false;
                     if (sanitizer != null) {
                         try {
-                            codec = sanitizer.apply(rawCodec, protocol);
+                            codec = sanitizer.apply(rawCodec, protocol, referenceCodec);
                             processed = true;
                         } catch (Throwable t) {
                             logger().warning("VoidVersions: санитизация версии " + mcVersion
@@ -620,6 +628,7 @@ public final class VoidVersionsExtension implements Extension {
      */
     private static final class Sanitizer {
 
+        private final Extension ext;
         private final ClassLoader cl;
         private final Method updateSerializer;
         private final Method build;
@@ -627,18 +636,35 @@ public final class VoidVersionsExtension implements Extension {
         private final Object ignored;
         private final boolean receiptsEnabled;
 
-        private Sanitizer(ClassLoader cl, Method updateSerializer, Method build,
-                          Object illegal, Object ignored, boolean receiptsEnabled) {
+        // «Заглушки» для пакетов, которых в старом протоколе ещё нет.
+        private final Method definitionOfClass;
+        private final Method definitionOfId;
+        private final Method definitionFactory;
+        private final Method registerPacket;
+        private final Class<?> serializerType;
+        private final Object clientRecipient;
+
+        private Sanitizer(Extension ext, ClassLoader cl, Method updateSerializer, Method build,
+                          Object illegal, Object ignored, boolean receiptsEnabled,
+                          Method definitionOfClass, Method definitionOfId, Method definitionFactory,
+                          Method registerPacket, Class<?> serializerType, Object clientRecipient) {
+            this.ext = ext;
             this.cl = cl;
             this.updateSerializer = updateSerializer;
             this.build = build;
             this.illegal = illegal;
             this.ignored = ignored;
             this.receiptsEnabled = receiptsEnabled;
+            this.definitionOfClass = definitionOfClass;
+            this.definitionOfId = definitionOfId;
+            this.definitionFactory = definitionFactory;
+            this.registerPacket = registerPacket;
+            this.serializerType = serializerType;
+            this.clientRecipient = clientRecipient;
         }
 
         /** {@code null}, если включено в конфиге, но нужных полей в Geyser нет. */
-        static Sanitizer create(ClassLoader cl, Object sampleCodec, boolean enabled) {
+        static Sanitizer create(Extension ext, ClassLoader cl, Object sampleCodec, boolean enabled) {
             if (!enabled) {
                 return null;
             }
@@ -659,15 +685,46 @@ public final class VoidVersionsExtension implements Extension {
                 Object sampleBuilder = sampleCodec.getClass().getMethod("toBuilder").invoke(sampleCodec);
                 Method update = sampleBuilder.getClass().getMethod("updateSerializer", Class.class, serializerType);
                 Method build = sampleBuilder.getClass().getMethod("build");
-                return new Sanitizer(cl, update, build, illegal, ignored,
-                        Boolean.getBoolean("Geyser.ReceiptPackets"));
+
+                // Метаданные для заглушек отсутствующих пакетов — необязательные:
+                // если в этой сборке cloudburst API другой, санитизация всё равно
+                // должна остаться (иначе теряем и глушилки ILLEGAL/IGNORED).
+                Method defOfClass = null;
+                Method defOfId = null;
+                Method defFactory = null;
+                Method register = null;
+                Object client = null;
+                try {
+                    Class<?> codecType = sampleCodec.getClass();
+                    defOfClass = codecType.getMethod("getPacketDefinition", Class.class);
+                    defOfId = codecType.getMethod("getPacketDefinition", int.class);
+                    defFactory = defOfId.getReturnType().getMethod("getFactory");
+                    Class<?> recipientType = Class.forName(
+                            "org.cloudburstmc.protocol.bedrock.data.PacketRecipient", true, cl);
+                    for (Object constant : recipientType.getEnumConstants()) {
+                        if ("CLIENT".equals(((Enum<?>) constant).name())) {
+                            client = constant;
+                        }
+                    }
+                    register = sampleBuilder.getClass().getMethod("registerPacket",
+                            java.util.function.Supplier.class, serializerType, int.class, recipientType);
+                } catch (Throwable shimUnavailable) {
+                    defOfClass = null;
+                    defOfId = null;
+                    defFactory = null;
+                    register = null;
+                    client = null;
+                }
+                return new Sanitizer(ext, cl, update, build, illegal, ignored,
+                        Boolean.getBoolean("Geyser.ReceiptPackets"),
+                        defOfClass, defOfId, defFactory, register, serializerType, client);
             } catch (Throwable t) {
                 return null;
             }
         }
 
         /** Возвращает новый кодек с применёнными правилами; отсутствующие пакеты пропускаются. */
-        Object apply(Object codec, int protocol) throws Exception {
+        Object apply(Object codec, int protocol, Object referenceCodec) throws Exception {
             Object builder = codec.getClass().getMethod("toBuilder").invoke(codec);
             for (String packet : ILLEGAL_PACKETS) {
                 applyRule(builder, packet, illegal);
@@ -684,7 +741,84 @@ public final class VoidVersionsExtension implements Extension {
                     applyRule(builder, PARTY_PACKET, ignored);
                 }
             }
+            addMissingPackets(builder, codec, protocol, referenceCodec);
             return build.invoke(builder);
+        }
+
+        /**
+         * Регистрирует в старом кодеке пустышки для пакетов, которых в его версии
+         * протокола ещё нет, но которые Geyser умеет отправлять безусловно.
+         *
+         * <p>Без этого вход падал на {@code VoxelShapesPacket} (появился в 1.21.110,
+         * протокол 924): {@code BedrockPacketCodec.getPacketId} получал
+         * {@code null} из {@code getPacketDefinition(Class)} и ронял сессию
+         * {@code NullPointerException} прямо при входе в мир.</p>
+         *
+         * <p>Пустышка = свободный номер пакета (< 0x7FF, реальные версии его не
+         * занимают) + сериализатор-пустышка, который ничего не пишет. Старый клиент
+         * такой пакет молча игнорирует: тело нулевой длины. Для текущего клиента
+         * ничего не меняется — у него эти пакеты есть по-настоящему.</p>
+         */
+        private void addMissingPackets(Object builder, Object codec, int protocol, Object referenceCodec)
+                throws Exception {
+            if (definitionOfClass == null || definitionOfId == null || definitionFactory == null
+                    || registerPacket == null || clientRecipient == null) {
+                return;
+            }
+            int freeId = freePacketId(codec);
+            if (freeId < 0) {
+                return;
+            }
+            int added = 0;
+            for (int id = 0; id <= MAX_PACKET_ID; id++) {
+                Object definition = definitionOfId.invoke(referenceCodec, id);
+                if (definition == null) {
+                    continue;
+                }
+                Object instance = definitionFactory.invoke(definition);
+                if (!(instance instanceof java.util.function.Supplier<?> factory)) {
+                    continue;
+                }
+                Object sample = factory.get();
+                if (sample == null) {
+                    continue;
+                }
+                Class<?> packetClass = sample.getClass();
+                if (definitionOfClass.invoke(codec, packetClass) != null) {
+                    continue; // такой пакет в этой версии есть — не трогаем
+                }
+                Object supplier = java.lang.reflect.Proxy.newProxyInstance(cl,
+                        new Class<?>[]{java.util.function.Supplier.class},
+                        (proxy, method, args) -> "get".equals(method.getName()) ? sample : null);
+                Object noop = java.lang.reflect.Proxy.newProxyInstance(cl,
+                        new Class<?>[]{serializerType},
+                        (proxy, method, args) -> null);
+                try {
+                    registerPacket.invoke(builder, supplier, noop, freeId, clientRecipient);
+                    added++;
+                } catch (Throwable alreadyRegistered) {
+                    // Класс уже зарегистрирован алиасом — нам и не нужно.
+                }
+            }
+            if (added > 0) {
+                ext.logger().info("VoidVersions: протокол " + protocol + ": заглушено пакетов,"
+                        + " которых нет в этой версии (Geyser их не должен слать): " + added
+                        + " (номер-пустышка " + freeId + ").");
+            }
+        }
+
+        /** Свободный номер пакета: реальные версии занимают только младшие id. */
+        private int freePacketId(Object codec) {
+            try {
+                for (int id = MAX_PACKET_ID; id > 0; id--) {
+                    if (definitionOfId.invoke(codec, id) == null) {
+                        return id;
+                    }
+                }
+            } catch (Throwable ignored) {
+                // не смогли — заглушки просто не поставим
+            }
+            return -1;
         }
 
         private void applyRule(Object builder, String packetName, Object serializer) {
