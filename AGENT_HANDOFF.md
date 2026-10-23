@@ -95,6 +95,25 @@ DeluxeMenus: `DeluxeMenus-donate.yml` (донат-магазин: разделы
 - `github.com` (HTML/raw) из песочницы отдаёт 404 на любой путь, `raw.githubusercontent.com` вообще недоступен — проверять ссылки для пользователя через `gh api repos/.../contents/<path>` (там есть `download_url` и размер), а не curl'ом страницы.
 - Снапшот воркспейса периодически теряет локальную историю git: восстановление — `git fetch origin` + `git reset --hard origin/<ветка>` (на GitHub коммиты целы). **Важно:** при этом `.git` может откатиться до «Initial commit», а файлы в рабочей папке остаются новыми — `reset --hard` их ПЕРЕЗАПИШЕТ. Поэтому сначала скопировать изменённые файлы в `/tmp`, потом сбрасывать, потом вернуть. Проверка целостности: `git status --short` должен показывать только реально изменённые тома. Бывает и так, что текущая ветка в сессии (`arena/f38c83d1-geyserplugins`) новее «рабочей» `arena/874b2be9-geyserplugins` — сверять `git log` обеих.
 
+## 7.1. GeyserReversion — проверено 23.10.2026, с Geyser 2.12 НЕ совместим
+
+Пользователь предложил попробовать [GeyserReversion](https://github.com/oryxel1/GeyserReversion) вместо самодельного даунгрейда палитры. Разбор исходников (ветка `ouranos`, релиз Build 5 от 30.05.2026):
+
+- Расширение собрано против `org.geysermc.geyser:core:2.10.0-SNAPSHOT`, `api: 2.9.10`, репозиторий **архивирован** (21.09.2026), README прямо пишет «This will flag anticheats».
+- `TARGET_CODEC = Bedrock_v944.CODEC` (26.10) — захардкожен: любой клиент «представляется» Geyser как протокол **944**.
+- На `GeyserPostInitializeEvent` **пересоздаёт RakNet-сервер** Geyser: рефлексия по приватным полям `org.geysermc.geyser.network.netty.GeyserServer` (`bootstrapFutures`, `group`, `childGroup`, `playerGroup`), плюс instrumentation-агент и class transformers (`BaseBedrockCodecHelperTransformer`).
+- В `libs/ouranos-1.0-all.jar` есть канонические палитры блоков **v361…v944** (48 версий, включая v898) — перевод блоков настоящий, не косметика.
+
+**Почему не взлетит на нашем Geyser 2.12 (d14f204):**
+1. В 2.12 пакет `org.geysermc.geyser.network.netty.*` переименован в `network.bedrock.raknet.*`, класса `GeyserServer` больше нет — его заменил `RaknetServer` (`GeyserImpl.geyserServer`). Импорты в `ServerUtil` → `NoClassDefFoundError` на PostInitialize.
+2. В 2.12 зарегистрированы только `v1001` (26.30+), `v2168` (26.40+), `v2169`, `v2193` (26.50+). Кодека **v944 нет** → даже с пропатченными классами Geyser отверг бы протокол 944.
+
+**Главная находка (важнее самого Reversion):** Geyser **2.10** регистрирует `Bedrock_v898` для версий «1.21.130»–«1.21.132» и везёт `block_palette.1_21_130.nbt` именно для v898. То есть клиент пользователя (1.21.130 / 898) поддерживается **нативно**, без палитровых хаков — достаточно откатить Geyser на 2.10 (вместе с Floodgate того же билда), удалить VoidVersionsExtension и, если понадобится, понизить `api:` у VoidAnvilExtension с 2.11.0 на 2.10.0 (использует только Cumulus/команды/lifecycle — проверено по импортам).
+
+GeyserReversion имеет смысл только поверх Geyser **2.10** и только если нужны клиенты **старше** 1.21.130 (до 1.12): он переводит 26.10 → 898 и ниже. С VoidVersionsExtension несовместим по определению (оба перехватывают протоколы/реестры) — ставить вместо него, не вместе.
+
+**Скачать из песочницы нельзя:** `release-assets.githubusercontent.com` (ассеты релизов), `repo.opencollab.dev`, `repo1.maven.org`, `api.modrinth.com` заблокированы — jar и сборку проверить нечем, только чтение исходников через `gh api`/codeload.
+
 ## 8. Состояние сервера пользователя (по последнему логу)
 
 Purpur 26.2 build 121, Geyser 2.12.0-b1268 (git-master-d14f204), UDP-порт 19139, миры: world, world2, nether, end. Игрок/админ — MUSD38 (привилегия «Создатель»). VoidWardenCity: точки загружены из points.yml — центр и спавн `world2 -648 -42 -544`, GUI-лута загружено 54 предмета. На сервере также стоят **чужие плагины (не наши, не трогать)**: Lmauction/LMstash/LMbuyer/LMRoom, ZNPCsPlus, LiteKits, GeyserEvent, Pl-Hide-Pro, HeadDatabase, CoreProtect, BetterRTP, ViaVersion, AuthMe, Essentials, DeluxeMenus, DecentHolograms и т.д. Их WARN в логе (duplicate keys у Lmauction, дубль UUID пака GeyserEvent, пустой префикс Floodgate) — не наши задачи, если пользователь не попросит.
