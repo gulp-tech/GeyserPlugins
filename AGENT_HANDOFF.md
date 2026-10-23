@@ -493,6 +493,42 @@ IncompatibleClassChangeError: Method 'net.kyori.adventure.text.serializer.legacy
 с исходником Kyori (класс это или интерфейс) и добавлять в `ADVENTURE_INTERFACES` /
 `ADVENTURE_CLASSES` в аудите.
 
+### 6.3.10. VoidTab 1.16.2 / VoidItems 1.8.3: NoSuchMethodError deserialize (23.10.2026)
+
+После исправления `IncompatibleClassChangeError` вылезла следующая ступень той же
+проблемы — уже не вид класса, а **точная сигнатура**:
+
+```
+java.lang.NoSuchMethodError: 'net.kyori.adventure.text.Component
+net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.deserialize(java.lang.String)'
+```
+
+В adventure `LegacyComponentSerializer extends ComponentSerializer<Component,
+TextComponent, String>`, поэтому `deserialize(String)` возвращает **TextComponent**,
+а не `Component`. Заглушка обещала `Component` → в jar попал дескриптор
+`(Ljava/lang/String;)Lnet/kyori/adventure/text/Component;`, которого на сервере нет.
+
+Исправлено в `tools/localbuild/bukkit_stubs.py`:
+
+* `LegacyComponentSerializer.deserialize(String)` → `TextComponent`;
+* `Component.text(String)` и `Component.empty()` → `TextComponent`
+  (в adventure они тоже возвращают TextComponent);
+* добавлен тип `net/kyori/adventure/text/TextComponent`.
+
+И в аудит добавлена таблица `ADVENTURE_DESCRIPTORS` с точными дескрипторами
+методов adventure, которые мы вызываем (`deserialize`, `serialize`, `legacySection`,
+`Component.text/empty`). Проверка читает `NameAndType` из пула констант, так что
+неверная сигнатура валит сборку ещё до сервера.
+
+Попутно в `VoidAntiCheat 2.0.4`: на Paper 26.x у `Registry` больше нет
+`get(NamespacedKey)` (принимает adventure `Key`), из-за чего в логе было
+«Не удалось прочитать реестры API (NoSuchMethodError …)» и проверки работали на
+дефолтах. Теперь поиск идёт через `registryLookup()` — сначала `get(NamespacedKey)`,
+потом `get(Key)`; предупреждение уходит, фильтры используют настоящие объекты.
+
+Актуальные jar: `VoidAntiCheat-2.0.4`, `VoidItems-1.8.4`, `VoidPvP-1.0.6`,
+`VoidCombat-1.2.3`, `VoidTab-1.16.3`, `VoidNick-1.0.2`, `VoidQuiet-1.0.2`.
+
 ## 8. Состояние сервера пользователя (по последнему логу)
 
 Purpur 26.2 build 121, Geyser 2.12.0-b1268 (git-master-d14f204), UDP-порт 19139, миры: world, world2, nether, end. Игрок/админ — MUSD38 (привилегия «Создатель»). VoidWardenCity: точки загружены из points.yml — центр и спавн `world2 -648 -42 -544`, GUI-лута загружено 54 предмета. На сервере также стоят **чужие плагины (не наши, не трогать)**: Lmauction/LMstash/LMbuyer/LMRoom, ZNPCsPlus, LiteKits, GeyserEvent, Pl-Hide-Pro, HeadDatabase, CoreProtect, BetterRTP, ViaVersion, AuthMe, Essentials, DeluxeMenus, DecentHolograms и т.д. Их WARN в логе (duplicate keys у Lmauction, дубль UUID пака GeyserEvent, пустой префикс Floodgate) — не наши задачи, если пользователь не попросит.

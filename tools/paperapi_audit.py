@@ -629,6 +629,26 @@ ADVENTURE_CLASSES = {
     "net/kyori/adventure/text/format/TextDecoration",
 }
 
+# Точные дескрипторы методов adventure, которые мы вызываем. Ошибка в них не
+# ловится компилятором (заглушка «угадала» сигнатуру), но на сервере даёт
+# NoSuchMethodError — именно так упал VoidTab 1.16.2:
+#   NoSuchMethodError: LegacyComponentSerializer.deserialize(String)Component
+# (в adventure возвращается TextComponent, а не Component).
+ADVENTURE_DESCRIPTORS = {
+    ("net/kyori/adventure/text/serializer/legacy/LegacyComponentSerializer", "deserialize"):
+        "(Ljava/lang/String;)Lnet/kyori/adventure/text/TextComponent;",
+    ("net/kyori/adventure/text/serializer/legacy/LegacyComponentSerializer", "serialize"):
+        "(Lnet/kyori/adventure/text/Component;)Ljava/lang/String;",
+    ("net/kyori/adventure/text/serializer/legacy/LegacyComponentSerializer", "legacySection"):
+        "()Lnet/kyori/adventure/text/serializer/legacy/LegacyComponentSerializer;",
+    ("net/kyori/adventure/text/serializer/plain/PlainTextComponentSerializer", "serialize"):
+        "(Lnet/kyori/adventure/text/Component;)Ljava/lang/String;",
+    ("net/kyori/adventure/text/Component", "text"):
+        "(Ljava/lang/String;)Lnet/kyori/adventure/text/TextComponent;",
+    ("net/kyori/adventure/text/Component", "empty"):
+        "()Lnet/kyori/adventure/text/TextComponent;",
+}
+
 
 def _constant_pool(data):
     """Возвращает {индекс: (tag, значение)} для constant pool class-файла."""
@@ -690,6 +710,15 @@ def check_library_kinds(jar_path):
                     problems.append("%s: %s должен быть InterfaceMethodref" % (entry, name))
                 elif name in ADVENTURE_CLASSES and tag != 10:
                     problems.append("%s: %s должен быть Methodref" % (entry, name))
+                nat = pool.get(value[1])
+                if not nat or nat[0] != 12:
+                    continue
+                member_name = pool.get(nat[1][0], ("", ""))[1]
+                member_desc = pool.get(nat[1][1], ("", ""))[1]
+                expected = ADVENTURE_DESCRIPTORS.get((name, member_name))
+                if expected and member_desc != expected:
+                    problems.append("%s: %s.%s%s — в adventure %s"
+                                    % (entry, name.rsplit("/", 1)[-1], member_name, member_desc, expected))
     return problems
 
 

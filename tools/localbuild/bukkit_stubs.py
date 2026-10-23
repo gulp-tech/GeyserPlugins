@@ -1900,8 +1900,8 @@ public interface Component {
 
     Component decoration(TextDecoration decoration, boolean value);
 
-    static Component text(String text) {
-        return new Component() {
+    static net.kyori.adventure.text.TextComponent text(String text) {
+        return new net.kyori.adventure.text.TextComponent() {
             @Override
             public Component append(Component component) {
                 return this;
@@ -1929,7 +1929,7 @@ public interface Component {
         };
     }
 
-    static Component empty() {
+    static net.kyori.adventure.text.TextComponent empty() {
         return Component.text("");
     }
 }
@@ -1962,7 +1962,7 @@ public interface LegacyComponentSerializer {
         return null;
     }
 
-    Component deserialize(String text);
+    net.kyori.adventure.text.TextComponent deserialize(String text);
 
     String serialize(Component component);
 }
@@ -3571,6 +3571,13 @@ add("org/bukkit/entity/Vehicle", """
 package org.bukkit.entity;
 
 public interface Vehicle extends Entity {
+}
+""")
+
+add("net/kyori/adventure/text/TextComponent", """
+package net.kyori.adventure.text;
+
+public interface TextComponent extends Component {
 }
 """)
 

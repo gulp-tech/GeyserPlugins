@@ -209,19 +209,59 @@ public class VoidAntiCheat extends JavaPlugin implements Listener, CommandExecut
         alertsOff.clear();
     }
 
-    private void resolveRegistryEntries() {
-        movementSpeedAttribute = Registry.ATTRIBUTE.get(NamespacedKey.minecraft("movement_speed"));
-        if (movementSpeedAttribute == null) {
-            movementSpeedAttribute = Registry.ATTRIBUTE.get(NamespacedKey.minecraft("generic.movement_speed"));
+    /**
+     * Поиск в реестре без привязки к сигнатуре {@code Registry#get}.
+     * На 1.21.x это был {@code get(NamespacedKey)}, на новых сборках (Paper 26.x)
+     * метод принимает adventure {@code Key} — прямой вызов давал NoSuchMethodError
+     * и все проверки оставались на консервативных значениях по умолчанию.
+     */
+    private static <T> T registryLookup(org.bukkit.Registry<T> registry, String... keys) {
+        if (registry == null) {
+            return null;
         }
-        interactionRangeAttribute = Registry.ATTRIBUTE.get(NamespacedKey.minecraft("entity_interaction_range"));
-        slowFallingEffect = Registry.EFFECT.get(NamespacedKey.minecraft("slow_falling"));
-        jumpBoostEffect = Registry.EFFECT.get(NamespacedKey.minecraft("jump_boost"));
-        levitationEffect = Registry.EFFECT.get(NamespacedKey.minecraft("levitation"));
-        dolphinsGraceEffect = Registry.EFFECT.get(NamespacedKey.minecraft("dolphins_grace"));
-        soulSpeedEnchant = Registry.ENCHANTMENT.get(NamespacedKey.minecraft("soul_speed"));
-        depthStriderEnchant = Registry.ENCHANTMENT.get(NamespacedKey.minecraft("depth_strider"));
-        frostWalkerEnchant = Registry.ENCHANTMENT.get(NamespacedKey.minecraft("frost_walker"));
+        for (String raw : keys) {
+            String full = raw.indexOf(':') >= 0 ? raw : "minecraft:" + raw;
+            Object value = registryValue(registry, full);
+            if (value != null) {
+                @SuppressWarnings("unchecked")
+                T typed = (T) value;
+                return typed;
+            }
+        }
+        return null;
+    }
+
+    private static Object registryValue(Object registry, String fullKey) {
+        try {
+            java.lang.reflect.Method get = registry.getClass().getMethod("get", NamespacedKey.class);
+            Object value = get.invoke(registry, NamespacedKey.fromString(fullKey));
+            if (value != null) {
+                return value;
+            }
+        } catch (Throwable ignored) {
+            // на этой версии сервера такого метода нет — пробуем следующий вариант
+        }
+        try {
+            Class<?> keyClass = Class.forName("net.kyori.adventure.key.Key");
+            Object key = keyClass.getMethod("key", String.class).invoke(null, fullKey);
+            java.lang.reflect.Method get = registry.getClass().getMethod("get", keyClass);
+            return get.invoke(registry, key);
+        } catch (Throwable ignored) {
+            return null;
+        }
+    }
+
+    private void resolveRegistryEntries() {
+        movementSpeedAttribute = registryLookup(Registry.ATTRIBUTE,
+                "movement_speed", "generic.movement_speed");
+        interactionRangeAttribute = registryLookup(Registry.ATTRIBUTE, "entity_interaction_range");
+        slowFallingEffect = registryLookup(Registry.EFFECT, "slow_falling");
+        jumpBoostEffect = registryLookup(Registry.EFFECT, "jump_boost");
+        levitationEffect = registryLookup(Registry.EFFECT, "levitation");
+        dolphinsGraceEffect = registryLookup(Registry.EFFECT, "dolphins_grace");
+        soulSpeedEnchant = registryLookup(Registry.ENCHANTMENT, "soul_speed");
+        depthStriderEnchant = registryLookup(Registry.ENCHANTMENT, "depth_strider");
+        frostWalkerEnchant = registryLookup(Registry.ENCHANTMENT, "frost_walker");
     }
 
     private void loadCheckSettings() {
