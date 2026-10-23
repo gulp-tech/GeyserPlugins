@@ -1,0 +1,29 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "VoidPE Resource Pack",
+    "description": "VoidPE: иконки скорборда, логотип и белая обводка подсвеченных игроков (явная пыль). Ставится на Geyser (папка packs).",
+    "uuid": "be7304eb-1c69-4b48-a293-1f08375d08de",
+    "version": [
+      1,
+      20,
+      0
+    ],
+    "min_engine_version": [
+      1,
+      20,
+      0
+    ]
+  },
+  "modules": [
+    {
+      "type": "resources",
+      "uuid": "e5d159ac-9d10-4d67-931b-4b1afc7b5b75",
+      "version": [
+        1,
+        20,
+        0
+      ]
+    }
+  ]
+}

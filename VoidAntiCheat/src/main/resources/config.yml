@@ -1,0 +1,287 @@
+# ============================================================
+#  VoidAntiCheat — античит VoidPE ТОЛЬКО для Bedrock (Geyser/Floodgate)
+#
+#  Почему не обычный Java-античит: большинство Java-античитов Bedrock
+#  либо игнорируют, либо ложно штрафуют из-за другой физики/ввода.
+#  VoidAntiCheat проверяет именно Floodgate-игроков, работает через
+#  Bukkit-события Purpur (без PacketEvents/ProtocolLib), держит на игрока
+#  только маленькие примитивные буферы и не сканирует мир каждый тик.
+#
+#  ВАЖНО: первые дни после установки смотри алерты. Автокик включён
+#  только на высоких VL, автобана по умолчанию НЕТ. Если какая-то
+#  кастомная механика плагинов даёт скорость/рывки — добавь мир/регион
+#  в исключения ниже или подними max-vl конкретной проверки.
+# ============================================================
+
+settings:
+  enabled: true
+  # Проверять только Bedrock/Floodgate. На этом сервере Java запрещена,
+  # поэтому при недоступном Floodgate ниже есть безопасный fallback.
+  bedrock-only: true
+  # Если Floodgate API не нашлась: true = проверять всех (сервер Bedrock-only),
+  # false = никого не проверять до установки Floodgate.
+  check-all-if-floodgate-missing: true
+  # Не проверять в этих мирах и регионах WorldGuard (арены с кастомной
+  # физикой, мини-игры, катсцены, плагины с рывками и т.п.).
+  excluded-worlds: []
+  excluded-worldguard-regions: []
+  # Ниже этого TPS проверки движения не штрафуют: сервер сам отстаёт.
+  min-tps-for-movement: 16.0
+  # Грейсы после входа/телепорта/респавна/нокбэка, миллисекунды.
+  join-grace-ms: 3500
+  teleport-grace-ms: 1750
+  respawn-grace-ms: 3500
+  world-change-grace-ms: 2500
+  velocity-grace-ms: 900
+  # Алерты персоналу: кулдаун одинаковых алертов по игроку+проверке.
+  alert-cooldown-ms: 2500
+  alert-min-vl: 1.0
+  log-console: true
+  log-file: true
+  staff-alerts: true
+  # Повторное наказание одному игроку по одной проверке не чаще, чем раз в N сек.
+  punish-cooldown-seconds: 60
+  setback-cooldown-ms: 900
+  debug: false
+
+# Команды наказания. Выполняются от консоли при punish-vl проверки.
+# Плейсхолдеры: %player%, %check%, %vl%, %max_vl%, %details%, %ping%, %tps%, %world%
+# По умолчанию только кик на высоком VL. Бан добавь сам, когда будешь уверен.
+punishments:
+  commands:
+    - "kick %player% VoidAntiCheat: подозрительная активность (%check%, VL %vl%)"
+
+# Необязательный Discord webhook по наказаниям/высоким VL. Пусто = выключено.
+webhook:
+  enabled: false
+  url: ""
+  min-vl: 10.0
+  cooldown-seconds: 60
+
+# Тонкая настройка механик. Пороги специально консервативные под Bedrock/Geyser:
+# лучше поймать устойчивый чит серией VL, чем кикать за лаг или тач-ввод.
+movement:
+  # Speed token bucket: разовый рывок допускается, штраф — за устойчивый перерасход.
+  speed-burst-blocks: 1.30
+  speed-token-cap: 4.5
+  # Один move-пакет дальше этого без телепорта считается невозможным.
+  teleport-delta-blocks: 24.0
+  # Timer: position-движений к серверным тикам за окно.
+  timer-ratio: 1.24
+  timer-extra-packets: 24
+  timer-window-ticks: 100
+  # Fly/Hover.
+  hover-max-dy: 0.040
+  hover-ticks: 5
+  ascent-ticks: 3
+  slow-fall-ticks: 6
+  # NoFall.
+  nofall-min-drop: 5.0
+  nofall-server-fall-ratio: 0.30
+  # Step/Jesus/Spider/NoClip.
+  step-min-dy: 0.96
+  jesus-ticks: 7
+  climb-ticks: 8
+  noclip-ticks: 3
+
+combat:
+  # Дистанция от глаза до БЛИЖАЙШЕЙ точки хитбокса цели.
+  reach-max-blocks: 3.45
+  # На тач-вводе Bedrock серверная картина атаки чуть шумнее.
+  reach-touch-max-blocks: 3.65
+  # Дальше этого удар отменяется сразу: это физически невозможно в survival.
+  reach-hard-cancel-blocks: 4.60
+  # Компенсация пинга цели: блоков за 100 мс, но не больше максимума.
+  reach-ping-comp-per-100ms: 0.045
+  reach-ping-comp-max-blocks: 0.40
+  # KillAura эвристики (только сериями, не за один удар).
+  killaura-multi-targets: 4
+  killaura-window-ms: 1000
+  killaura-wall-min-distance: 1.60
+  # AutoClicker. У Bedrock удержание атаки может давать ровные ~20 CPS,
+  # поэтому порог выше и отдельная проверка ровности интервалов мягкая.
+  autoclicker-cps: 24
+  autoclicker-touch-cps: 27
+  autoclicker-consistent-min-cps: 25.0
+  autoclicker-consistent-max-deviation-ms: 1.5
+  autoclicker-sample-clicks: 28
+  # Velocity/AntiKB: сверка ожидаемого нокбэка с фактическим перемещением.
+  velocity-check-ticks: 5
+  velocity-min-expected-blocks: 1.10
+  velocity-min-travel-ratio: 0.30
+
+world:
+  fastbreak-per-second: 28
+  fastbreak-same-tick: 4
+  fastplace-per-second: 28
+  fastplace-same-tick: 4
+  # Рука до блока: survival vanilla ~4.5, порог с Bedrock запасом.
+  blockreach-max-blocks: 6.20
+  blockreach-hard-cancel-blocks: 7.00
+  # Scaffold: блоки строго под ногами на скорости, не крадучись и серией.
+  scaffold-window-ms: 5000
+  scaffold-places-in-window: 3
+  scaffold-min-speed-bps: 3.0
+  scaffold-max-pitch: 55.0
+
+elytra:
+  climb-dy-per-tick: 0.55
+  climb-ticks: 4
+  max-horizontal-bps: 118.0
+  boost-grace-ms: 4000
+
+vehicle:
+  # Лодки на льду очень быстрые — отдельные лимиты по поверхности под лодкой.
+  water-max-bps: 16.0
+  ground-max-bps: 14.0
+  ice-max-bps: 34.0
+  packed-ice-max-bps: 40.0
+  blue-ice-max-bps: 48.0
+  burst-blocks: 3.0
+
+# Общие значения, если у конкретной проверки поле не задано.
+checks:
+  default:
+    enabled: true
+    max-vl: 20.0
+    decay-per-second: 0.12
+    setback-vl: 0.0
+    cancel-vl: 0.0
+    punish-vl: 0.0
+
+  speed:
+    enabled: true
+    max-vl: 25.0
+    decay-per-second: 0.16
+    setback-vl: 9.0
+    punish-vl: 25.0
+  fly:
+    enabled: true
+    max-vl: 22.0
+    decay-per-second: 0.15
+    setback-vl: 7.0
+    punish-vl: 22.0
+  timer:
+    enabled: true
+    max-vl: 24.0
+    decay-per-second: 0.10
+    punish-vl: 24.0
+  nofall:
+    enabled: true
+    max-vl: 18.0
+    decay-per-second: 0.12
+    punish-vl: 18.0
+  step:
+    enabled: true
+    max-vl: 18.0
+    decay-per-second: 0.14
+    setback-vl: 8.0
+    punish-vl: 18.0
+  jesus:
+    enabled: true
+    max-vl: 20.0
+    decay-per-second: 0.14
+    setback-vl: 8.0
+    punish-vl: 20.0
+  spider:
+    enabled: true
+    max-vl: 20.0
+    decay-per-second: 0.14
+    setback-vl: 8.0
+    punish-vl: 20.0
+  elytra:
+    enabled: true
+    max-vl: 20.0
+    decay-per-second: 0.14
+    punish-vl: 20.0
+  vehicle:
+    enabled: true
+    max-vl: 20.0
+    decay-per-second: 0.14
+    punish-vl: 20.0
+  velocity:
+    enabled: true
+    max-vl: 20.0
+    decay-per-second: 0.10
+    punish-vl: 20.0
+  reach:
+    enabled: true
+    max-vl: 16.0
+    decay-per-second: 0.15
+    cancel-vl: 10.0
+    punish-vl: 16.0
+  killaura:
+    enabled: true
+    max-vl: 16.0
+    decay-per-second: 0.12
+    cancel-vl: 12.0
+    punish-vl: 16.0
+  autoclicker:
+    enabled: true
+    max-vl: 20.0
+    decay-per-second: 0.10
+    punish-vl: 20.0
+  fastbreak:
+    enabled: true
+    max-vl: 18.0
+    decay-per-second: 0.14
+    cancel-vl: 8.0
+    punish-vl: 18.0
+  fastplace:
+    enabled: true
+    max-vl: 18.0
+    decay-per-second: 0.14
+    cancel-vl: 8.0
+    punish-vl: 18.0
+  scaffold:
+    enabled: true
+    max-vl: 18.0
+    decay-per-second: 0.10
+    cancel-vl: 10.0
+    punish-vl: 18.0
+  blockreach:
+    enabled: true
+    max-vl: 14.0
+    decay-per-second: 0.16
+    cancel-vl: 5.0
+    punish-vl: 14.0
+  badpackets:
+    enabled: true
+    max-vl: 12.0
+    decay-per-second: 0.08
+    cancel-vl: 1.0
+    punish-vl: 12.0
+  noclip:
+    enabled: true
+    max-vl: 20.0
+    decay-per-second: 0.10
+    setback-vl: 12.0
+    punish-vl: 20.0
+
+messages:
+  prefix: "&#FF5555VoidAC &8» &f"
+  alert: "&c{player} &7подозрение на &f{check} &7VL &c{vl}&7/{max_vl} &8• &7{details} &8• &7пинг &f{ping}&7, TPS &f{tps}"
+  alert-hover: "&7Игрок: &f{player}\n&7Проверка: &f{check}\n&7VL: &c{vl}&7/{max_vl}\n&7{details}\n&8Клик — /vac info"
+  no-permission: "&cТолько для администрации."
+  player-not-found: "&cИгрок не найден."
+  check-not-found: "&cНет такой проверки. Список: speed, fly, timer, nofall, step, jesus, spider, elytra, vehicle, velocity, reach, killaura, autoclicker, fastbreak, fastplace, scaffold, blockreach, badpackets, noclip"
+  reloaded: "&aVoidAntiCheat перезагружен."
+  alerts-on: "&aАлерты VoidAntiCheat включены."
+  alerts-off: "&cАлерты VoidAntiCheat выключены."
+  reset-done: "&aVL игрока &f{player} &aсброшены{scope}."
+  setback-done: "&aИгрок &f{player} &aвозвращён на последнюю безопасную точку."
+  no-safe-location: "&cУ игрока нет сохранённой безопасной точки."
+  status: "&7VoidAntiCheat: {state}&7, Bedrock/Floodgate: &f{floodgate}&7, игроков под наблюдением: &f{tracked}&7, TPS: &f{tps}"
+  state-on: "&#7CFC00включён"
+  state-off: "&cвыключен"
+  info-header: "&f{player} &7— Bedrock: &f{bedrock}&7, ввод: &f{input}&7, устройство: &f{device}&7, пинг: &f{ping}"
+  info-none: "&7Активных VL нет."
+  info-line: "&7{check}: &c{vl}&7/{max_vl}"
+  help:
+    - "&fVoidAntiCheat:"
+    - "&7/vac &8— статус античита"
+    - "&7/vac info <игрок> &8— VL, устройство и ввод игрока"
+    - "&7/vac alerts &8— вкл/выкл алерты себе"
+    - "&7/vac reset <игрок> [проверка] &8— сбросить VL"
+    - "&7/vac setback <игрок> &8— вернуть игрока на безопасную точку"
+    - "&7/vac reload &8— перезагрузка конфига"

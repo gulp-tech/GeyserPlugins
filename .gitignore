@@ -1,0 +1,7 @@
+target/
+*.class
+.idea/
+*.iml
+.vscode/
+.DS_Store
+# FaralResourcePack.mcpack в корне — готовый пак для скачивания, его коммитим специально.

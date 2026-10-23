@@ -1,0 +1,245 @@
+name: Release (плагин и пак отдельными файлами)
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Тег релиза'
+        required: true
+        default: 'v1.1.0'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Java 25 (под Purpur 26.2)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      - name: Подобрать актуальный билд Purpur API 26.2
+        run: |
+          python3 - <<'PY' >> "$GITHUB_ENV"
+          import re, sys, urllib.request
+          url = "https://repo.purpurmc.org/snapshots/org/purpurmc/purpur/purpur-api/maven-metadata.xml"
+          try:
+              xml = urllib.request.urlopen(url, timeout=30).read().decode()
+              versions = re.findall(r"<version>(26\.2\.build\.(\d+)-stable)</version>", xml)
+              print(f"PURPUR_VERSION={max(versions, key=lambda v: int(v[1]))[0] if versions else '26.2.build.2632-stable'}")
+          except Exception as e:
+              print(f"# metadata недоступна: {e}", file=sys.stderr)
+              print("PURPUR_VERSION=26.2.build.2632-stable")
+          PY
+
+      - name: Собрать плагин VoidTab
+        working-directory: VoidTab
+        run: |
+          build() { mvn -B -DskipTests "$@" package > mvn.log 2>&1; }
+          if ! build -Dpurpur.version="$PURPUR_VERSION"; then
+            grep -E "\[ERROR\]|BUILD FAILURE|Could not resolve|Failed to read" mvn.log | head -20 | sed 's/%/%25/g; s/^/::error::/'
+            echo "Purpur API недоступна — собираем с Paper API (на Purpur работает так же)"
+            if ! build -Dapi.groupId=io.papermc.paper -Dapi.artifactId=paper-api -Dpurpur.version=26.2-R0.1-SNAPSHOT; then
+              grep -E "\[ERROR\]|BUILD FAILURE|Could not resolve|Failed to read" mvn.log | head -20 | sed 's/%/%25/g; s/^/::error::/'
+              exit 1
+            fi
+          fi
+
+      - name: Собрать плагин VoidItems
+        working-directory: VoidItems
+        run: |
+          build() { mvn -B -DskipTests "$@" package > mvn.log 2>&1; }
+          if ! build -Dpurpur.version="$PURPUR_VERSION"; then
+            grep -E "\[ERROR\]|BUILD FAILURE|Could not resolve|Failed to read" mvn.log | head -20 | sed 's/%/%25/g; s/^/::error::/'
+            echo "Purpur API недоступна — собираем с Paper API (на Purpur работает так же)"
+            if ! build -Dapi.groupId=io.papermc.paper -Dapi.artifactId=paper-api -Dpurpur.version=26.2-R0.1-SNAPSHOT; then
+              grep -E "\[ERROR\]|BUILD FAILURE|Could not resolve|Failed to read" mvn.log | head -20 | sed 's/%/%25/g; s/^/::error::/'
+              exit 1
+            fi
+          fi
+
+      - name: Собрать плагин VoidTalismans
+        working-directory: VoidTalismans
+        run: |
+          build() { mvn -B -DskipTests "$@" package > mvn.log 2>&1; }
+          if ! build -Dpurpur.version="$PURPUR_VERSION"; then
+            grep -E "\[ERROR\]|BUILD FAILURE|Could not resolve|Failed to read" mvn.log | head -20 | sed 's/%/%25/g; s/^/::error::/'
+            echo "Purpur API недоступна — собираем с Paper API (на Purpur работает так же)"
+            if ! build -Dapi.groupId=io.papermc.paper -Dapi.artifactId=paper-api -Dpurpur.version=26.2-R0.1-SNAPSHOT; then
+              grep -E "\[ERROR\]|BUILD FAILURE|Could not resolve|Failed to read" mvn.log | head -20 | sed 's/%/%25/g; s/^/::error::/'
+              exit 1
+            fi
+          fi
+
+      - name: Собрать плагин VoidEnchants
+        working-directory: VoidEnchants
+        run: |
+          build() { mvn -B -DskipTests "$@" package > mvn.log 2>&1; }
+          if ! build -Dpurpur.version="$PURPUR_VERSION"; then
+            grep -E "\[ERROR\]|BUILD FAILURE|Could not resolve|Failed to read" mvn.log | head -20 | sed 's/%/%25/g; s/^/::error::/'
+            echo "Purpur API недоступна — собираем с Paper API (на Purpur работает так же)"
+            if ! build -Dapi.groupId=io.papermc.paper -Dapi.artifactId=paper-api -Dpurpur.version=26.2-R0.1-SNAPSHOT; then
+              grep -E "\[ERROR\]|BUILD FAILURE|Could not resolve|Failed to read" mvn.log | head -20 | sed 's/%/%25/g; s/^/::error::/'
+              exit 1
+            fi
+          fi
+
+
+      - name: Собрать плагин VoidCases
+        working-directory: VoidCases
+        run: |
+          build() { mvn -B -DskipTests "$@" package > mvn.log 2>&1; }
+          if ! build -Dpurpur.version="$PURPUR_VERSION"; then
+            grep -E "\[ERROR\]|BUILD FAILURE|Could not resolve|Failed to read" mvn.log | head -20 | sed 's/%/%25/g; s/^/::error::/'
+            echo "Purpur API недоступна — собираем с Paper API (на Purpur работает так же)"
+            if ! build -Dapi.groupId=io.papermc.paper -Dapi.artifactId=paper-api -Dpurpur.version=26.2-R0.1-SNAPSHOT; then
+              grep -E "\[ERROR\]|BUILD FAILURE|Could not resolve|Failed to read" mvn.log | head -20 | sed 's/%/%25/g; s/^/::error::/'
+              exit 1
+            fi
+          fi
+
+
+      - name: Собрать плагин VoidClans
+        working-directory: VoidClans
+        run: |
+          build() { mvn -B -DskipTests "$@" package > mvn.log 2>&1; }
+          if ! build -Dpurpur.version="$PURPUR_VERSION"; then
+            grep -E "\[ERROR\]|BUILD FAILURE|Could not resolve|Failed to read" mvn.log | head -20 | sed 's/%/%25/g; s/^/::error::/'
+            echo "Purpur API недоступна — собираем с Paper API (на Purpur работает так же)"
+            if ! build -Dapi.groupId=io.papermc.paper -Dapi.artifactId=paper-api -Dpurpur.version=26.2-R0.1-SNAPSHOT; then
+              grep -E "\[ERROR\]|BUILD FAILURE|Could not resolve|Failed to read" mvn.log | head -20 | sed 's/%/%25/g; s/^/::error::/'
+              exit 1
+            fi
+          fi
+
+      - name: Собрать плагин VoidCombat
+        working-directory: VoidCombat
+        run: |
+          build() { mvn -B -DskipTests "$@" package > mvn.log 2>&1; }
+          if ! build -Dpurpur.version="$PURPUR_VERSION"; then
+            grep -E "\[ERROR\]|BUILD FAILURE|Could not resolve|Failed to read" mvn.log | head -20 | sed 's/%/%25/g; s/^/::error::/'
+            echo "Purpur API недоступна — собираем с Paper API (на Purpur работает так же)"
+            if ! build -Dapi.groupId=io.papermc.paper -Dapi.artifactId=paper-api -Dpurpur.version=26.2-R0.1-SNAPSHOT; then
+              grep -E "\[ERROR\]|BUILD FAILURE|Could not resolve|Failed to read" mvn.log | head -20 | sed 's/%/%25/g; s/^/::error::/'
+              exit 1
+            fi
+          fi
+
+      - name: Собрать плагин VoidAntiCheat
+        working-directory: VoidAntiCheat
+        run: |
+          build() { mvn -B -DskipTests "$@" package > mvn.log 2>&1; }
+          if ! build -Dpurpur.version="$PURPUR_VERSION"; then
+            grep -E "\[ERROR\]|BUILD FAILURE|Could not resolve|Failed to read" mvn.log | head -20 | sed 's/%/%25/g; s/^/::error::/'
+            echo "Purpur API недоступна — собираем с Paper API (на Purpur работает так же)"
+            if ! build -Dapi.groupId=io.papermc.paper -Dapi.artifactId=paper-api -Dpurpur.version=26.2-R0.1-SNAPSHOT; then
+              grep -E "\[ERROR\]|BUILD FAILURE|Could not resolve|Failed to read" mvn.log | head -20 | sed 's/%/%25/g; s/^/::error::/'
+              exit 1
+            fi
+          fi
+
+      - name: Собрать плагин VoidDrops
+        working-directory: VoidDrops
+        run: |
+          build() { mvn -B -DskipTests "$@" package > mvn.log 2>&1; }
+          if ! build -Dpurpur.version="$PURPUR_VERSION"; then
+            grep -E "\[ERROR\]|BUILD FAILURE|Could not resolve|Failed to read" mvn.log | head -20 | sed 's/%/%25/g; s/^/::error::/'
+            echo "Purpur API недоступна — собираем с Paper API (на Purpur работает так же)"
+            if ! build -Dapi.groupId=io.papermc.paper -Dapi.artifactId=paper-api -Dpurpur.version=26.2-R0.1-SNAPSHOT; then
+              grep -E "\[ERROR\]|BUILD FAILURE|Could not resolve|Failed to read" mvn.log | head -20 | sed 's/%/%25/g; s/^/::error::/'
+              exit 1
+            fi
+          fi
+
+      - name: Собрать плагин VoidAuthSpawn
+        working-directory: VoidAuthSpawn
+        run: |
+          build() { mvn -B -DskipTests "$@" package > mvn.log 2>&1; }
+          if ! build -Dpurpur.version="$PURPUR_VERSION"; then
+            grep -E "\[ERROR\]|BUILD FAILURE|Could not resolve|Failed to read" mvn.log | head -20 | sed 's/%/%25/g; s/^/::error::/'
+            echo "Purpur API недоступна — собираем с Paper API (на Purpur работает так же)"
+            if ! build -Dapi.groupId=io.papermc.paper -Dapi.artifactId=paper-api -Dpurpur.version=26.2-R0.1-SNAPSHOT; then
+              grep -E "\[ERROR\]|BUILD FAILURE|Could not resolve|Failed to read" mvn.log | head -20 | sed 's/%/%25/g; s/^/::error::/'
+              exit 1
+            fi
+          fi
+
+      - name: Собрать плагин VoidWardenCity
+        working-directory: VoidWardenCity
+        run: |
+          build() { mvn -B -DskipTests "$@" package > mvn.log 2>&1; }
+          if ! build -Dpurpur.version="$PURPUR_VERSION"; then
+            grep -E "\[ERROR\]|BUILD FAILURE|Could not resolve|Failed to read" mvn.log | head -20 | sed 's/%/%25/g; s/^/::error::/'
+            echo "Purpur API недоступна — собираем с Paper API (на Purpur работает так же)"
+            if ! build -Dapi.groupId=io.papermc.paper -Dapi.artifactId=paper-api -Dpurpur.version=26.2-R0.1-SNAPSHOT; then
+              grep -E "\[ERROR\]|BUILD FAILURE|Could not resolve|Failed to read" mvn.log | head -20 | sed 's/%/%25/g; s/^/::error::/'
+              exit 1
+            fi
+          fi
+
+      - name: Собрать Geyser extension VoidAnvil
+        working-directory: VoidAnvilExtension
+        run: |
+          set +e
+          ./gradlew --no-daemon clean build > gradle.log 2>&1
+          code=$?
+          cat gradle.log
+          if [ "$code" -ne 0 ]; then
+            grep -E "FAILURE|What went wrong|Execution failed|error:|Could not|Caused by|Exception" gradle.log | head -40 | sed 's/%/%25/g; s/\r/%0D/g; s/\n/%0A/g; s/^/::error::/'
+            tail -30 gradle.log | sed 's/%/%25/g; s/\r/%0D/g; s/\n/%0A/g; s/^/::error::/'
+            exit "$code"
+          fi
+
+      - name: Собрать Geyser extension VoidVersions
+        working-directory: VoidVersionsExtension
+        run: |
+          set +e
+          ./gradlew --no-daemon clean build > gradle.log 2>&1
+          code=$?
+          cat gradle.log
+          if [ "$code" -ne 0 ]; then
+            grep -E "FAILURE|What went wrong|Execution failed|error:|Could not|Caused by|Exception" gradle.log | head -40 | sed 's/%/%25/g; s/\r/%0D/g; s/\n/%0A/g; s/^/::error::/'
+            tail -30 gradle.log | sed 's/%/%25/g; s/\r/%0D/g; s/\n/%0A/g; s/^/::error::/'
+            exit "$code"
+          fi
+
+      - name: Собрать Bedrock ресурспак (.mcpack)
+        run: python3 tools/build_mcpack.py
+
+      - name: Опубликовать релиз с отдельными файлами
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          JAR=$(ls VoidTab/target/VoidTab-*.jar | head -1)
+          TAL=$(ls VoidTalismans/target/VoidTalismans-*.jar | head -1)
+          ITM=$(ls VoidItems/target/VoidItems-*.jar | head -1)
+          ENC=$(ls VoidEnchants/target/VoidEnchants-*.jar | head -1)
+          CAS=$(ls VoidCases/target/VoidCases-*.jar | head -1)
+          CLN=$(ls VoidClans/target/VoidClans-*.jar | head -1)
+          DRP=$(ls VoidDrops/target/VoidDrops-*.jar | head -1)
+          CMB=$(ls VoidCombat/target/VoidCombat-*.jar | head -1)
+          VAC=$(ls VoidAntiCheat/target/VoidAntiCheat-*.jar | head -1)
+          AUS=$(ls VoidAuthSpawn/target/VoidAuthSpawn-*.jar | head -1)
+          WCT=$(ls VoidWardenCity/target/VoidWardenCity-*.jar | head -1)
+          ANV=$(ls VoidAnvilExtension/build/libs/VoidAnvilExtension-*.jar | head -1)
+          VVE=$(ls VoidVersionsExtension/build/libs/VoidVersionsExtension-*.jar | head -1)
+          echo "Файлы релиза: $JAR + $TAL + $ITM + VoidResourcePack.mcpack"
+          gh release create "${{ inputs.tag || github.ref_name }}" "$JAR" "$TAL" "$ITM" "$ENC" "$CAS" "$CLN" "$DRP" "$CMB" "$VAC" "$AUS" "$WCT" "$ANV" "$VVE" VoidResourcePack.mcpack VoidSpheres.mcpack \
+            --target "$GITHUB_SHA" \
+            --title "VoidPE ${{ inputs.tag || github.ref_name }} — FaralTab + ресурспак" \
+            --notes "Bedrock-only сервер VoidPE (Purpur 26.2 + Geyser + Floodgate).
+
+          **FaralTab-1.1.0.jar** — плагин скорборда в \`plugins/\` (нужны Vault, PlayerPoints, LuckPerms, Geyser, Floodgate).
+          **VoidAuthSpawn-1.2.0.jar** — дополнение к AuthMe в `plugins/` рядом с AuthMe: незарегистрированных телепортирует в точку регистрации (`/authspawn set`).
+          **VoidWardenCity-1.2.0.jar** — Город Вардена в `plugins/`: `/wcity setcenter` и `/wcity setspawn` в древнем городе, дальше плагин сам наполняет сундуки и спавнит варденов.
+          **VoidResourcePack.mcpack** — Bedrock-ресурспак с иконками в \`plugins/Geyser-Spigot/packs/\` + \`force-resource-packs: true\` в конфиге Geyser.
+
+          Java-игроки кикаются плагином (bedrock-only), Java-заглушек нет."

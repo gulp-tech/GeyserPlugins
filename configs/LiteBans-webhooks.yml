@@ -1,0 +1,68 @@
+# LiteBans webhooks.yml — VoidPE
+# Логи наказаний в Discord.
+#
+# КАК ВКЛЮЧИТЬ:
+# 1) В Discord: Настройки канала -> Интеграции -> Вебхуки -> Новый вебхук -> Копировать URL.
+# 2) Вставь URL ниже в кавычки вместо пустого значения.
+# 3) /litebans reload — баны, муты, варны и кики начнут прилетать в канал.
+# Пока URL пустой — вебхуки не отправляются, сервер работает как обычно.
+
+default_webhook: ''
+
+webhooks:
+
+  # Твинки/вторые аккаунты игроков при сканировании (составу полезно видеть).
+  alts: on
+
+  ban: on
+
+  temp_ban: on
+
+  temp_ipban: on
+
+  ipban: on
+
+  unban: on
+
+  mute: on
+
+  temp_mute: on
+
+  temp_ipmute: on
+
+  ipmute: on
+
+  unmute: on
+
+  warn: on
+
+  unwarn: on
+
+  kick: on
+
+  # Тихие наказания (-s): тоже логируем, в канале состава это ок.
+  silent_ban: on
+
+  silent_temp_ban: on
+
+  silent_temp_ipban: on
+
+  silent_ipban: on
+
+  silent_unban: on
+
+  silent_mute: on
+
+  silent_temp_mute: on
+
+  silent_temp_ipmute: on
+
+  silent_ipmute: on
+
+  silent_unmute: on
+
+  silent_warn: on
+
+  silent_unwarn: on
+
+  silent_kick: on
