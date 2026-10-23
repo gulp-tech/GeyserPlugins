@@ -8,6 +8,7 @@ import org.bukkit.Sound;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -132,7 +133,10 @@ public final class FastCritsListener implements Listener {
         if (living.isDead()) {
             return;
         }
-        Bukkit.getScheduler().runTask(plugin, () -> {
+        if (!(plugin instanceof Plugin bukkitPlugin)) {
+            return; // без сервера (тесты) задачу планировать некуда
+        }
+        Bukkit.getScheduler().runTask(bukkitPlugin, () -> {
             if (living.isValid() && !living.isDead() && living.getNoDamageTicks() > 0) {
                 living.setNoDamageTicks(0);
             }

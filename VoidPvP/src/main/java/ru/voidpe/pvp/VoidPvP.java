@@ -91,11 +91,16 @@ public final class VoidPvP extends JavaPlugin
 
     private static Attribute resolveAttackSpeed() {
         // В новых версиях имя «attack_speed», в старых — «generic.attack_speed».
-        Attribute attribute = Registry.ATTRIBUTE.get(NamespacedKey.minecraft("attack_speed"));
-        if (attribute == null) {
-            attribute = Registry.ATTRIBUTE.get(NamespacedKey.minecraft("generic.attack_speed"));
+        // Любая ошибка здесь не должна мешать остальным функциям плагина.
+        try {
+            Attribute attribute = Registry.ATTRIBUTE.get(NamespacedKey.minecraft("attack_speed"));
+            if (attribute == null) {
+                attribute = Registry.ATTRIBUTE.get(NamespacedKey.minecraft("generic.attack_speed"));
+            }
+            return attribute;
+        } catch (Throwable t) {
+            return null;
         }
-        return attribute;
     }
 
     /** Применяет настройки к игроку: убирает задержку атаки (если включено и мир разрешён). */
