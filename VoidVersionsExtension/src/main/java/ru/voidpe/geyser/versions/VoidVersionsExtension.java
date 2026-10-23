@@ -196,6 +196,9 @@ public final class VoidVersionsExtension implements Extension {
             patchOneRegistry(cl, "org.geysermc.geyser.registry.BlockRegistries", "BLOCKS", protocols);
             patchOneRegistry(cl, "org.geysermc.geyser.registry.Registries", "ITEMS", protocols);
             patchOneRegistry(cl, "org.geysermc.geyser.registry.Registries", "TAGS", protocols);
+            if (config == null || config.legacyPalette()) {
+                applyLegacyPalettes(cl, protocols);
+            }
         } catch (Throwable t) {
             logger().warning("VoidVersions: патч реестров не удался: " + describe(unwrap(t))
                     + " — старые клиенты, скорее всего, не смогут зайти (internal error при входе).");
@@ -306,15 +309,22 @@ public final class VoidVersionsExtension implements Extension {
             "sanitize=true",
             "# Как /geyser version показывает Bedrock-версии: full — весь список,",
             "# range — только «первая - последняя» (как у стокового Geyser).",
-            "version-command-format=full"
+            "version-command-format=full",
+            "# Пересчитывать маппинги блоков по палитре старой версии (иначе мир у старых",
+            "# клиентов рисуется «пластинами»).",
+            "legacy-palette=true",
+            "# Регистрировать только те старые протоколы, для которых есть палитра блоков.",
+            "# false — пускать всех (мир у непокрытых версий будет сломан).",
+            "legacy-palette-only=true"
     );
 
     private record Config(boolean enabled, String minVersion, int scanFromProtocol,
                           int scanToProtocol, Set<Integer> disabledProtocols, boolean verbose,
-                          boolean sanitize, boolean versionRangeOnly) {
+                          boolean sanitize, boolean versionRangeOnly,
+                          boolean legacyPalette, boolean legacyPaletteOnly) {
 
         static Config load(VoidVersionsExtension ext) {
-            Config defaults = new Config(true, "1.20.0", 560, 2500, Set.of(), false, true, false);
+            Config defaults = new Config(true, "1.20.0", 560, 2500, Set.of(), false, true, false, true, true);
             try {
                 Path folder = ext.dataFolder();
                 Files.createDirectories(folder);
@@ -353,7 +363,9 @@ public final class VoidVersionsExtension implements Extension {
                         Set.copyOf(disabled),
                         Boolean.parseBoolean(props.getProperty("verbose", "false").trim()),
                         Boolean.parseBoolean(props.getProperty("sanitize", "true").trim()),
-                        "range".equalsIgnoreCase(props.getProperty("version-command-format", "full").trim()));
+                        "range".equalsIgnoreCase(props.getProperty("version-command-format", "full").trim()),
+                        Boolean.parseBoolean(props.getProperty("legacy-palette", "true").trim()),
+                        Boolean.parseBoolean(props.getProperty("legacy-palette-only", "true").trim()));
             } catch (IOException | RuntimeException e) {
                 ext.logger().warning("VoidVersions: конфиг не прочитан (" + describe(e)
                         + "), использую значения по умолчанию.");
@@ -465,6 +477,7 @@ public final class VoidVersionsExtension implements Extension {
             int scanned = 0;
             int skippedOld = 0;
             int skippedNewer = 0;
+            int skippedNoPalette = 0;
             for (int protocol = config.scanFromProtocol(); protocol <= config.scanToProtocol(); protocol++) {
                 if (existing.contains(protocol) || config.disabledProtocols().contains(protocol)) {
                     continue;
@@ -479,6 +492,14 @@ public final class VoidVersionsExtension implements Extension {
                 if (protocol > newestNative) {
                     skippedNewer++;
                     continue; // новее самой свежей родной версии этой сборки Geyser
+                }
+                if (protocol < newestNative && config.legacyPaletteOnly()
+                        && !LegacyBlockPalette.covers(protocol)) {
+                    // Клиент зашёл бы, но палитры блоков под его версию у нас нет —
+                    // мир рисовался бы «пластинами». Лучше честный отказ с просьбой
+                    // обновить игру, чем сломанный мир.
+                    skippedNoPalette++;
+                    continue;
                 }
                 scanned++;
                 final Object rawCodec;
@@ -555,6 +576,7 @@ public final class VoidVersionsExtension implements Extension {
                     + "Родных кодеков: " + nativeCount + ", найдено в библиотеке: " + scanned
                     + ", старше " + config.minVersion() + " пропущено: " + skippedOld
                     + ", новее этой сборки Geyser (" + newestNative + ") пропущено: " + skippedNewer
+                    + ", без палитры блоков пропущено: " + skippedNoPalette
                     + ", добавлено кодеков: " + added.size() + ".");
             if (!added.isEmpty()) {
                 logger().info("VoidVersions: теперь принимаются клиенты: " + String.join(", ", added));
@@ -582,6 +604,268 @@ public final class VoidVersionsExtension implements Extension {
         patched = false;
         patchProtocols();
         patchRegistries();
+    }
+
+    // ------------------------------------------- палитра блоков старой версии
+
+    /**
+     * Пересчитывает маппинги блоков для старых протоколов по палитре их версии.
+     *
+     * <p>Без этого шага клиент получает runtime id блоков из палитры 26.30 и рисует
+     * мир «пластинами» — ровно то, что видел игрок 1.21.130 до этой правки. Здесь
+     * для каждого протокола, под который есть палитра, собирается НОВЫЙ экземпляр
+     * {@code BlockMappings}: тот же набор java-состояний, но runtime id пересчитаны
+     * по старой палитре. Исходный объект (палитра 26.30) не меняется — актуальные
+     * клиенты продолжают работать как раньше.</p>
+     */
+    private void applyLegacyPalettes(ClassLoader cl, List<Integer> protocols) {
+        try {
+            LegacyBlockPalette palette = LegacyBlockPalette.load(cl);
+            if (palette == null) {
+                logger().warning("VoidVersions: палитра блока старой версии не прочиталась — "
+                        + "старые клиенты увидят мир «пластинами».");
+                return;
+            }
+            Constructor<?> blockCtor = LegacyBlockPalette.blockConstructor(cl);
+            if (blockCtor == null) {
+                logger().warning("VoidVersions: GeyserBedrockBlock не найден — палитру не подменяю.");
+                return;
+            }
+            Object registry = Class.forName("org.geysermc.geyser.registry.BlockRegistries", false, cl)
+                    .getField("BLOCKS").get(null);
+            @SuppressWarnings("unchecked")
+            java.util.Map<Object, Object> map =
+                    (java.util.Map<Object, Object>) registry.getClass().getMethod("get").invoke(registry);
+            Method register = registry.getClass().getMethod("register", Object.class, Object.class);
+
+            int remapped = 0;
+            List<String> done = new ArrayList<>();
+            for (int protocol : protocols) {
+                if (!LegacyBlockPalette.covers(protocol)) {
+                    continue;
+                }
+                Object original = map.get(protocol);
+                if (original == null) {
+                    continue;
+                }
+                try {
+                    Object copy = remapMappings(original, palette, blockCtor);
+                    if (copy != null) {
+                        register.invoke(registry, protocol, copy);
+                        remapped++;
+                        done.add(String.valueOf(protocol));
+                    }
+                } catch (Throwable t) {
+                    logger().warning("VoidVersions: палитра для протокола " + protocol
+                            + " не пересчитана: " + describe(unwrap(t)));
+                }
+            }
+            if (remapped > 0) {
+                logger().info("VoidVersions: палитра блоков " + LegacyBlockPalette.MIN_PROTOCOL + "–"
+                        + LegacyBlockPalette.MAX_PROTOCOL + " применена к протоколам: "
+                        + String.join(", ", done) + " (блоков в палитре: " + palette.size() + ").");
+            } else {
+                logger().info("VoidVersions: старых протоколов под палитру нет — пересчёт не нужен.");
+            }
+        } catch (Throwable t) {
+            logger().warning("VoidVersions: подмена палитры блоков не удалась: " + describe(unwrap(t)));
+        }
+    }
+
+    /** Копия BlockMappings с пересчитанными runtime id блоков. */
+    private Object remapMappings(Object original, LegacyBlockPalette palette, Constructor<?> blockCtor)
+            throws Exception {
+        Class<?> type = original.getClass();
+        Object copy = allocate(type);
+        if (copy == null) {
+            return null;
+        }
+        Object runtimeMapOriginal = LegacyBlockPalette.field(type, "bedrockRuntimeMap") != null
+                ? LegacyBlockPalette.field(type, "bedrockRuntimeMap").get(original) : null;
+        for (Field field : type.getDeclaredFields()) {
+            if (Modifier.isStatic(field.getModifiers())) {
+                continue;
+            }
+            field.setAccessible(true);
+            Object value = field.get(original);
+            switch (field.getName()) {
+                case "javaToBedrockBlocks", "javaToVanillaBedrockBlocks" ->
+                        value = remapBlockArray(field.getType(), value, palette, blockCtor);
+                case "bedrockRuntimeMap" -> {
+                    // Оставляем как есть: массив индексируется runtime id палитры 26.30,
+                    // в рантайме Geyser его не использует (только дамп/кастомные блоки),
+                    // а собрать его заново нельзя — конструктор блока принимает NbtMap,
+                    // а палитра 1.21.110 у нас разобрана в обычные Map.
+                }
+                case "bedrockAir", "bedrockWater", "bedrockMovingBlock", "commandBlock",
+                     "mobSpawnerBlock", "netherPortalBlock" ->
+                        value = remapDefinition(value, palette, blockCtor);
+                // Всё, что хранит блоки по состоянию/ключу: рамки, структуры, кастомные блоки.
+                // Здесь значения — BlockDefinition, их runtime id тоже из палитры 26.30.
+                case "stateDefinitionMap", "itemFrames", "structureBlockStates",
+                     "customBlockStateDefinitions", "extendedCollisionBoxes" ->
+                        value = remapDefinitions(value, palette, blockCtor);
+                case "jigsawStates" -> value = remapDefinitionSet(value, palette, blockCtor);
+                case "remappedVanillaIds" ->
+                        value = remapVanillaIds(value, runtimeMapOriginal, palette, blockCtor);
+                default -> {
+                    // прочие поля (идентификаторы, наборы, свойства) не зависят от версии
+                }
+            }
+            if (!putField(copy, field, value)) {
+                return null;
+            }
+        }
+        return copy;
+    }
+
+    /**
+     * Новый массив ТОГО ЖЕ компонентного типа, что у поля: записать Object[]
+     * в {@code GeyserBedrockBlock[]} нельзя (проверка типов JVM не пропустит).
+     */
+    private Object remapBlockArray(Class<?> arrayType, Object value, LegacyBlockPalette palette,
+                                   Constructor<?> blockCtor) {
+        if (!(value instanceof Object[] source)) {
+            return value;
+        }
+        Class<?> component = arrayType.isArray() ? arrayType.getComponentType() : Object.class;
+        Object out = java.lang.reflect.Array.newInstance(component, source.length);
+        for (int i = 0; i < source.length; i++) {
+            java.lang.reflect.Array.set(out, i, remapBlock(source[i], palette, blockCtor));
+        }
+        return out;
+    }
+
+    /** Один блок: то же состояние, но runtime id по старой палитре. */
+    private Object remapBlock(Object block, LegacyBlockPalette palette, Constructor<?> blockCtor) {
+        if (block == null || !blockCtor.getDeclaringClass().isInstance(block)) {
+            return block;
+        }
+        try {
+            Method getState = LegacyBlockPalette.method(block, "getState");
+            if (getState == null) {
+                return block;
+            }
+            Object state = getState.invoke(block);
+            return blockCtor.newInstance(palette.remap(state), state);
+        } catch (Throwable t) {
+            return block;
+        }
+    }
+
+    private Object remapDefinition(Object value, LegacyBlockPalette palette, Constructor<?> blockCtor) {
+        return value == null ? null : remapBlock(value, palette, blockCtor);
+    }
+
+    /** Map/Int2ObjectMap: пересчитываем значения-блоки, ключи оставляем как есть. */
+    private Object remapDefinitions(Object value, LegacyBlockPalette palette, Constructor<?> blockCtor) {
+        if (!(value instanceof java.util.Map<?, ?> source)) {
+            return value;
+        }
+        java.util.Map<Object, Object> out = mutableCopy(value, source.size());
+        if (out == null) {
+            return value;
+        }
+        for (java.util.Map.Entry<?, ?> e : source.entrySet()) {
+            Object remapped = remapBlock(e.getValue(), palette, blockCtor);
+            if (remapped != e.getValue()) {
+                out.put(e.getKey(), remapped);
+            }
+        }
+        return out;
+    }
+
+    /**
+     * Копия коллекции того же класса (fastutil-мапы умеют clone()), иначе — LinkedHashMap.
+     * Возвращает null, если копию сделать не удалось: тогда поле лучше не трогать.
+     */
+    @SuppressWarnings("unchecked")
+    private java.util.Map<Object, Object> mutableCopy(Object value, int size) {
+        try {
+            Method clone = value.getClass().getMethod("clone");
+            Object copy = clone.invoke(value);
+            if (copy instanceof java.util.Map<?, ?>) {
+                return (java.util.Map<Object, Object>) copy;
+            }
+        } catch (Throwable ignored) {
+            // не клонируется — пробуем обычную мапу ниже
+        }
+        return new java.util.LinkedHashMap<>(size);
+    }
+
+    private Object remapDefinitionSet(Object value, LegacyBlockPalette palette, Constructor<?> blockCtor) {
+        if (!(value instanceof java.util.Set<?> source)) {
+            return value;
+        }
+        java.util.Set<Object> out = new java.util.LinkedHashSet<>(source.size());
+        for (Object element : source) {
+            out.add(remapBlock(element, palette, blockCtor));
+        }
+        return out;
+    }
+
+    /** Старые номера блоков (для кастомных блоков) — через ту же таблицу. */
+    private Object remapVanillaIds(Object value, Object runtimeMapOriginal,
+                                   LegacyBlockPalette palette, Constructor<?> blockCtor) {
+        if (!(value instanceof int[] ids) || ids.length == 0 || !(runtimeMapOriginal instanceof Object[] oldMap)) {
+            return value;
+        }
+        int[] out = new int[ids.length];
+        for (int i = 0; i < ids.length; i++) {
+            int id = ids[i];
+            if (id < 0 || id >= oldMap.length || oldMap[id] == null) {
+                out[i] = palette.airId();
+                continue;
+            }
+            out[i] = runtimeIdOf(oldMap[id], palette, blockCtor, id);
+        }
+        return out;
+    }
+
+    private int runtimeIdOf(Object block, LegacyBlockPalette palette, Constructor<?> blockCtor, int fallback) {
+        try {
+            Method getState = LegacyBlockPalette.method(block, "getState");
+            if (getState == null) {
+                return fallback;
+            }
+            return palette.remap(getState.invoke(block));
+        } catch (Throwable t) {
+            return fallback;
+        }
+    }
+
+    private static Object allocate(Class<?> type) {
+        try {
+            Class<?> unsafeClass = Class.forName("sun.misc.Unsafe");
+            Field theUnsafe = unsafeClass.getDeclaredField("theUnsafe");
+            theUnsafe.setAccessible(true);
+            Object unsafe = theUnsafe.get(null);
+            return unsafeClass.getMethod("allocateInstance", Class.class).invoke(unsafe, type);
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
+    private static boolean putField(Object target, Field field, Object value) {
+        try {
+            field.set(target, value);
+            return true;
+        } catch (Throwable ignored) {
+            // final-поле не поддалось обычной записи — пишем через Unsafe
+        }
+        try {
+            Class<?> unsafeClass = Class.forName("sun.misc.Unsafe");
+            Field theUnsafe = unsafeClass.getDeclaredField("theUnsafe");
+            theUnsafe.setAccessible(true);
+            Object unsafe = theUnsafe.get(null);
+            long offset = (Long) unsafeClass.getMethod("objectFieldOffset", Field.class).invoke(unsafe, field);
+            unsafeClass.getMethod("putObject", Object.class, long.class, Object.class)
+                    .invoke(unsafe, target, offset, value);
+            unsafeClass.getMethod("putInt", Object.class, long.class, int.class);
+            return true;
+        } catch (Throwable t) {
+            return false;
+        }
     }
 
     /** «Первая - последняя» версия из GameProtocol — формат, которым Geyser показывает диапазон сам. */
