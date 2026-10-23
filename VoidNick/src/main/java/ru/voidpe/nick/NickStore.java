@@ -73,13 +73,9 @@ final class NickStore {
         if (!dataFile.exists()) {
             return;
         }
-        YamlConfiguration data;
-        try {
-            data = YamlConfiguration.loadConfiguration(dataFile);
-        } catch (IOException failure) {
-            plugin.getLogger().log(Level.SEVERE, "Не удалось прочитать data.yml — записи не загружены", failure);
-            return;
-        }
+        // YamlConfiguration.loadConfiguration(File) не бросает IOException:
+        // при ошибке Bukkit сам пишет её в лог и возвращает пустой конфиг.
+        YamlConfiguration data = YamlConfiguration.loadConfiguration(dataFile);
         ConfigurationSection players = data.getConfigurationSection("players");
         if (players == null) {
             return;
@@ -135,12 +131,7 @@ final class NickStore {
     void journal(String line) {
         YamlConfiguration journal = new YamlConfiguration();
         if (journalFile.exists()) {
-            try {
-                journal = YamlConfiguration.loadConfiguration(journalFile);
-            } catch (IOException failure) {
-                plugin.getLogger().log(Level.WARNING, "Журнал не прочитан, начинаю новый файл", failure);
-                journal = new YamlConfiguration();
-            }
+            journal = YamlConfiguration.loadConfiguration(journalFile);
         }
         List<String> lines = new ArrayList<>(journal.getStringList("lines"));
         lines.add(new SimpleDateFormat("dd.MM.yyyy HH:mm:ss", Locale.ROOT).format(new Date()) + " | " + line);
@@ -156,12 +147,7 @@ final class NickStore {
         if (!journalFile.exists()) {
             return List.of();
         }
-        List<String> lines;
-        try {
-            lines = YamlConfiguration.loadConfiguration(journalFile).getStringList("lines");
-        } catch (IOException failure) {
-            return List.of();
-        }
+        List<String> lines = YamlConfiguration.loadConfiguration(journalFile).getStringList("lines");
         List<String> out = new ArrayList<>();
         for (String line : lines) {
             if (filter == null || filter.isEmpty() || line.toLowerCase(Locale.ROOT).contains(filter.toLowerCase(Locale.ROOT))) {

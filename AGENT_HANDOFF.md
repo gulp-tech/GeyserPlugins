@@ -433,6 +433,66 @@ macOS → Windows → Linux → по вводу`. Плюс:
 `Модель` и итоговый значок. Если у игрока по-прежнему «windows» — нужны именно эти четыре значения.
 Jar: `VoidTab-1.16.1.jar`.
 
+### 6.3.8. VoidPvP 1.0.5 — «тап-тап» ослаблен по урону и отдаче (23.10.2026)
+
+Запрос: «ослабь тап-тап, урон очень сильный и отдача».
+
+| Ключ | 1.0.4 | 1.0.5 |
+|---|---|---|
+| `crits.multiplier` | 1.25 | **1.15** |
+| `no-invulnerability.min-interval-ticks` | 2 | **4** (не чаще 5 ударов/сек) |
+| `tap-tap.repeat-window-ticks` | — | 10 (0.5 с) |
+| `tap-tap.repeat-damage-scale` | — | **0.65** — повторный удар в окне бьёт на 35% слабее |
+| `tap-tap.knockback-scale` | — | **0.5** — отдача от ударов игрока по игроку вдвое меньше |
+| `tap-tap.repeat-knockback-scale` | — | **0.3** — для повторных ударов ещё ×0.3 (итого 0.15) |
+
+Одиночный удар не ослабляется — режется только серия. Отдача гасится в
+`io.papermc.paper.event.entity.EntityKnockbackEvent` (причина `ENTITY_ATTACK`,
+сущность — игрок); отдача от мобов, взрывов и снарядов остаётся ванильной.
+Миграция: `config-version: 3` — на старом конфиге 1.25/2 сами заменяются на 1.15/4,
+`tap-tap.*` дописывается автоматически.
+
+### 6.3.9. Почему VoidItems и VoidAntiCheat падали: adventure — интерфейсы (23.10.2026)
+
+Ошибка на живом сервере:
+
+```
+IncompatibleClassChangeError: Method 'net.kyori.adventure.text.serializer.legacy
+.LegacyComponentSerializer net.kyori.adventure.text.serializer.legacy
+.LegacyComponentSerializer.legacySection()' must be InterfaceMethodref constant
+```
+
+`VoidItems` при этом вообще не включался («plugin is disabled»), поэтому `/items`
+писал `Cannot execute command 'items' … plugin is disabled`, и «кастомные предметы
+не работают» — следствие этого, а не логики предметов.
+
+Причина в **заглушке**: `tools/localbuild/bukkit_stubs.py` объявлял
+`LegacyComponentSerializer` как `final class`, а в adventure это **интерфейс**
+(`KyoriPowered/adventure`, `text-serializer-legacy`). Javac тогда пишет
+`Methodref` вместо `InterfaceMethodref` — сборка проходит, сервер падает.
+
+Исправлено:
+
+* `LegacyComponentSerializer` в заглушках теперь `interface` со `static legacySection()`
+  и `legacyAmpersand()`; виды остальных adventure-типов сверены с исходниками Kyori:
+  `Component`, `Audience`, `BossBar`, `Title`, `PlainTextComponentSerializer` —
+  интерфейсы; `ClickEvent`, `HoverEvent` — final-классы; `TextDecoration` — enum.
+* В `tools/paperapi_audit.py` добавлена проверка `check_library_kinds()`: парсит
+  constant pool jar и ругается, если к adventure-интерфейсу стоит `Methodref`
+  (или наоборот). Раньше аудит это не видел: adventure-типов нет в paper-api,
+  они попадали в «не проверено». Теперь такой jar не пройдёт проверку.
+* Пересобраны **все** плагины: `VoidAntiCheat-2.0.2`, `VoidItems-1.8.3`,
+  `VoidPvP-1.0.5`, `VoidCombat-1.2.2`, `VoidTab-1.16.2`, `VoidNick-1.0.1`,
+  `VoidQuiet-1.0.1`. Аудит: 0 расхождений, `check_library_kinds` — чисто.
+* В `VoidNick` убраны три `catch (IOException)` вокруг
+  `YamlConfiguration.loadConfiguration(File)`: этот метод не бросает IOException
+  (Bukkit сам логирует и возвращает пустой конфиг), компилятор считал catch
+  недостижимым.
+
+Правило на будущее: любой новый импорт из `net.kyori.adventure.*` сначала сверять
+с исходником Kyori (класс это или интерфейс) и добавлять в `ADVENTURE_INTERFACES` /
+`ADVENTURE_CLASSES` в аудите.
+
 ## 8. Состояние сервера пользователя (по последнему логу)
 
 Purpur 26.2 build 121, Geyser 2.12.0-b1268 (git-master-d14f204), UDP-порт 19139, миры: world, world2, nether, end. Игрок/админ — MUSD38 (привилегия «Создатель»). VoidWardenCity: точки загружены из points.yml — центр и спавн `world2 -648 -42 -544`, GUI-лута загружено 54 предмета. На сервере также стоят **чужие плагины (не наши, не трогать)**: Lmauction/LMstash/LMbuyer/LMRoom, ZNPCsPlus, LiteKits, GeyserEvent, Pl-Hide-Pro, HeadDatabase, CoreProtect, BetterRTP, ViaVersion, AuthMe, Essentials, DeluxeMenus, DecentHolograms и т.д. Их WARN в логе (duplicate keys у Lmauction, дубль UUID пака GeyserEvent, пустой префикс Floodgate) — не наши задачи, если пользователь не попросит.

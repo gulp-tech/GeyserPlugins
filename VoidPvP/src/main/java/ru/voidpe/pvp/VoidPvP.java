@@ -91,27 +91,58 @@ public final class VoidPvP extends JavaPlugin
      * Меняем только те ключи, что остались прежними по умолчанию.
      */
     private void migrateConfig() {
-        if (getConfig().getInt("config-version", 1) >= 2) {
+        int version = getConfig().getInt("config-version", 1);
+        if (version >= 3) {
             return;
         }
         boolean changed = false;
-        if (getConfig().isSet("crits.multiplier") && getConfig().getDouble("crits.multiplier") == 1.5) {
-            getConfig().set("crits.multiplier", 1.25);
+        // Версия 2: первое ослабление (крит 1.25, ATTACK_SPEED 6.5, неуязвимость 2 тика).
+        if (version < 2) {
+            if (getConfig().isSet("crits.multiplier") && getConfig().getDouble("crits.multiplier") == 1.5) {
+                getConfig().set("crits.multiplier", 1.15);
+                changed = true;
+            }
+            if (getConfig().isSet("attack-speed.value") && getConfig().getDouble("attack-speed.value") == 1024.0) {
+                getConfig().set("attack-speed.value", 6.5);
+                changed = true;
+            }
+            if (!getConfig().isSet("no-invulnerability.min-interval-ticks")) {
+                getConfig().set("no-invulnerability.min-interval-ticks", 4);
+                changed = true;
+            }
+        }
+        // Версия 3: «тап-тап» ослаблен по урону и отдаче.
+        if (version == 2 && getConfig().isSet("crits.multiplier")
+                && getConfig().getDouble("crits.multiplier") == 1.25) {
+            getConfig().set("crits.multiplier", 1.15);
             changed = true;
         }
-        if (getConfig().isSet("attack-speed.value") && getConfig().getDouble("attack-speed.value") == 1024.0) {
-            getConfig().set("attack-speed.value", 6.5);
+        if (version == 2 && getConfig().isSet("no-invulnerability.min-interval-ticks")
+                && getConfig().getInt("no-invulnerability.min-interval-ticks") == 2) {
+            getConfig().set("no-invulnerability.min-interval-ticks", 4);
             changed = true;
         }
-        if (!getConfig().isSet("no-invulnerability.min-interval-ticks")) {
-            getConfig().set("no-invulnerability.min-interval-ticks", 2);
+        if (!getConfig().isSet("tap-tap.repeat-window-ticks")) {
+            getConfig().set("tap-tap.repeat-window-ticks", 10);
             changed = true;
         }
-        getConfig().set("config-version", 2);
+        if (!getConfig().isSet("tap-tap.repeat-damage-scale")) {
+            getConfig().set("tap-tap.repeat-damage-scale", 0.65);
+            changed = true;
+        }
+        if (!getConfig().isSet("tap-tap.knockback-scale")) {
+            getConfig().set("tap-tap.knockback-scale", 0.5);
+            changed = true;
+        }
+        if (!getConfig().isSet("tap-tap.repeat-knockback-scale")) {
+            getConfig().set("tap-tap.repeat-knockback-scale", 0.3);
+            changed = true;
+        }
+        getConfig().set("config-version", 3);
         if (changed) {
             saveConfig();
-            getLogger().info("Конфиг обновлён до версии 2: PvP ослаблен "
-                    + "(крит 1.25, ATTACK_SPEED 6.5, неуязвимость не чаще 2 тиков).");
+            getLogger().info("Конфиг обновлён до версии 3: «тап-тап» ослаблен "
+                    + "(крит 1.15, серия ударов режет урон до 65%, отдача 50%/30%).");
         }
     }
 
@@ -383,8 +414,16 @@ public final class VoidPvP extends JavaPlugin
         final boolean attackSpeedEnabled;
         final double attackSpeedValue;
         final boolean noInvulnerability;
-        /** Не снимать неуязвимость чаще, чем раз в столько тиков (2 = 0.1 сек). */
+        /** Не снимать неуязвимость чаще, чем раз в столько тиков (4 = 0.2 сек). */
         final int minIntervalTicks;
+        /** Окно, в котором следующий удар считается повторным (тики). */
+        final int repeatWindowTicks;
+        /** Множитель урона повторного удара внутри окна. */
+        final double repeatDamageScale;
+        /** Множитель отдачи от удара игрока по игроку. */
+        final double knockbackScale;
+        /** Дополнительный множитель отдачи для повторных ударов. */
+        final double repeatKnockbackScale;
         final java.util.Set<String> disabledWorlds;
         final String require;
         final String bypassOff;
@@ -412,7 +451,12 @@ public final class VoidPvP extends JavaPlugin
 
             this.noInvulnerability = master && config.getBoolean("no-invulnerability.enabled", true);
             this.minIntervalTicks = Math.max(0, Math.min(20,
-                    config.getInt("no-invulnerability.min-interval-ticks", 2)));
+                    config.getInt("no-invulnerability.min-interval-ticks", 4)));
+            this.repeatWindowTicks = Math.max(0, Math.min(60,
+                    config.getInt("tap-tap.repeat-window-ticks", 10)));
+            this.repeatDamageScale = clampScale(config.getDouble("tap-tap.repeat-damage-scale", 0.65));
+            this.knockbackScale = clampScale(config.getDouble("tap-tap.knockback-scale", 0.5));
+            this.repeatKnockbackScale = clampScale(config.getDouble("tap-tap.repeat-knockback-scale", 0.3));
 
             java.util.Set<String> worlds = new java.util.LinkedHashSet<>();
             for (String name : config.getStringList("worlds.disabled")) {
@@ -425,6 +469,14 @@ public final class VoidPvP extends JavaPlugin
             this.msgPrefix = config.getString("messages.prefix", "");
             this.msgReloaded = config.getString("messages.reloaded", "&aКонфиг перезагружен.");
             this.msgNoPermission = config.getString("messages.no-permission", "&cНедостаточно прав.");
+        }
+
+        /** Множитель не может быть отрицательным или больше 1 (усиливать отдачу незачем). */
+        private static double clampScale(double value) {
+            if (Double.isNaN(value)) {
+                return 1.0;
+            }
+            return Math.max(0.0, Math.min(1.0, value));
         }
 
         static Settings load(VoidPvP plugin) {

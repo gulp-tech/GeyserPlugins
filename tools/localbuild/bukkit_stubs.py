@@ -378,6 +378,22 @@ public class Vector {
         return x * x + y * y + z * z;
     }
 
+    public Vector multiply(double factor) {
+        return new Vector(x * factor, y * factor, z * factor);
+    }
+
+    public Vector multiply(int factor) {
+        return multiply((double) factor);
+    }
+
+    public Vector clone() {
+        return new Vector(x, y, z);
+    }
+
+    public Vector normalize() {
+        return this;
+    }
+
     public double length() {
         return Math.sqrt(lengthSquared());
     }
@@ -568,6 +584,10 @@ public interface World {
     int getMaxHeight();
 
     File getWorldFolder();
+
+    <T> T getGameRuleValue(org.bukkit.GameRule<T> rule);
+
+    boolean setGameRule(org.bukkit.GameRule rule, Object value);
 }
 """)
 
@@ -747,6 +767,8 @@ public interface Player extends LivingEntity, org.bukkit.OfflinePlayer {
     void setScoreboard(org.bukkit.scoreboard.Scoreboard scoreboard);
 
     boolean isSwimming();
+
+    Player getKiller();
 
     boolean isSneaking();
 
@@ -1872,12 +1894,26 @@ import net.kyori.adventure.text.format.TextDecoration;
 public interface Component {
     Component append(Component component);
 
+    Component clickEvent(net.kyori.adventure.text.event.ClickEvent event);
+
+    Component hoverEvent(net.kyori.adventure.text.event.HoverEvent<?> event);
+
     Component decoration(TextDecoration decoration, boolean value);
 
     static Component text(String text) {
         return new Component() {
             @Override
             public Component append(Component component) {
+                return this;
+            }
+
+            @Override
+            public Component clickEvent(net.kyori.adventure.text.event.ClickEvent event) {
+                return this;
+            }
+
+            @Override
+            public Component hoverEvent(net.kyori.adventure.text.event.HoverEvent<?> event) {
                 return this;
             }
 
@@ -1912,40 +1948,23 @@ package net.kyori.adventure.text.serializer.legacy;
 
 import net.kyori.adventure.text.Component;
 
-public final class LegacyComponentSerializer {
-    private String lastText = "";
-
-    private LegacyComponentSerializer() {
+/**
+ * В adventure это ИНТЕРФЕЙС (KyoriPowered/adventure, text-serializer-legacy).
+ * Если объявить его классом, вызов legacySection() компилируется как Methodref
+ * на класс, а на сервере падает IncompatibleClassChangeError.
+ */
+public interface LegacyComponentSerializer {
+    static LegacyComponentSerializer legacySection() {
+        return null;
     }
 
-    public static LegacyComponentSerializer legacySection() {
-        return new LegacyComponentSerializer();
+    static LegacyComponentSerializer legacyAmpersand() {
+        return null;
     }
 
-    public Component deserialize(String text) {
-        lastText = text;
-        Component base = Component.text(text);
-        return new Component() {
-            @Override
-            public Component append(Component component) {
-                return this;
-            }
+    Component deserialize(String text);
 
-            @Override
-            public Component decoration(net.kyori.adventure.text.format.TextDecoration decoration, boolean value) {
-                return this;
-            }
-
-            @Override
-            public String toString() {
-                return lastText;
-            }
-        };
-    }
-
-    public String serialize(Component component) {
-        return component == null ? "" : component.toString();
-    }
+    String serialize(Component component);
 }
 """)
 
@@ -2099,6 +2118,10 @@ public final class Bukkit {
         return 0;
     }
 
+    public static double[] getTPS() {
+        return new double[]{20.0, 20.0, 20.0};
+    }
+
     public static ScoreboardManager getScoreboardManager() {
         return server == null ? null : server.getScoreboardManager();
     }
@@ -2232,6 +2255,10 @@ public enum Material {
 
     public boolean isInteractable() {
         return this == CHEST;
+    }
+
+    public boolean isOccluding() {
+        return this != AIR && this != WATER && this != LAVA;
     }
 
     public boolean isAir() {
@@ -2754,6 +2781,17 @@ import org.bukkit.block.Block;
 import java.util.List;
 
 public class EntityExplodeEvent extends EntityEvent {
+    public org.bukkit.Location getLocation() {
+        return null;
+    }
+
+    public float getYield() {
+        return 0.0f;
+    }
+
+    public void setYield(float yield) {
+    }
+
     public List<Block> blockList() {
         return java.util.Collections.emptyList();
     }
@@ -3102,9 +3140,19 @@ package org.bukkit.event.entity;
 import org.bukkit.entity.Player;
 
 public class PlayerDeathEvent extends EntityEvent {
+    private String deathMessage;
+
     @Override
     public Player getEntity() {
         return null;
+    }
+
+    public String getDeathMessage() {
+        return deathMessage;
+    }
+
+    public void setDeathMessage(String message) {
+        this.deathMessage = message;
     }
 }
 """)
@@ -3241,6 +3289,290 @@ public class BlockDispenseEvent extends BlockEvent implements Cancellable {
 }
 """)
 
+
+add("io/papermc/paper/event/entity/EntityKnockbackEvent", """
+package io.papermc.paper.event.entity;
+
+import org.bukkit.entity.Entity;
+import org.bukkit.event.Cancellable;
+import org.bukkit.event.entity.EntityEvent;
+import org.bukkit.util.Vector;
+
+public class EntityKnockbackEvent extends EntityEvent implements Cancellable {
+    private boolean cancelled;
+
+    public Cause getCause() {
+        return null;
+    }
+
+    public Vector getKnockback() {
+        return null;
+    }
+
+    public void setKnockback(Vector knockback) {
+    }
+
+    @Override
+    public boolean isCancelled() {
+        return cancelled;
+    }
+
+    @Override
+    public void setCancelled(boolean cancel) {
+        this.cancelled = cancel;
+    }
+
+    public enum Cause {
+        DAMAGE, ENTITY_ATTACK, EXPLOSION, PUSH, SHIELD_BLOCK, UNKNOWN
+    }
+}
+""")
+
+add("com/destroystokyo/paper/event/entity/EntityKnockbackByEntityEvent", """
+package com.destroystokyo.paper.event.entity;
+
+import io.papermc.paper.event.entity.EntityKnockbackEvent;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.LivingEntity;
+
+public class EntityKnockbackByEntityEvent extends EntityKnockbackEvent {
+    public Entity getHitBy() {
+        return null;
+    }
+
+    public float getKnockbackStrength() {
+        return 0.0f;
+    }
+
+    @Override
+    public LivingEntity getEntity() {
+        return null;
+    }
+}
+""")
+
+
+add("org/bukkit/event/world/WorldEvent", """
+package org.bukkit.event.world;
+
+import org.bukkit.World;
+import org.bukkit.event.Event;
+
+public abstract class WorldEvent extends Event {
+    public World getWorld() {
+        return null;
+    }
+}
+""")
+
+add("org/bukkit/event/world/WorldLoadEvent", """
+package org.bukkit.event.world;
+
+public class WorldLoadEvent extends WorldEvent {
+}
+""")
+
+add("io/papermc/paper/event/player/PlayerArmSwingEvent", """
+package io.papermc.paper.event.player;
+
+import org.bukkit.entity.Player;
+import org.bukkit.event.player.PlayerEvent;
+import org.bukkit.inventory.EquipmentSlot;
+
+public class PlayerArmSwingEvent extends PlayerEvent {
+    public EquipmentSlot getHand() {
+        return null;
+    }
+
+    @Override
+    public Player getPlayer() {
+        return null;
+    }
+}
+""")
+
+add("net/kyori/adventure/text/event/ClickEvent", """
+package net.kyori.adventure.text.event;
+
+/** В adventure это final class (не интерфейс). */
+public final class ClickEvent {
+    public static ClickEvent runCommand(String command) {
+        return new ClickEvent();
+    }
+
+    public static ClickEvent suggestCommand(String command) {
+        return new ClickEvent();
+    }
+
+    public static ClickEvent openUrl(String url) {
+        return new ClickEvent();
+    }
+}
+""")
+
+add("net/kyori/adventure/text/event/HoverEvent", """
+package net.kyori.adventure.text.event;
+
+import net.kyori.adventure.text.Component;
+
+/** В adventure это final class (не интерфейс). */
+public final class HoverEvent<V> {
+    public static HoverEvent<Component> showText(Component text) {
+        return new HoverEvent<>();
+    }
+}
+""")
+
+
+add("org/bukkit/entity/Boat", """
+package org.bukkit.entity;
+
+public interface Boat extends Vehicle {
+}
+""")
+
+add("org/bukkit/event/block/BlockPistonExtendEvent", """
+package org.bukkit.event.block;
+
+import java.util.List;
+import org.bukkit.block.Block;
+
+public class BlockPistonExtendEvent extends BlockEvent {
+    public List<Block> getBlocks() {
+        return java.util.Collections.emptyList();
+    }
+
+    public org.bukkit.block.BlockFace getDirection() {
+        return null;
+    }
+
+    public int getLength() {
+        return 0;
+    }
+}
+""")
+
+add("org/bukkit/event/block/BlockPistonRetractEvent", """
+package org.bukkit.event.block;
+
+import java.util.List;
+import org.bukkit.block.Block;
+
+public class BlockPistonRetractEvent extends BlockEvent {
+    public List<Block> getBlocks() {
+        return java.util.Collections.emptyList();
+    }
+
+    public org.bukkit.block.BlockFace getDirection() {
+        return null;
+    }
+
+    public boolean isSticky() {
+        return false;
+    }
+}
+""")
+
+add("org/bukkit/block/BlockFace", """
+package org.bukkit.block;
+
+public enum BlockFace {
+    NORTH, EAST, SOUTH, WEST, UP, DOWN, SELF
+}
+""")
+
+add("org/bukkit/event/player/PlayerGameModeChangeEvent", """
+package org.bukkit.event.player;
+
+import org.bukkit.GameMode;
+import org.bukkit.event.Cancellable;
+
+public class PlayerGameModeChangeEvent extends PlayerEvent implements Cancellable {
+    private boolean cancelled;
+
+    public GameMode getNewGameMode() {
+        return null;
+    }
+
+    @Override
+    public boolean isCancelled() {
+        return cancelled;
+    }
+
+    @Override
+    public void setCancelled(boolean cancel) {
+        this.cancelled = cancel;
+    }
+}
+""")
+
+add("org/bukkit/event/player/PlayerRiptideEvent", """
+package org.bukkit.event.player;
+
+import org.bukkit.inventory.ItemStack;
+
+public class PlayerRiptideEvent extends PlayerEvent {
+    public ItemStack getItem() {
+        return null;
+    }
+}
+""")
+
+add("org/bukkit/event/player/PlayerVelocityEvent", """
+package org.bukkit.event.player;
+
+import org.bukkit.event.Cancellable;
+import org.bukkit.util.Vector;
+
+public class PlayerVelocityEvent extends PlayerEvent implements Cancellable {
+    private boolean cancelled;
+    private Vector velocity;
+
+    public Vector getVelocity() {
+        return velocity;
+    }
+
+    public void setVelocity(Vector velocity) {
+        this.velocity = velocity;
+    }
+
+    @Override
+    public boolean isCancelled() {
+        return cancelled;
+    }
+
+    @Override
+    public void setCancelled(boolean cancel) {
+        this.cancelled = cancel;
+    }
+}
+""")
+
+add("org/bukkit/GameRule", """
+package org.bukkit;
+
+public final class GameRule<T> {
+    public static final GameRule<Boolean> SHOW_DEATH_MESSAGES = new GameRule<>("showDeathMessages");
+    public static final GameRule<Boolean> DO_IMMEDIATE_RESPAWN = new GameRule<>("doImmediateRespawn");
+    public static final GameRule<Boolean> KEEP_INVENTORY = new GameRule<>("keepInventory");
+    public static final GameRule<Boolean> ANNOUNCE_ADVANCEMENTS = new GameRule<>("announceAdvancements");
+
+    private GameRule(String name) {
+    }
+
+    public String getName() {
+        return "";
+    }
+}
+""")
+
+
+add("org/bukkit/entity/Vehicle", """
+package org.bukkit.entity;
+
+public interface Vehicle extends Entity {
+}
+""")
 
 
 def main(argv):

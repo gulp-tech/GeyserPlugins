@@ -373,6 +373,13 @@ class SourceType:
         if text in JAVA_UTIL:
             return array + "L" + JAVA_UTIL[text] + ";"
         if "." in text:
+            head, _, rest = text.partition(".")
+            # Вложенный тип, записанный как Owner.Nested внутри того же файла.
+            if head == self.simple or head in self.nested_names:
+                if head in self.imports:
+                    return array + "L" + self.imports[head] + "$" + rest.replace(".", "$") + ";"
+                owner = (self.package.replace(".", "/") + "/" if self.package else "") + head
+                return array + "L" + owner + "$" + rest.replace(".", "$") + ";"
             return array + "L" + text.replace(".", "/") + ";"
         if text in self.imports:
             return array + "L" + self.imports[text] + ";"
@@ -595,6 +602,97 @@ def report(jar_path, members, problems, missing, unresolved, inherited, verbose)
     return total
 
 
+# ---------------------------------------------------------------------------
+# Проверка «класс vs интерфейс» для библиотек вне paper-api (adventure).
+# Ошибка из этой серии выглядит так:
+#   IncompatibleClassChangeError: Method '...LegacyComponentSerializer.legacySection()'
+#   must be InterfaceMethodref constant
+# Возникает, когда заглушка объявляет классом то, что в реальности интерфейс
+# (или наоборот), и javac ставит Methodref вместо InterfaceMethodref.
+# ---------------------------------------------------------------------------
+
+ADVENTURE_INTERFACES = {
+    "net/kyori/adventure/text/Component",
+    "net/kyori/adventure/text/ComponentLike",
+    "net/kyori/adventure/audience/Audience",
+    "net/kyori/adventure/audience/ForwardingAudience",
+    "net/kyori/adventure/bossbar/BossBar",
+    "net/kyori/adventure/title/Title",
+    "net/kyori/adventure/text/serializer/legacy/LegacyComponentSerializer",
+    "net/kyori/adventure/text/serializer/plain/PlainTextComponentSerializer",
+    "net/kyori/adventure/key/Key",
+    "net/kyori/adventure/key/Keyed",
+}
+ADVENTURE_CLASSES = {
+    "net/kyori/adventure/text/event/ClickEvent",
+    "net/kyori/adventure/text/event/HoverEvent",
+    "net/kyori/adventure/text/format/TextDecoration",
+}
+
+
+def _constant_pool(data):
+    """Возвращает {индекс: (tag, значение)} для constant pool class-файла."""
+    pos = 8
+    size = struct.unpack_from(">H", data, pos)[0]
+    pos += 2
+    pool = {}
+    index = 1
+    while index < size:
+        tag = data[pos]
+        pos += 1
+        if tag == 1:
+            length = struct.unpack_from(">H", data, pos)[0]
+            pos += 2
+            pool[index] = (tag, data[pos:pos + length].decode("utf-8", "replace"))
+            pos += length
+        elif tag in (7, 8, 16, 19, 20):
+            pool[index] = (tag, struct.unpack_from(">H", data, pos)[0])
+            pos += 2
+        elif tag == 15:
+            pool[index] = (tag, None)
+            pos += 3
+        elif tag in (3, 4, 9, 10, 11, 12, 17, 18):
+            pool[index] = (tag, struct.unpack_from(">HH", data, pos))
+            pos += 4
+        elif tag in (5, 6):
+            pool[index] = (tag, None)
+            pos += 8
+            index += 1
+        else:
+            raise ValueError("неизвестный тег constant pool: %d" % tag)
+        index += 1
+    return pool
+
+
+def check_library_kinds(jar_path):
+    """Ищет Methodref к интерфейсам adventure и InterfaceMethodref к их классам."""
+    problems = []
+    with zipfile.ZipFile(jar_path) as jar:
+        for entry in jar.namelist():
+            if not entry.endswith(".class"):
+                continue
+            try:
+                pool = _constant_pool(jar.read(entry))
+            except Exception as error:  # pragma: no cover — битый класс
+                problems.append("%s: не разобрать класс (%s)" % (entry, error))
+                continue
+            for tag, value in pool.values():
+                if tag not in (10, 11) or not isinstance(value, tuple):
+                    continue
+                owner_entry = pool.get(value[0])
+                if not owner_entry or owner_entry[0] != 7:
+                    continue
+                name_entry = pool.get(owner_entry[1])
+                if not name_entry:
+                    continue
+                name = name_entry[1]
+                if name in ADVENTURE_INTERFACES and tag != 11:
+                    problems.append("%s: %s должен быть InterfaceMethodref" % (entry, name))
+                elif name in ADVENTURE_CLASSES and tag != 10:
+                    problems.append("%s: %s должен быть Methodref" % (entry, name))
+    return problems
+
+
 def main(argv):
     ref = DEFAULT_REF
     verbose = False
@@ -620,6 +718,14 @@ def main(argv):
             continue
         members, problems, missing, unresolved, inherited = audit(jar, ref)
         failed = report(jar, members, problems, missing, unresolved, inherited, verbose) > 0 or failed
+        library = check_library_kinds(jar)
+        if library:
+            failed = True
+            print("\n[ОШИБКА] класс/интерфейс в библиотеке — на сервере IncompatibleClassChangeError:")
+            for line in library[:10]:
+                print("  - " + line)
+            if len(library) > 10:
+                print("  ... ещё %d" % (len(library) - 10))
         unresolved_any = unresolved_any or bool(unresolved)
     if failed:
         return 1
