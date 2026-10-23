@@ -61,6 +61,7 @@ public final class VoidPvP extends JavaPlugin
     @Override
     public void onEnable() {
         saveDefaultConfig();
+        migrateConfig();
         attackSpeedAttribute = resolveAttackSpeed();
         if (attackSpeedAttribute == null) {
             getLogger().warning("Атрибут ATTACK_SPEED не найден — задержку атаки убрать не получится "
@@ -82,6 +83,36 @@ public final class VoidPvP extends JavaPlugin
         long refresh = Math.max(20L, getConfig().getLong("attack-speed.refresh-ticks", 40L));
         Bukkit.getScheduler().runTaskTimer(this, this::refreshAll, refresh, refresh);
         getLogger().info("VoidPvP включён: " + settings.summary());
+    }
+
+    /**
+     * Обновляет старый config.yml на сервере: saveDefaultConfig() не перезаписывает
+     * существующий файл, поэтому ослабленные значения сами бы не применились.
+     * Меняем только те ключи, что остались прежними по умолчанию.
+     */
+    private void migrateConfig() {
+        if (getConfig().getInt("config-version", 1) >= 2) {
+            return;
+        }
+        boolean changed = false;
+        if (getConfig().isSet("crits.multiplier") && getConfig().getDouble("crits.multiplier") == 1.5) {
+            getConfig().set("crits.multiplier", 1.25);
+            changed = true;
+        }
+        if (getConfig().isSet("attack-speed.value") && getConfig().getDouble("attack-speed.value") == 1024.0) {
+            getConfig().set("attack-speed.value", 6.5);
+            changed = true;
+        }
+        if (!getConfig().isSet("no-invulnerability.min-interval-ticks")) {
+            getConfig().set("no-invulnerability.min-interval-ticks", 2);
+            changed = true;
+        }
+        getConfig().set("config-version", 2);
+        if (changed) {
+            saveConfig();
+            getLogger().info("Конфиг обновлён до версии 2: PvP ослаблен "
+                    + "(крит 1.25, ATTACK_SPEED 6.5, неуязвимость не чаще 2 тиков).");
+        }
     }
 
     @Override
@@ -262,7 +293,8 @@ public final class VoidPvP extends JavaPlugin
                 + " &8| &7всегда: " + onOff(current.always)
                 + " &8| &7×&e" + trim(current.multiplier)));
         sender.sendMessage(color("&7Задержка атаки убрана: " + onOff(current.attackSpeedEnabled && attackSpeedAttribute != null)
-                + " &8| &7нет неуязвимости: " + onOff(current.noInvulnerability)));
+                + " &8| &7снятие неуязвимости: " + onOff(current.noInvulnerability)
+                + (current.noInvulnerability ? " &7(не чаще " + current.minIntervalTicks + " тик.)" : "")));
         if (sender instanceof Player self && attackSpeedAttribute != null) {
             AttributeInstance own = self.getAttribute(attackSpeedAttribute);
             if (own != null) {
