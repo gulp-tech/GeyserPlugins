@@ -71,5 +71,26 @@ LuckPerms (привилегии; **префикс LP — единый источ
 
 ### Папка `configs/` (готовые конфиги для сервера, не плагины)
 
-DeluxeMenus: `DeluxeMenus-donate.yml` (донат-магазин: разделы — кастомные предметы, зелья, кирки, талисманы, сферы; иконка раздела сфер — сфера с настоящей текстурой; выдачи только `parent add`), `DeluxeMenus-shop*.yml`, `DeluxeMenus-titles.yml`, `DeluxeMenus-menu.yml`; AuthMe: `AuthMe-config.yml`, `AuthMe-commands.yml`, `AuthMe-messages_ru.yml`; плюс BetterRTP, Essentials, LiteBans, LiteKits, PlayerPoints, SkinsRestorer, PluginHidePro, Geyser (`geys
-...[truncated 2089 chars]
+DeluxeMenus: `DeluxeMenus-donate.yml` (донат-магазин: разделы — кастомные предметы, зелья, кирки, талисманы, сферы; иконка раздела сфер — сфера с настоящей текстурой; выдачи только `parent add`), `DeluxeMenus-shop*.yml`, `DeluxeMenus-titles.yml`, `DeluxeMenus-menu.yml`; AuthMe: `AuthMe-config.yml`, `AuthMe-commands.yml`, `AuthMe-messages_ru.yml`; плюс BetterRTP, Essentials, LiteBans, LiteKits, PlayerPoints, SkinsRestorer, PluginHidePro, Geyser (`geyser-config.yml`, `Geyser-custom-skulls.yml`), `VoidTab-config.yml` (эталонный конфиг), `messages_ru.properties`. Файлы раскладываются вручную по папкам соответствующих плагинов.
+
+## 6. Очередь задач (по приоритету)
+
+1. **Сразу после починки биллинга GitHub Actions пользователем:** проверить CI-ран на коммит `c43c1fe` (шаг VoidVersionsExtension — success), поставить тег **v1.72.0**, проверить релиз: 15 ассетов, есть `VoidVersionsExtension-1.4.0.jar`. Пользователь заменяет jar в `plugins/Geyser-Spigot/extensions/` (старый удалить), **полный рестарт** (не reload). Подтверждение в логе: строки вида «реестр BlockRegistries.BLOCKS: добавлено старых протоколов: N» (также ITEMS и TAGS). Затем проверка заходом реальным клиентом **Bedrock 1.21.130** (протокол 898). Если упадёт дальше — пользователь пришлёт стектрейс, чинить итеративно (это ожидаемо: слои несовместимости могут всплывать по одному).
+2. **VoidCombat на сервере стоит 1.1.0** — пользователь должен заменить jar на 1.2.0 (релиз v1.66.0), чтобы появился боссбар боя. Старый jar удалить, в папке должен быть только один.
+3. **VoidAntiCheat**: пользователь должен положить jar (v1.65.0) в `plugins/`, полный рестарт; при проблемах — строки VoidAntiCheat из `logs/latest.log`. Ранее «не работает он» объяснялось тем, что плагина просто не было в `plugins/`.
+4. По желанию пользователя: `/wcity setspawn` в точке, отличной от центра (сейчас спавн = центр города).
+
+## 7. Грабли — не повторять
+
+- **Jar расширения Geyser в `plugins/` вместо `plugins/Geyser-Spigot/extensions/`** — Paper отклонит его («does not contain a paper-plugin.yml or plugin.yml»), расширение не загрузится. Уже наступали.
+- Пользователь при обновлениях **удаляет старые config.yml** — критичные данные держать вне config.yml (образец: points.yml у VoidWardenCity).
+- Массовые правки YAML heredoc/скриптами повреждали файлы; PyYAML не парсит flow-стиль (`- {material: ...}`). Только точечные правки, по одной на файл, потом grep-проверка.
+- Нативная Bedrock-наковальня с кастомными чарами **не чинится** ни PrepareAnvilEvent, ни расширением — только серверное меню VoidEnchants + Cumulus-форма VoidAnvilExtension. В Cumulus 1.1.2 `.button(String, lambda)` не компилируется: кнопки без callback + `validResultHandler`/`clickedButtonId()`.
+- Дубли файлов маппинга сфер недопустимы — один `configs/Geyser-spheres-mapping.json`.
+- Красный `build.yml` ≠ упала компиляция: смотреть шаги модулей (квота артефактов). Перевыпуск упавшего релиза: удалить тег и запушить заново (`gh run rerun`/`workflow run` недоступны).
+- Локальной Java/Maven/Gradle в песочнице нет — вся проверка только через GitHub Actions; jar локально не скачать и не проверить.
+- Снапшот воркспейса периодически теряет локальную историю git: восстановление — `git fetch origin` + `git reset --hard origin/arena/874b2be9-geyserplugins` (на GitHub коммиты целы).
+
+## 8. Состояние сервера пользователя (по последнему логу)
+
+Purpur 26.2 build 121, Geyser 2.12.0-b1268 (git-master-d14f204), UDP-порт 19139, миры: world, world2, nether, end. Игрок/админ — MUSD38 (привилегия «Создатель»). VoidWardenCity: точки загружены из points.yml — центр и спавн `world2 -648 -42 -544`, GUI-лута загружено 54 предмета. На сервере также стоят **чужие плагины (не наши, не трогать)**: Lmauction/LMstash/LMbuyer/LMRoom, ZNPCsPlus, LiteKits, GeyserEvent, Pl-Hide-Pro, HeadDatabase, CoreProtect, BetterRTP, ViaVersion, AuthMe, Essentials, DeluxeMenus, DecentHolograms и т.д. Их WARN в логе (duplicate keys у Lmauction, дубль UUID пака GeyserEvent, пустой префикс Floodgate) — не наши задачи, если пользователь не попросит.
