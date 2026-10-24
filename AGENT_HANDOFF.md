@@ -629,6 +629,54 @@ Paper 26.2 принимает adventure `Key`. Компилятор разниц
 Установка: `VoidResourcePack.mcpack` → `plugins/Geyser-Spigot/packs/`, в Geyser
 `force-resource-packs: true`; игрокам нужен переподключ.
 
+### 6.3.14. Перенос графики FunTime в Bedrock-пак + меню DeluxeMenus (24.10.2026)
+
+Пользователь загрузил Java-ресурспак `funtime.zip` в корень репозитория
+(коммит в `main`): «сделай это для DeluxeMenus, а потом другим плагинам».
+
+**Почему нельзя скопировать как есть.** FunTime рисует меню гигантскими глифами
+Java-шрифта: `font/*.json` + `font/pixel_split.png`, один символ = картинка 176×126,
+title-бар = 176×6. В Bedrock глифы живут только в листах `font/glyph_Ex.png`
+(сетка 16×16) и ширина символа = ширина непрозрачных пикселей. Значит:
+
+* иконки 16×16 переносятся 1:1 (один символ = одна клетка);
+* заголовки 176×6 → плашка **144×16** (9 клеток ровно под заголовок сундука Bedrock)
+  + вписывание картинки с полями (не выше 10 px, иначе буквы «плывут»);
+* страницы: `E2`/`E3` — заголовки, `E4` — иконки. `E0`/`E1` не трогаем: на `E0`
+  ванильные иконки геймпада, на нашей `E1` — иконки скорборда и меню VoidPE.
+
+**Что сделано:**
+
+* `tools/import_funtime_pack.py` — читает zip **или** папку (`--src`/`--pack`),
+  режет иконки, собирает заголовки, пишет `font/glyph_E2/E3/E4.png` и
+  `configs/glyphs-funtime.yml` (24 заголовка + 124 иконки, строки в `\uXXXX`).
+* `tools/make_funtime_menus.py` — генерирует три меню DeluxeMenus
+  (`menu`, `shop`, `keys`) на этих иконках; проверяет YAML и дубли слотов.
+* `tools/make_funtime_preview.py` — превью **по готовому YAML**: заголовок рисуется
+  настоящими глифами из `font/glyph_E2.png`, иконки — из `glyph_E4.png`.
+  Если код иконки в конфиге сломан, на превью будет видно.
+* `configs/VoidTab-icons-funtime.yml` — 11 кодов для `icons:` в VoidTab
+  (`{icon:kill}`, `{icon:token}`, `{icon:time2}`, `{icon:clan1}` …). Без пересборки jar.
+* Версия пака → **1.22.0**, `VoidResourcePack.mcpack` 114 КБ.
+
+**Грабли:**
+
+* Заголовок сундука в Bedrock — 9 слотов по 16 px (162 px сетки). Полоса 176 px
+  влезает только с переполнением, поэтому целевая ширина — 144 px.
+* Прозрачные промежутки между буквами «съедают» шаг символа (Bedrock считает ширину
+  по непрозрачным пикселям) — только непрозрачная плашка даёт ровно 16 px на клетку.
+* `int("E140", 16)` = `0xE140` — код страницы разбирать как `code[1:]` (уже было в 6.3.13).
+* В PIL нельзя переиспользовать `ImageDraw` после `paste`/`alpha_composite` — рисовать
+  надо до вставок.
+* У FunTime часть имён не совпадает с ожидаемым смыслом (`time1` — картина,
+  `donate_book/chest/coins` — варианты, `usual_key` — серый ключ). Сверять по
+  `preview/funtime-icons.png` и подписям, а не по названию файла.
+
+**Не сделано (следующий шаг):** заголовки меню внутри самих плагинов
+(VoidCases, VoidClans, VoidTalismans, VoidEnchants, VoidItems) — там `createInventory`
+с захардкоженным текстом; нужна правка кода + пересборка jar, чтобы читать
+`gui.header` из конфига и подставлять полосу глифов.
+
 ## 8. Состояние сервера пользователя (по последнему логу)
 
 Purpur 26.2 build 121, Geyser 2.12.0-b1268 (git-master-d14f204), UDP-порт 19139, миры: world, world2, nether, end. Игрок/админ — MUSD38 (привилегия «Создатель»). VoidWardenCity: точки загружены из points.yml — центр и спавн `world2 -648 -42 -544`, GUI-лута загружено 54 предмета. На сервере также стоят **чужие плагины (не наши, не трогать)**: Lmauction/LMstash/LMbuyer/LMRoom, ZNPCsPlus, LiteKits, GeyserEvent, Pl-Hide-Pro, HeadDatabase, CoreProtect, BetterRTP, ViaVersion, AuthMe, Essentials, DeluxeMenus, DecentHolograms и т.д. Их WARN в логе (duplicate keys у Lmauction, дубль UUID пака GeyserEvent, пустой префикс Floodgate) — не наши задачи, если пользователь не попросит.

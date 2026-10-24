@@ -2,17 +2,21 @@
 
 Готовый файл: **`VoidResourcePack.mcpack`** в корне репозитория.
 
-## Что внутри (пак v1.21.0)
+## Что внутри (пак v1.22.0)
 
 - `font/glyph_E1.png` — лист глифов 256×256 (сетка 16×16 ячеек по 16 px):
   иконки скорборда, устройств и рангов, **полоса логотипа** для заголовка скорборда
   и **иконки меню в стиле FunTime** (тёмная плашка + яркая объёмная иконка).
+- `font/glyph_E2.png`, `font/glyph_E3.png` — **заголовки меню из FunTime** (24 полосы,
+  по 9 клеток: «ГЛАВНОЕ МЕНЮ», «МЕНЮ МАГАЗИНОВ», «КЕЙСЫ», «АУКЦИОН», «ВАРПЫ» и т.д.).
+- `font/glyph_E4.png` — **иконки 16×16 из FunTime** (124 шт.: ключи кейсов, кнопки
+  «назад/инфо/донат», талисманы, гербы кланов, новогодние предметы, кровати-варпы).
 - `textures/ui/title.png` — логотип VoidPE игровым шрифтом (замена MINECRAFT на экране загрузки).
 - `pack_icon.png` — иконка пака.
 
 > Версия пака в `manifest.json` поднимается **при каждом изменении графики**:
 > Bedrock кеширует паки по `uuid` + `version`, без поднятия версии игроки не перекачают пак.
-> Сейчас — `1.21.0`.
+> Сейчас — `1.22.0`.
 
 ## Как это работает
 
@@ -78,6 +82,39 @@ Bedrock не умеет картинки в скорборде и в меню, �
 Важно: в YAML меню иконки стоят **настоящими символами**, файл должен остаться в UTF-8.
 Если редактор их не сохранит — можно писать `\uE140` в строках с двойными кавычками
 (`"\uE140 Магазин"`), YAML сам развернёт escape.
+
+### Графика FunTime — `E200`–`E4FF` (перенос из `funtime.zip`)
+
+FunTime — Java-пак: меню там рисуются **огромными глифами** (один символ = картинка
+176×126). В Bedrock так нельзя, поэтому перенос сделан по-другому:
+
+* **Заголовки** (полоски 176×6 из пака FunTime) накладываются на тёмную плашку 144×16
+  и режутся на **9 клеток** — заголовок сундука в Bedrock это 9 символов по 16 px.
+  Плашка непрозрачная специально: тогда шаг символа ровно 16 px, буквы не «плывут».
+  Страницы `E2` и `E3`, имена — в `configs/glyphs-funtime.yml` (`banners`).
+* **Иконки 16×16** (ключи кейсов, кнопки, талисманы, гербы) — один символ = одна
+  иконка, 1:1 без потерь. Страница `E4`, имена — `icons`.
+
+Полный список кодов: [`../configs/glyphs-funtime.yml`](../configs/glyphs-funtime.yml)
+(генерируется, не править руками). Готовые меню на этих иконках:
+[`../configs/DeluxeMenus-menu-funtime.yml`](../configs/DeluxeMenus-menu-funtime.yml),
+[`../configs/DeluxeMenus-shop-funtime.yml`](../configs/DeluxeMenus-shop-funtime.yml),
+[`../configs/DeluxeMenus-cases-funtime.yml`](../configs/DeluxeMenus-cases-funtime.yml).
+Превью: [`../preview/menu-funtime-preview.png`](../preview/menu-funtime-preview.png),
+[`../preview/funtime-icons.png`](../preview/funtime-icons.png),
+[`../preview/funtime-banners.png`](../preview/funtime-banners.png).
+
+Пересобрать после правок в `funtime.zip`:
+
+```bash
+python3 tools/import_funtime_pack.py --src funtime.zip   # глифы E2/E3/E4 + configs/glyphs-funtime.yml
+python3 tools/make_funtime_menus.py                      # меню DeluxeMenus на этих иконках
+python3 tools/build_mcpack.py                            # сам .mcpack
+```
+
+**Страницы `E0`/`E1` не трогаем** для импорта: на `E0` и `E1` живут ванильные иконки
+Bedrock (кнопки геймпада и т.п.), а на нашей `E1` — иконки скорборда и меню VoidPE
+(`E140`–`E14F`). Поэтому FunTime идёт на `E2`–`E4`, где ванила пусто.
 
 ## Установка на Geyser
 

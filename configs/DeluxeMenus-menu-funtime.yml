@@ -1,0 +1,210 @@
+# Главное меню VoidPE — графика FunTime | menu
+# Файл: plugins/DeluxeMenus/gui_menus/<имя>.yml
+# Графика — из пака FunTime (перенесена tools/import_funtime_pack.py),
+# иконки E400–E4FF, заголовок — полоса глифов E2xx.
+# Строки "\uXXXX" — это символы иконок; не заменяйте их на картинки.
+# Открывается командой ниже, права — deluxemenus.<имя>.
+
+menu_title: "\uE290\uE291\uE292\uE293\uE294\uE295\uE296\uE297\uE298"
+open_command: menu
+register_command: true
+size: 54
+open_commands:
+  - "[sound] UI_BUTTON_CLICK"
+items:
+  # тёмная рамка как в FunTime: верх/низ и бока закрыты
+  'Рамка':
+    slots:
+    - 0-8
+    - 9
+    - 17
+    - 18
+    - 26
+    - 27
+    - 35
+    - 36
+    - 44
+    - 45-48
+    - 50-53
+    material: BLACK_STAINED_GLASS_PANE
+    display_name: '&8'
+    item_flags:
+      - HIDE_ATTRIBUTES
+
+  # голова игрока со статистикой
+  info:
+    slot: 13
+    material: head-%player_name%
+    display_name: "\uE40E &#E8D5FF%player_name%"
+    lore:
+      - ""
+      - " &#C86BFF• &fМонеты: &#E8D5FF%vault_eco_balance_formatted%$"
+      - " &#C86BFF• &fОсколки: &#E8D5FF%playerpoints_points%"
+      - " &#C86BFF• &fУбийств: &#E8D5FF%statistic_player_kills%"
+      - " &#C86BFF• &fСмертей: &#E8D5FF%statistic_deaths%"
+      - " &#C86BFF• &fНаиграно: &#E8D5FF%statistic_hours_played% ч."
+      - ""
+      - "&#C86BFF➥ &fНажмите"
+    item_flags:
+      - HIDE_ATTRIBUTES
+
+  # категории как в FunTime
+  shop:
+    slot: 20
+    material: PAPER
+    display_name: "\uE418 &#E8D5FFМагазин"
+    lore:
+      - ""
+      - "&7Блоки, еда, оружие, талисманы"
+      - "&7и зелья за монеты."
+      - ""
+      - "&#C86BFF➥ &fНажмите"
+    item_flags:
+      - HIDE_ATTRIBUTES
+    click_commands:
+      - "[sound] UI_BUTTON_CLICK"
+      - "[player] shop"
+      - "[close]"
+
+  cases:
+    slot: 21
+    material: PAPER
+    display_name: "\uE425 &#E8D5FFКейсы"
+    lore:
+      - ""
+      - "&7Обычные, ранговые и боссовые ключи."
+      - ""
+      - "&#C86BFF➥ &fНажмите"
+    item_flags:
+      - HIDE_ATTRIBUTES
+    click_commands:
+      - "[sound] UI_BUTTON_CLICK"
+      - "[player] keys"
+      - "[close]"
+
+  donate:
+    slot: 22
+    material: PAPER
+    display_name: "\uE41D &#E8D5FFДонат"
+    lore:
+      - ""
+      - "&7Привилегии и наборы."
+      - ""
+      - "&#C86BFF➥ &fНажмите"
+    item_flags:
+      - HIDE_ATTRIBUTES
+    click_commands:
+      - "[sound] UI_BUTTON_CLICK"
+      - "[player] donate"
+      - "[close]"
+
+  quests:
+    slot: 23
+    material: PAPER
+    display_name: "\uE40C &#E8D5FFЗадания"
+    lore:
+      - ""
+      - "&7Ежедневные задачи и награды."
+      - "&7Ещё не установлено — кнопку можно спрятать."
+      - ""
+      - "&#C86BFF➥ &fНажмите"
+    item_flags:
+      - HIDE_ATTRIBUTES
+    click_commands:
+      - "[sound] UI_BUTTON_CLICK"
+      - "[player] quests"
+      - "[close]"
+
+  clans:
+    slot: 24
+    material: PAPER
+    display_name: "\uE46F &#E8D5FFКланы"
+    lore:
+      - ""
+      - "&7Создать клан и воевать за территорию."
+      - ""
+      - "&#C86BFF➥ &fНажмите"
+    item_flags:
+      - HIDE_ATTRIBUTES
+    click_commands:
+      - "[sound] UI_BUTTON_CLICK"
+      - "[player] clan"
+      - "[close]"
+
+  top:
+    slot: 30
+    material: PAPER
+    display_name: "\uE401 &#E8D5FFТопы"
+    lore:
+      - ""
+      - "&7Лучшие игроки сервера."
+      - ""
+      - "&#C86BFF➥ &fНажмите"
+    item_flags:
+      - HIDE_ATTRIBUTES
+    click_commands:
+      - "[sound] UI_BUTTON_CLICK"
+      - "[player] top"
+      - "[close]"
+
+  arena:
+    slot: 31
+    material: PAPER
+    display_name: "\uE426 &#E8D5FFАрена"
+    lore:
+      - ""
+      - "&7PvP 1×1 и дуэли."
+      - ""
+      - "&#C86BFF➥ &fНажмите"
+    item_flags:
+      - HIDE_ATTRIBUTES
+    click_commands:
+      - "[sound] UI_BUTTON_CLICK"
+      - "[player] warp pvp"
+      - "[close]"
+
+  mine:
+    slot: 32
+    material: PAPER
+    display_name: "\uE41E &#E8D5FFАвтошахта"
+    lore:
+      - ""
+      - "&7Бесконечная шахта с ресурсами."
+      - ""
+      - "&#C86BFF➥ &fНажмите"
+    item_flags:
+      - HIDE_ATTRIBUTES
+    click_commands:
+      - "[sound] UI_BUTTON_CLICK"
+      - "[player] warp mine"
+      - "[close]"
+
+  back:
+    slot: 37
+    material: PAPER
+    display_name: "\uE148 &#E8D5FF&7Назад"
+    item_flags:
+      - HIDE_ATTRIBUTES
+    click_commands:
+      - "[sound] UI_BUTTON_CLICK"
+      - "[openguimenu] menu"
+
+  next:
+    slot: 43
+    material: PAPER
+    display_name: "\uE149 &#E8D5FF&7Далее"
+    item_flags:
+      - HIDE_ATTRIBUTES
+    click_commands:
+      - "[sound] UI_BUTTON_CLICK"
+      - "[openguimenu] menu"
+
+  close:
+    slot: 49
+    material: PAPER
+    display_name: "\uE147 &#E8D5FF&#FF5570Закрыть"
+    item_flags:
+      - HIDE_ATTRIBUTES
+    click_commands:
+      - "[sound] UI_BUTTON_CLICK"
+      - "[close]"

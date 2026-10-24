@@ -1,0 +1,32 @@
+# Иконки FunTime для VoidTab (скорборд) — вставить в plugins/VoidTab/config.yml
+#
+# Это не отдельный файл конфига: строки ниже добавляются в существующую секцию
+# `icons:` (там уже есть coin, spark, shard, crown …). После вставки их можно
+# использовать в любом шаблоне скорборда как {icon:kill}, {icon:token} и т.д.
+#
+# Коды — из второй серии пака (страницы glyph_E4.png), перенесены из funtime.zip.
+# Перезапуск VoidTab не нужен: /voidtab reload (или /tab reload).
+#
+#   kill    — меч (убийства)            token  — зелёный жетон/осколки
+#   rank    — звезда (привилегия)       lock   — замок
+#   time1   — картина (время в игре)    rune   — руна
+#   time2   — часы (время в игре)       clan1..3 — гербы кланов
+#
+icons:
+  kill: "E400"          # меч — убийства
+  rank: "E401"          # звезда — привилегия
+  time1: "E402"         # картина — время в игре
+  time2: "E403"         # часы — время в игре
+  token: "E404"         # жетон — осколки / PlayerPoints
+  donate_coins: "E40B"  # стопка монет — монеты (вариант FunTime)
+  lock: "E432"          # замок
+  rune: "E41F"          # руна
+  clan1: "E46F"         # герб клана 1
+  clan2: "E470"         # герб клана 2
+  clan3: "E471"         # герб клана 3
+
+# Пример использования в шаблонах (секция scoreboard.lines):
+#   - "&fУбийств: &#FF6B6B{kills} {icon:kill}"
+#   - "&fОсколки: &#54C8FF{shards} {icon:token}"
+#   - "&fВ игре: &#FFD93D{playtime_hours}ч {icon:time2}"
+#   - "&fКлан: &#C86BFF{clan_name} {icon:clan1}"

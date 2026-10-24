@@ -1,0 +1,192 @@
+# Магазин VoidPE — заголовок FunTime | shop
+# Файл: plugins/DeluxeMenus/gui_menus/<имя>.yml
+# Графика — из пака FunTime (перенесена tools/import_funtime_pack.py),
+# иконки E400–E4FF, заголовок — полоса глифов E2xx.
+# Строки "\uXXXX" — это символы иконок; не заменяйте их на картинки.
+# Открывается командой ниже, права — deluxemenus.<имя>.
+
+menu_title: "\uE2A2\uE2A3\uE2A4\uE2A5\uE2A6\uE2A7\uE2A8\uE2A9\uE2AA"
+open_command: shop
+register_command: true
+size: 54
+open_commands:
+  - "[sound] UI_BUTTON_CLICK"
+items:
+  # тёмная рамка как в FunTime: верх/низ и бока закрыты
+  'Рамка':
+    slots:
+    - 0-8
+    - 9
+    - 17
+    - 18
+    - 26
+    - 27
+    - 35
+    - 36
+    - 44
+    - 45-48
+    - 50-53
+    material: BLACK_STAINED_GLASS_PANE
+    display_name: '&8'
+    item_flags:
+      - HIDE_ATTRIBUTES
+
+  blocks:
+    slot: 20
+    material: PAPER
+    display_name: "\uE41E &#E8D5FFБлоки"
+    lore:
+      - ""
+      - "&7Стройматериалы и декор."
+      - ""
+      - "&#C86BFF➥ &fНажмите"
+    item_flags:
+      - HIDE_ATTRIBUTES
+    click_commands:
+      - "[sound] UI_BUTTON_CLICK"
+      - "[player] shop blocks"
+
+  tools:
+    slot: 21
+    material: PAPER
+    display_name: "\uE408 &#E8D5FFИнструменты"
+    lore:
+      - ""
+      - "&7Кирки, топоры, лопаты."
+      - ""
+      - "&#C86BFF➥ &fНажмите"
+    item_flags:
+      - HIDE_ATTRIBUTES
+    click_commands:
+      - "[sound] UI_BUTTON_CLICK"
+      - "[player] shop tools"
+
+  food:
+    slot: 22
+    material: PAPER
+    display_name: "\uE469 &#E8D5FFЕда"
+    lore:
+      - ""
+      - "&7Еда и зелья."
+      - ""
+      - "&#C86BFF➥ &fНажмите"
+    item_flags:
+      - HIDE_ATTRIBUTES
+    click_commands:
+      - "[sound] UI_BUTTON_CLICK"
+      - "[player] shop food"
+
+  weapons:
+    slot: 23
+    material: PAPER
+    display_name: "\uE426 &#E8D5FFОружие"
+    lore:
+      - ""
+      - "&7Мечи, луки, арбалеты."
+      - ""
+      - "&#C86BFF➥ &fНажмите"
+    item_flags:
+      - HIDE_ATTRIBUTES
+    click_commands:
+      - "[sound] UI_BUTTON_CLICK"
+      - "[player] shop weapons"
+
+  armor:
+    slot: 24
+    material: PAPER
+    display_name: "\uE417 &#E8D5FFСнаряжение"
+    lore:
+      - ""
+      - "&7Броня и щиты."
+      - ""
+      - "&#C86BFF➥ &fНажмите"
+    item_flags:
+      - HIDE_ATTRIBUTES
+    click_commands:
+      - "[sound] UI_BUTTON_CLICK"
+      - "[player] shop armor"
+
+  potions:
+    slot: 29
+    material: PAPER
+    display_name: "\uE43E &#E8D5FFЗелья"
+    lore:
+      - ""
+      - "&7Зелья и варево."
+      - ""
+      - "&#C86BFF➥ &fНажмите"
+    item_flags:
+      - HIDE_ATTRIBUTES
+    click_commands:
+      - "[sound] UI_BUTTON_CLICK"
+      - "[player] shop potions"
+
+  runes:
+    slot: 30
+    material: PAPER
+    display_name: "\uE41F &#E8D5FFРуны"
+    lore:
+      - ""
+      - "&7Руны усиления."
+      - ""
+      - "&#C86BFF➥ &fНажмите"
+    item_flags:
+      - HIDE_ATTRIBUTES
+    click_commands:
+      - "[sound] UI_BUTTON_CLICK"
+      - "[player] shop runes"
+
+  talismans:
+    slot: 31
+    material: PAPER
+    display_name: "\uE421 &#E8D5FFТалисманы"
+    lore:
+      - ""
+      - "&7Талисманы удачи."
+      - ""
+      - "&#C86BFF➥ &fНажмите"
+    item_flags:
+      - HIDE_ATTRIBUTES
+    click_commands:
+      - "[sound] UI_BUTTON_CLICK"
+      - "[player] shop talismans"
+
+  cases:
+    slot: 32
+    material: PAPER
+    display_name: "\uE41B &#E8D5FFКлючи"
+    lore:
+      - ""
+      - "&7Ключи от кейсов."
+      - ""
+      - "&#C86BFF➥ &fНажмите"
+    item_flags:
+      - HIDE_ATTRIBUTES
+    click_commands:
+      - "[sound] UI_BUTTON_CLICK"
+      - "[player] keys"
+
+  valuables:
+    slot: 33
+    material: PAPER
+    display_name: "\uE418 &#E8D5FFЦенные ресурсы"
+    lore:
+      - ""
+      - "&7Драгоценности и слитки."
+      - ""
+      - "&#C86BFF➥ &fНажмите"
+    item_flags:
+      - HIDE_ATTRIBUTES
+    click_commands:
+      - "[sound] UI_BUTTON_CLICK"
+      - "[player] shop valuables"
+
+  back:
+    slot: 49
+    material: PAPER
+    display_name: "\uE148 &#E8D5FF&7Назад"
+    item_flags:
+      - HIDE_ATTRIBUTES
+    click_commands:
+      - "[sound] UI_BUTTON_CLICK"
+      - "[openguimenu] menu"
