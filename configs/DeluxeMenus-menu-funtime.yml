@@ -5,7 +5,7 @@
 # Строки "\uXXXX" — это символы иконок; не заменяйте их на картинки.
 # Открывается командой ниже, права — deluxemenus.<имя>.
 
-menu_title: "\uE290\uE291\uE292\uE293\uE294\uE295\uE296\uE297\uE298"
+menu_title: "\uE287\uE288\uE289\uE28A\uE28B\uE28C\uE28D\uE28E\uE28F"
 open_command: menu
 register_command: true
 size: 54

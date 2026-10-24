@@ -5,7 +5,7 @@
 # Строки "\uXXXX" — это символы иконок; не заменяйте их на картинки.
 # Открывается командой ниже, права — deluxemenus.<имя>.
 
-menu_title: "\uE2A2\uE2A3\uE2A4\uE2A5\uE2A6\uE2A7\uE2A8\uE2A9\uE2AA"
+menu_title: "\uE299\uE29A\uE29B\uE29C\uE29D\uE29E\uE29F\uE2A0\uE2A1"
 open_command: shop
 register_command: true
 size: 54

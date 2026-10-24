@@ -185,7 +185,8 @@ def main():
     # ---- 1. заголовки меню ------------------------------------------------
     banner_files = [n for n in names
                     if n.startswith("assets/funtime/textures/menu/") and n.endswith(".png")
-                    and ("title" in n.lower() or n.endswith("header.png"))]
+                    and "title" in n.lower()]   # header.png/header_ny.png — широкие логотипы,
+                                                # в 9 клеток они не влезают (сжимаются в кашу)
     # заголовок → строка символов
     banner_strings: dict[str, str] = {}
     pages = Pages(BANNER_PAGES)
