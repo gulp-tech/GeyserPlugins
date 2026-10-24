@@ -662,6 +662,16 @@ def main():
             sheet.paste(small, ((idx % 16) * CELL + OFF, (idx // 16) * CELL + OFF), small)
         img.save(PREVIEW / "icons" / f"{code[1:]}_{name}.png")
         img.resize((256, 256), Image.NEAREST).save(PREVIEW / "icons" / f"{code[1:]}_{name}_x16.png")
+    # --- иконки меню (страница E140–E14F, рисуются отдельным модулем) ---
+    try:
+        from make_menu_icons import build_all as build_menu_icons
+        for code, (name, img16) in build_menu_icons().items():
+            idx = int(code[1:], 16) - 0x100
+            sheet.paste(img16, ((idx % 16) * CELL, (idx // 16) * CELL), img16)
+            img16.resize((256, 256), Image.NEAREST).save(PREVIEW / "icons" / f"{code[1:]}_{name}.png")
+    except Exception as error:  # иконки меню не должны ломать сборку пака
+        print("иконки меню пропущены:", error)
+
     strip = make_title_strip()
     strip_small = strip.resize((40, 5), Image.NEAREST)
     strip_canvas = Image.new("RGBA", (TITLE_GLYPHS * 16, 16), (0, 0, 0, 0))

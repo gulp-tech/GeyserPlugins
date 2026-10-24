@@ -1,0 +1,232 @@
+# ============================================================
+# DeluxeMenus — главное меню VoidPE с иконками пака (стиль FunTime)
+# Файл: plugins/DeluxeMenus/gui_menus/menu.yml
+# (старый menu.yml сохраните как menu.yml.bak — этот его заменяет)
+#
+# Иконки — глифы из VoidResourcePack.mcpack, страница E140–E14F.
+# В файле они стоят настоящими символами, поэтому файл должен остаться в UTF-8
+# (не пересохраняйте в Windows-1251). Коды, если понадобится:
+#   E140 магазин · E141 кейс · E142 донат · E143 задания · E144 клан
+#   E145 топ · E146 настройки · E147 закрыть · E148 влево · E149 вправо
+#   E14A ключ · E14B подарок · E14C арена · E14D шахта · E14E звезда · E14F инфо
+#
+# Без пака вместо иконок будут «пустые квадраты» — пак обязателен.
+# ============================================================
+
+menu_title: '&#E8D5FFМеню сервера'
+open_command: menu
+register_command: true
+size: 54
+open_commands:
+  - '[sound] UI_BUTTON_CLICK'
+items:
+
+  'Рамка':
+    slots:
+    - 0-8
+    - 9
+    - 17
+    - 18
+    - 26
+    - 27
+    - 35
+    - 36
+    - 44
+    - 45-48
+    - 50-53
+    material: BLACK_STAINED_GLASS_PANE
+    display_name: '&8'
+    item_flags:
+      - HIDE_ATTRIBUTES
+
+  ' Информация':
+    slot: 13
+    material: PLAYER_HEAD
+    texture: '%player_name%'
+    display_name: ' &#E8D5FF%player_name%'
+    lore:
+      - ''
+      - ' &#C86BFF• &fМонеты: &#E8D5FF%vault_eco_balance_formatted%$'
+      - ' &#C86BFF• &fОсколки: &#E8D5FF%playerpoints_points%'
+      - ' &#C86BFF• &fУбийств: &#E8D5FF%statistic_player_kills%'
+      - ' &#C86BFF• &fСмертей: &#E8D5FF%statistic_deaths%'
+      - ' &#C86BFF• &fНаиграно: &#E8D5FF%statistic_hours_played% ч.'
+    item_flags:
+      - HIDE_ATTRIBUTES
+
+  ' Магазин':
+    slot: 20
+    material: PAPER
+    display_name: ' &#E8D5FFМагазин'
+    lore:
+      - ''
+      - '&7Зелья, инструменты, ресурсы'
+      - '&7за монеты и осколки.'
+      - ''
+      - '&#C86BFF➥ &fНажмите'
+    item_flags:
+      - HIDE_ATTRIBUTES
+    click_commands:
+      - '[sound] UI_BUTTON_CLICK'
+      - '[player] shop'
+      - '[close]'
+
+  ' Кейсы':
+    slot: 21
+    material: PAPER
+    display_name: ' &#E8D5FFКейсы'
+    lore:
+      - ''
+      - '&7Ключи, сундуки и награды.'
+      - ''
+      - '&#C86BFF➥ &fНажмите'
+    item_flags:
+      - HIDE_ATTRIBUTES
+    click_commands:
+      - '[sound] UI_BUTTON_CLICK'
+      - '[player] keys'
+      - '[close]'
+
+  ' Донат':
+    slot: 22
+    material: PAPER
+    display_name: ' &#E8D5FFДонат'
+    lore:
+      - ''
+      - '&7Привилегии и наборы.'
+      - ''
+      - '&#C86BFF➥ &fНажмите'
+    item_flags:
+      - HIDE_ATTRIBUTES
+    click_commands:
+      - '[sound] UI_BUTTON_CLICK'
+      - '[player] donate'
+      - '[close]'
+
+  ' Задания':
+    slot: 23
+    material: PAPER
+    display_name: ' &#E8D5FFЗадания'
+    lore:
+      - ''
+      - '&7Ежедневные задачи'
+      - '&7и награды за них.'
+      - ''
+      - '&#C86BFF➥ &fНажмите'
+    item_flags:
+      - HIDE_ATTRIBUTES
+    click_commands:
+      - '[sound] UI_BUTTON_CLICK'
+      - '[player] quests'
+      - '[close]'
+
+  ' Кланы':
+    slot: 24
+    material: PAPER
+    display_name: ' &#E8D5FFКланы'
+    lore:
+      - ''
+      - '&7Создать клан, воевать,'
+      - '&7качать уровень.'
+      - ''
+      - '&#C86BFF➥ &fНажмите'
+    item_flags:
+      - HIDE_ATTRIBUTES
+    click_commands:
+      - '[sound] UI_BUTTON_CLICK'
+      - '[player] clan'
+      - '[close]'
+
+  ' Топы':
+    slot: 30
+    material: PAPER
+    display_name: ' &#E8D5FFТопы'
+    lore:
+      - ''
+      - '&7Лучшие игроки сервера.'
+      - ''
+      - '&#C86BFF➥ &fНажмите'
+    item_flags:
+      - HIDE_ATTRIBUTES
+    click_commands:
+      - '[sound] UI_BUTTON_CLICK'
+      - '[player] top'
+      - '[close]'
+
+  ' Арена':
+    slot: 31
+    material: PAPER
+    display_name: ' &#E8D5FFАрена'
+    lore:
+      - ''
+      - '&7PvP 1×1 и дуэли.'
+      - ''
+      - '&#C86BFF➥ &fНажмите'
+    item_flags:
+      - HIDE_ATTRIBUTES
+    click_commands:
+      - '[sound] UI_BUTTON_CLICK'
+      - '[player] warp pvp'
+      - '[close]'
+
+  ' Автошахта':
+    slot: 32
+    material: PAPER
+    display_name: ' &#E8D5FFАвтошахта'
+    lore:
+      - ''
+      - '&7Бесконечная шахта'
+      - '&7с ресурсами.'
+      - ''
+      - '&#C86BFF➥ &fНажмите'
+    item_flags:
+      - HIDE_ATTRIBUTES
+    click_commands:
+      - '[sound] UI_BUTTON_CLICK'
+      - '[player] warp mine'
+      - '[close]'
+
+  ' Назад':
+    slot: 37
+    material: PAPER
+    display_name: ' &#E8D5FFНазад'
+    lore:
+      - ''
+      - '&7Предыдущая страница.'
+      - ''
+      - '&#C86BFF➥ &fНажмите'
+    item_flags:
+      - HIDE_ATTRIBUTES
+    click_commands:
+      - '[sound] UI_BUTTON_CLICK'
+      - '[openguimenu] menu'
+
+  ' Далее':
+    slot: 43
+    material: PAPER
+    display_name: ' &#E8D5FFДалее'
+    lore:
+      - ''
+      - '&7Следующая страница.'
+      - ''
+      - '&#C86BFF➥ &fНажмите'
+    item_flags:
+      - HIDE_ATTRIBUTES
+    click_commands:
+      - '[sound] UI_BUTTON_CLICK'
+      - '[openguimenu] menu'
+
+  ' Закрыть':
+    slot: 49
+    material: PAPER
+    display_name: ' &#E8D5FFЗакрыть'
+    lore:
+      - ''
+      - '&7Закрыть меню.'
+      - ''
+      - '&#C86BFF➥ &fНажмите'
+    item_flags:
+      - HIDE_ATTRIBUTES
+    click_commands:
+      - '[sound] UI_BUTTON_CLICK'
+      - '[close]'

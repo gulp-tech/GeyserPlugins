@@ -2,11 +2,11 @@
   "format_version": 2,
   "header": {
     "name": "VoidPE Resource Pack",
-    "description": "VoidPE: иконки скорборда, логотип и белая обводка подсвеченных игроков (явная пыль). Ставится на Geyser (папка packs).",
+    "description": "VoidPE: иконки скорборда и меню, логотип, белая обводка подсвеченных игроков. Ставится на Geyser (папка packs).",
     "uuid": "be7304eb-1c69-4b48-a293-1f08375d08de",
     "version": [
       1,
-      20,
+      21,
       0
     ],
     "min_engine_version": [
