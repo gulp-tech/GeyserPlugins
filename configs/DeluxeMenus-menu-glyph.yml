@@ -11,6 +11,10 @@
 #   E14A ключ · E14B подарок · E14C арена · E14D шахта · E14E звезда · E14F инфо
 #
 # Без пака вместо иконок будут «пустые квадраты» — пак обязателен.
+#
+# Кнопки открывают: /shop, /keys, /donate, /quests, /clan, /top, /warp pvp, /warp mine.
+# Если какой-то команды на сервере ещё нет (например /quests или /clan) — удалите
+# эту кнопку из items или поменяйте command, иначе игрок увидит «Unknown command».
 # ============================================================
 
 menu_title: '&#E8D5FFМеню сервера'
@@ -41,8 +45,7 @@ items:
 
   ' Информация':
     slot: 13
-    material: PLAYER_HEAD
-    texture: '%player_name%'
+    material: head-%player_name%
     display_name: ' &#E8D5FF%player_name%'
     lore:
       - ''
