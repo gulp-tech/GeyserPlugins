@@ -1,0 +1,132 @@
+# PlayerPoints locale — VoidPE (русский, валюта — осколки)
+
+# Plugin Message Prefix
+prefix: '&7[&bVoidPE&7] '
+
+# Currency
+currency-singular: осколок
+currency-plural: осколков
+currency-separator: ','
+currency-decimal: .
+number-abbreviation-thousands: k
+number-abbreviation-millions: m
+number-abbreviation-billions: b
+
+# Misc
+no-permission: '&cУ вас нет прав на это!'
+only-player: '&cЭту команду может выполнить только игрок.'
+invalid-amount: '&cКоличество должно быть положительным целым числом.'
+unknown-player: '&cИгрок не найден: &b%player%'
+unknown-account: '&cАккаунт не найден: &b%account%'
+unknown-command: '&cНеизвестная команда: &b%input%'
+invalid-argument: '&cНеверный аргумент: %message%.'
+command-usage: '&cИспользование: &b/%cmd% %args%'
+argument-handler-string: Строка не может быть пустой
+argument-handler-enum: '%enum% типа [%input%] не существует'
+argument-handler-enum-list: '%enum% типа [%input%] не существует. Допустимые типы: %types%'
+argument-handler-value: Значение [%input%] недопустимо
+votifier-voted: '&eСпасибо за голос на %service%! &b%amount% &eдобавлено на ваш баланс.'
+leaderboard-empty-entry: Здесь можете быть вы!
+command-cooldown: '&cПодождите, прежде чем снова использовать эту команду.'
+
+# Base Command Message
+base-command-color: '&e'
+base-command-help: '&eИспользуйте &b/%cmd% help &eдля информации о командах.'
+
+# Help Command
+command-help-description: Показывает меню помощи
+command-help-title: '&eДоступные команды:'
+command-help-list-description: '&8 - &d/%cmd% %subcmd% %args% &7- %desc%'
+command-help-list-description-no-args: '&8 - &d/%cmd% %subcmd% &7- %desc%'
+
+# Give Command
+command-give-description: Выдать игроку осколки
+command-give-success: '&b%player% &aполучил &b%amount% &a%currency%.'
+command-give-received: '&eВы получили &b%amount% &e%currency%.'
+
+# Give All Command
+command-giveall-description: Выдать осколки всем игрокам онлайн
+command-giveall-success: '&aВыдано &b%amount% &a%currency% всем игрокам онлайн.'
+
+# Take Command
+command-take-description: Забрать осколки у игрока
+command-take-success: '&aЗабрано &b%amount% &a%currency% у &b%player%&a.'
+command-take-taken: ''
+command-take-not-enough: '&b%player% &c— недостаточно %currency% для этого.'
+
+# Look Command
+command-look-description: Посмотреть осколки игрока
+command-look-success: '&b%player% &eимеет &b%amount% &e%currency%.'
+
+# Pay Command
+command-pay-description: Перевести осколки игроку
+command-pay-self: '&cНельзя переводить самому себе!'
+command-pay-sent: '&aВы перевели &b%player% %amount% &a%currency%.'
+command-pay-received: '&eВам перевели &b%amount% &e%currency% от &b%player%&e.'
+command-pay-lacking-funds: '&cУ вас недостаточно %currency% для этого.'
+command-pay-minimum-amount: '&cМинимальная сумма перевода: &b%amount%&c %currency%.'
+
+# Set Command
+command-set-description: Установить осколки игрока
+command-set-success: '&aУстановлено %currency% игроку &b%player% &aна &b%amount%&a.'
+
+# Reset Command
+command-reset-description: Сбросить осколки игрока
+command-reset-success: '&aОсколки сброшены для &b%player%&a.'
+
+# Me Command
+command-me-description: Посмотреть свои осколки
+command-me-success: '&eУ вас &b%amount% &e%currency%.'
+
+# Lead Command
+command-lead-description: Таблица лидеров по осколкам
+command-lead-title: '&eТоп игроков &7(Страница #%page%/%pages%)'
+command-lead-entry: '&b%position%). &e%player% &7- &6%amount% %currency%'
+command-lead-usage: '&cНеверная страница таблицы лидеров.'
+
+# Broadcast Command
+command-broadcast-description: Объявить осколки игрока всем
+command-broadcast-message: '&b%player% &eимеет &b%amount% &e%currency%.'
+
+# Reload Command
+command-reload-description: Перезагрузка плагина
+command-reload-reloaded: '&aКонфигурация и языковые файлы перезагружены.'
+
+# Export Command
+command-export-description: Экспорт данных в storage.yml
+command-export-success: '&aДанные сохранены и экспортированы в storage.yml.'
+command-export-warning: '&cВнимание: файл storage.yml уже существует. Чтобы перезаписать его, используйте &b/points export confirm&c.'
+
+# Import Command
+command-import-description: Импорт данных из storage.yml
+command-import-success: '&aДанные импортированы из storage.yml.'
+command-import-no-backup: '&cНе удалось импортировать, storage.yml не существует. Создайте его командой &b/points export&c.'
+command-import-warning: '&cВнимание: эта операция удалит все данные из активной базы и заменит их содержимым storage.yml. &cТекущий тип базы: &b&o&l%type%&c. &cЕсли вы абсолютно уверены, используйте &b/points import confirm&c.'
+
+# Convert Command
+command-convert-description: Загрузка данных валюты из другого плагина
+command-convert-invalid: '&b%plugin% &cне является конвертируемым плагином валюты.'
+command-convert-invalid-currency: '&b%currency% &cне является допустимой конвертируемой валютой.'
+command-convert-currency-required: '&cДля этого плагина нужно указать валюту для конвертации.'
+command-convert-success: '&aДанные валюты из &b%plugin% &aконвертируются.'
+command-convert-failure: '&cПроизошла ошибка при конвертации данных. Проверьте консоль и сообщите об ошибке автору плагина VoidPE.'
+command-convert-warning: '&cВнимание: эта операция удалит все данные из активной базы и заменит их данными из &b%plugin%&c. &cЕсли вы абсолютно уверены, используйте &b/points convert %plugin% confirm&c.'
+command-convert-warning-currency: '&cВнимание: эта операция удалит все данные из активной базы и заменит их данными из &b%plugin%&c. &cЕсли вы абсолютно уверены, используйте &b/points convert %plugin% %currency% confirm&c.'
+
+# Account Command
+command-account-description: Создание и удаление аккаунтов
+command-account-create-success: '&aАккаунт успешно создан: &b%account%'
+command-account-create-exists: '&cНе удалось создать аккаунт. Аккаунт с именем &b%account% &cуже существует.'
+command-account-create-name-invalid: '&cНе удалось создать аккаунт. Имя аккаунта должно быть от 3 до 16 символов и содержать только буквы, цифры и подчёркивания.'
+command-account-delete-success: '&aАккаунт успешно удалён: &b%account%&a.'
+command-account-delete-does-not-exist: '&cНе удалось удалить аккаунт. Аккаунт с именем &b%account% &cне существует.'
+command-account-delete-warning: '&cВнимание: эта операция удалит все данные аккаунта &b%account%&c. Если вы абсолютно уверены, используйте &b/points account delete %account% confirm&c.'
+
+# Import Legacy Command
+command-importlegacy-description: Импорт старой таблицы
+command-importlegacy-success: '&aСтарые данные успешно импортированы из &b%table%&a.'
+command-importlegacy-failure: '&cНе удалось импортировать старые данные из &b%table%&c. Таблица существует?'
+command-importlegacy-only-mysql: '&cЭта команда доступна только при включённом MySQL.'
+
+# Version Command
+command-version-description: Информация о версии VoidPE

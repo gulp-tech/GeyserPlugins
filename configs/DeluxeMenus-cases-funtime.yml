@@ -1,0 +1,260 @@
+# Кейсы VoidPE — заголовок FunTime | keys
+# Файл: plugins/DeluxeMenus/gui_menus/<имя>.yml
+# Графика — из пака FunTime (перенесена tools/import_funtime_pack.py),
+# иконки E400–E4FF, заголовок — полоса глифов E2xx.
+# Строки "\uXXXX" — это символы иконок; не заменяйте их на картинки.
+# Открывается командой ниже, права — deluxemenus.<имя>.
+
+menu_title: "\uE263\uE264\uE265\uE266\uE267\uE268\uE269\uE26A\uE26B"
+open_command: keys
+register_command: true
+size: 54
+open_commands:
+  - "[sound] UI_BUTTON_CLICK"
+items:
+  'Рамка':
+    slots:
+    - 0-8
+    - 9
+    - 17
+    - 45
+    - 53
+    material: BLACK_STAINED_GLASS_PANE
+    display_name: '&8'
+    item_flags:
+      - HIDE_ATTRIBUTES
+
+  usual_key:
+    slot: 20
+    material: PAPER
+    display_name: "\uE425 &#E8D5FFОбычный ключ"
+    lore:
+      - ""
+      - "&7Открыть кейс этим ключом."
+      - ""
+      - "&#C86BFF➥ &fНажмите"
+    item_flags:
+      - HIDE_ATTRIBUTES
+    click_commands:
+      - "[sound] UI_BUTTON_CLICK"
+      - "[player] keys usual"
+
+  free_key:
+    slot: 21
+    material: PAPER
+    display_name: "\uE41B &#E8D5FFБесплатный ключ"
+    lore:
+      - ""
+      - "&7Открыть кейс этим ключом."
+      - ""
+      - "&#C86BFF➥ &fНажмите"
+    item_flags:
+      - HIDE_ATTRIBUTES
+    click_commands:
+      - "[sound] UI_BUTTON_CLICK"
+      - "[player] keys free"
+
+  coins_key:
+    slot: 22
+    material: PAPER
+    display_name: "\uE418 &#E8D5FFКлюч монет"
+    lore:
+      - ""
+      - "&7Открыть кейс этим ключом."
+      - ""
+      - "&#C86BFF➥ &fНажмите"
+    item_flags:
+      - HIDE_ATTRIBUTES
+    click_commands:
+      - "[sound] UI_BUTTON_CLICK"
+      - "[player] keys coins"
+
+  ranks_key:
+    slot: 23
+    material: PAPER
+    display_name: "\uE41D &#E8D5FFРанговый ключ"
+    lore:
+      - ""
+      - "&7Открыть кейс этим ключом."
+      - ""
+      - "&#C86BFF➥ &fНажмите"
+    item_flags:
+      - HIDE_ATTRIBUTES
+    click_commands:
+      - "[sound] UI_BUTTON_CLICK"
+      - "[player] keys ranks"
+
+  weapon_key:
+    slot: 24
+    material: PAPER
+    display_name: "\uE426 &#E8D5FFКлюч оружия"
+    lore:
+      - ""
+      - "&7Открыть кейс этим ключом."
+      - ""
+      - "&#C86BFF➥ &fНажмите"
+    item_flags:
+      - HIDE_ATTRIBUTES
+    click_commands:
+      - "[sound] UI_BUTTON_CLICK"
+      - "[player] keys weapon"
+
+  armor_key:
+    slot: 29
+    material: PAPER
+    display_name: "\uE417 &#E8D5FFКлюч брони"
+    lore:
+      - ""
+      - "&7Открыть кейс этим ключом."
+      - ""
+      - "&#C86BFF➥ &fНажмите"
+    item_flags:
+      - HIDE_ATTRIBUTES
+    click_commands:
+      - "[sound] UI_BUTTON_CLICK"
+      - "[player] keys armor"
+
+  enchant_key:
+    slot: 30
+    material: PAPER
+    display_name: "\uE41A &#E8D5FFКлюч чар"
+    lore:
+      - ""
+      - "&7Открыть кейс этим ключом."
+      - ""
+      - "&#C86BFF➥ &fНажмите"
+    item_flags:
+      - HIDE_ATTRIBUTES
+    click_commands:
+      - "[sound] UI_BUTTON_CLICK"
+      - "[player] keys enchant"
+
+  resource_key:
+    slot: 31
+    material: PAPER
+    display_name: "\uE41E &#E8D5FFКлюч ресурсов"
+    lore:
+      - ""
+      - "&7Открыть кейс этим ключом."
+      - ""
+      - "&#C86BFF➥ &fНажмите"
+    item_flags:
+      - HIDE_ATTRIBUTES
+    click_commands:
+      - "[sound] UI_BUTTON_CLICK"
+      - "[player] keys resource"
+
+  talisman_key:
+    slot: 32
+    material: PAPER
+    display_name: "\uE421 &#E8D5FFКлюч талисманов"
+    lore:
+      - ""
+      - "&7Открыть кейс этим ключом."
+      - ""
+      - "&#C86BFF➥ &fНажмите"
+    item_flags:
+      - HIDE_ATTRIBUTES
+    click_commands:
+      - "[sound] UI_BUTTON_CLICK"
+      - "[player] keys talisman"
+
+  token_key:
+    slot: 33
+    material: PAPER
+    display_name: "\uE422 &#E8D5FFКлюч жетонов"
+    lore:
+      - ""
+      - "&7Открыть кейс этим ключом."
+      - ""
+      - "&#C86BFF➥ &fНажмите"
+    item_flags:
+      - HIDE_ATTRIBUTES
+    click_commands:
+      - "[sound] UI_BUTTON_CLICK"
+      - "[player] keys token"
+
+  sphere_key:
+    slot: 40
+    material: PAPER
+    display_name: "\uE420 &#E8D5FFКлюч сфер"
+    lore:
+      - ""
+      - "&7Открыть кейс этим ключом."
+      - ""
+      - "&#C86BFF➥ &fНажмите"
+    item_flags:
+      - HIDE_ATTRIBUTES
+    click_commands:
+      - "[sound] UI_BUTTON_CLICK"
+      - "[player] keys sphere"
+
+  trim_key:
+    slot: 41
+    material: PAPER
+    display_name: "\uE424 &#E8D5FFКлюч узоров"
+    lore:
+      - ""
+      - "&7Открыть кейс этим ключом."
+      - ""
+      - "&#C86BFF➥ &fНажмите"
+    item_flags:
+      - HIDE_ATTRIBUTES
+    click_commands:
+      - "[sound] UI_BUTTON_CLICK"
+      - "[player] keys trim"
+
+  traps_key:
+    slot: 42
+    material: PAPER
+    display_name: "\uE423 &#E8D5FFКлюч ловушек"
+    lore:
+      - ""
+      - "&7Открыть кейс этим ключом."
+      - ""
+      - "&#C86BFF➥ &fНажмите"
+    item_flags:
+      - HIDE_ATTRIBUTES
+    click_commands:
+      - "[sound] UI_BUTTON_CLICK"
+      - "[player] keys traps"
+
+  eggs_key:
+    slot: 43
+    material: PAPER
+    display_name: "\uE419 &#E8D5FFКлюч яиц"
+    lore:
+      - ""
+      - "&7Открыть кейс этим ключом."
+      - ""
+      - "&#C86BFF➥ &fНажмите"
+    item_flags:
+      - HIDE_ATTRIBUTES
+    click_commands:
+      - "[sound] UI_BUTTON_CLICK"
+      - "[player] keys eggs"
+
+  instrument_key:
+    slot: 44
+    material: PAPER
+    display_name: "\uE41C &#E8D5FFКлюч инструментов"
+    lore:
+      - ""
+      - "&7Открыть кейс этим ключом."
+      - ""
+      - "&#C86BFF➥ &fНажмите"
+    item_flags:
+      - HIDE_ATTRIBUTES
+    click_commands:
+      - "[sound] UI_BUTTON_CLICK"
+      - "[player] keys instrument"
+
+  back:
+    slot: 49
+    material: PAPER
+    display_name: "\uE148 &#E8D5FF&7Назад"
+    item_flags:
+      - HIDE_ATTRIBUTES
+    click_commands:
+      - "[sound] UI_BUTTON_CLICK"
+      - "[openguimenu] menu"

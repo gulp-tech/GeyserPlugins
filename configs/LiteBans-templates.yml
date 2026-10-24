@@ -1,0 +1,105 @@
+# LiteBans templates.yml — VoidPE
+# Использование: /ban <игрок> <шаблон>, /mute <игрок> <шаблон>, /warn <игрок> <шаблон>
+# Лестница: каждое следующее нарушение по тому же шаблону — срок больше.
+# Права на шаблоны: litebans.group.helper (муты), litebans.group.moderator (баны).
+
+ban-templates:
+  Griefing:
+    reason: 'Гриферство'
+    message: 'Вы забанены за гриферство.'
+    permission: litebans.group.moderator
+    ladder:
+      third:
+        duration: 30d
+      second:
+        duration: 7d
+      first:
+        duration: 3d
+    expire_ladder: 90d
+    ip_template: false
+
+  Cheats:
+    reason: 'Читы'
+    message: 'Вы забанены за использование читов.'
+    permission: litebans.group.moderator
+    ladder:
+      third:
+        duration: permanent
+      second:
+        duration: 30d
+      first:
+        duration: 7d
+    expire_ladder: 180d
+    ip_template: false
+
+  Ads:
+    reason: 'Реклама сторонних проектов'
+    message: 'Вы забанены за рекламу.'
+    permission: litebans.group.moderator
+    ladder:
+      third:
+        duration: 30d
+      second:
+        duration: 7d
+      first:
+        duration: 1d
+    expire_ladder: 90d
+    ip_template: false
+
+mute-templates:
+  Spam:
+    reason: 'Спам / флуд'
+    message: 'Вы замучены за спам.'
+    permission: litebans.group.helper
+    ladder:
+      fourth:
+        duration: 3d
+      third:
+        duration: 12h
+      second:
+        duration: 1h
+      first:
+        message: '&cПрекратите спамить!\nЭто первое предупреждение. В следующий раз будет мут на 1 час.'
+        duration: 5s
+    expire_ladder: 30d
+    ip_template: false
+
+  Insult:
+    reason: 'Оскорбления игроков'
+    message: 'Вы замучены за оскорбления.'
+    permission: litebans.group.helper
+    ladder:
+      third:
+        duration: 1d
+      second:
+        duration: 6h
+      first:
+        duration: 30m
+    expire_ladder: 30d
+    ip_template: false
+
+  Caps:
+    reason: 'Капс / крик в чат'
+    message: 'Вы замучены за капс.'
+    permission: litebans.group.helper
+    ladder:
+      second:
+        duration: 6h
+      first:
+        duration: 30m
+    expire_ladder: 14d
+    ip_template: false
+
+warn-templates:
+  Behavior:
+    reason: 'Неподобающее поведение'
+    message: 'Вы получили предупреждение за неподобающее поведение.'
+    permission: litebans.group.helper
+
+kick-templates:
+  AFK:
+    reason: 'AFK'
+    message: 'Кик за AFK.'
+    permission: litebans.group.helper
+
+template-groups: {}

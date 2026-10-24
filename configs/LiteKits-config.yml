@@ -1,0 +1,92 @@
+# LiteKits — VoidPE. Киты привилегий: кулдауны 24ч, Князь — 3 дня, Император — 7 дней.
+# Доступ к китам выдаётся правами в LuckPerms (essentials.kit.* не нужны, свои права плагина смотри в его вики).
+kits:
+  strannik: # Странник — раз в 24 часа
+    cooldown: 86400
+    price: 0 # покупка за осколки отключена
+    price-reset: 0 # сброс кулдауна за осколки отключён
+  geroy: # Герой — раз в 24 часа
+    cooldown: 86400
+    price: 0
+    price-reset: 0
+  rycar: # Рыцарь — раз в 24 часа
+    cooldown: 86400
+    price: 0
+    price-reset: 0
+  baron: # Барон — раз в 24 часа
+    cooldown: 86400
+    price: 0
+    price-reset: 0
+  lord: # Лорд — раз в 24 часа
+    cooldown: 86400
+    price: 0
+    price-reset: 0
+  knyaz: # Князь — раз в 3 дня
+    cooldown: 259200
+    price: 0
+    price-reset: 0
+  imperator: # Император — раз в 7 дней
+    cooldown: 604800
+    price: 0
+    price-reset: 0
+
+license-key: "https://t.me/II0000III0III0III00III0000III00" #Введите сюда ваш лицензионный ключ
+
+check-slots: true #Если включено, то игроку сначала надо почистить свой инвентарь, а потом уже взять кит. В другом же случае предметы просто выпадут
+
+database: #База данных
+  enable: false
+  host: "localhost"
+  port: 3306
+  name: "litekits"
+  username: "username"
+  password: "password"
+
+messages:
+  kit:
+    usage: "&bVoidPE &8» &fЧтобы получить набор, введите &b/kit <название>"
+    not-found: "&bVoidPE &8» &cТакого набора не существует"
+    inventory-full: "&bVoidPE &8» &cСначала освободите инвентарь, чтобы получить набор"
+    no-permission: "&bVoidPE &8» &cУ вас нет прав на этот набор"
+    on-cooldown:
+      - "&f"
+      - "       &b▪ &fДля повторного получения набора &b{kit}&f"
+      - "            &fосталось &b{time}"
+      - "&f"
+    no-cooldown: "&bVoidPE &8» &aЭтот набор уже доступен!"
+    reset-button: ""
+    reset-button-hover: ""
+    received:
+      - "&bVoidPE &8» &aВы получили набор &b{kit}&f. &fДо следующего получения осталось: &b{time}&r"
+    not-enough-points: "&bVoidPE &8» &cПокупка за осколки отключена на сервере."
+    locked: "&bVoidPE &8» &cНаборы будут недоступны в течение &b{time} &cмин."
+
+  litekits:
+    usage:
+      - "&bVoidPE &8» &fИспользование:"
+      - "&b/litekits &fcreate название"
+      - "&b/litekits &fdelete название"
+      - "&b/litekits &freset название/all"
+      - "&b/litekits &flock время в минутах"
+      - "&b/litekits &funlock"
+      - "&b/givekit &fигрок название"
+      - "&b/kit &fназвание"
+    created: "&bVoidPE &8» &aНабор &b{kit} &aуспешно создан!"
+    already-exists: "&bVoidPE &8» &cНабор с названием &b{kit} &cуже существует!"
+    deleted: "&bVoidPE &8» &aНабор &b{kit} &aуспешно удалён!"
+    not-found: "&bVoidPE &8» &cТакого набора не существует"
+    reset: "&bVoidPE &8» &aЗадержка для набора &b{kit} &aсброшена!"
+    reset-all: "&bVoidPE &8» &aЗадержки для всех наборов сброшены!"
+    reset-not-found: "&bVoidPE &8» &cНе установлена цена для сброса задержки!"
+    invalid-time: "&bVoidPE &8» &cУкажите время в минутах"
+    locked: "&bVoidPE &8» &aВы заблокировали все наборы на &b{time} &aмин. для всех игроков"
+    unlocked: "&bVoidPE &8» &aВы разблокировали все наборы для всех игроков"
+    edited: "&bVoidPE &8» &aНабор &b{kit} &aуспешно отредактирован!"
+
+  givekit:
+    usage: "&bVoidPE &8» &fИспользование: &b/givekit <игрок> <название>"
+    player-not-found: "&bVoidPE &8» &cИгрок не найден или не в сети"
+    kit-not-found: "&bVoidPE &8» &cТакого набора не существует"
+    success-sender: "&bVoidPE &8» &aВы выдали набор &b{kit} &aигроку &b{player}"
+    success-target:
+      - "&bVoidPE &8» &aВы получили набор &b{kit}&f. &fДо следующего получения осталось: &b{time}&r"

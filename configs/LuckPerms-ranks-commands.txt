@@ -1,0 +1,89 @@
+# ============================================================
+# VoidPE — улучшенные привилегии: команды LuckPerms для консоли
+# Выполнять по порядку, сверху вниз. Все команды идемпотентны:
+# повторный запуск ничего не ломает (если группа уже есть,
+# creategroup просто напишет ошибку — это нормально).
+# Наследование: каждый ранг включает возможности нижних.
+# Лимиты домов берутся из Essentials (sethome-multiple в
+# configs/Essentials-config.yml): 2/2/3/4/5/7/10.
+# ============================================================
+
+# --- Создание групп (пропустить, если группы уже есть) ---
+lp creategroup strannik
+lp creategroup geroy
+lp creategroup rycar
+lp creategroup baron
+lp creategroup lord
+lp creategroup knyaz
+lp creategroup imperator
+
+# --- Наследование рангов (старший включает младших) ---
+lp group geroy parent add strannik
+lp group rycar parent add geroy
+lp group baron parent add rycar
+lp group lord parent add baron
+lp group knyaz parent add lord
+lp group imperator parent add knyaz
+
+# --- Странник ---
+lp group strannik permission set essentials.joinfullserver true
+lp group strannik permission set essentials.sethome.multiple.strannik true
+
+# --- Герой ---
+lp group geroy permission set essentials.workbench true
+lp group geroy permission set essentials.sethome.multiple.geroy true
+
+# --- Рыцарь ---
+lp group rycar permission set essentials.enderchest true
+lp group rycar permission set essentials.keepxp true
+lp group rycar permission set essentials.sethome.multiple.rycar true
+
+# --- Барон ---
+lp group baron permission set essentials.feed true
+lp group baron permission set essentials.heal true
+lp group baron permission set essentials.sethome.multiple.baron true
+lp group baron permission set voiddrops.boost.baron true
+
+# --- Лорд ---
+lp group lord permission set essentials.fly true
+lp group lord permission set essentials.sethome.multiple.lord true
+lp group lord permission set voiddrops.boost.lord true
+
+# --- Князь ---
+lp group knyaz permission set essentials.hat true
+lp group knyaz permission set essentials.nick true
+lp group knyaz permission set essentials.sethome.multiple.knyaz true
+lp group knyaz permission set voiddrops.boost.knyaz true
+
+# --- Император ---
+lp group imperator permission set essentials.sethome.multiple.imperator true
+lp group imperator permission set voiddrops.boost.imperator true
+lp group imperator permission set worldguard.region.max-region-count.10 true
+
+# --- Веса и префиксы (если префиксы уже настроены — блок можно пропустить) ---
+# Вес нужен, чтобы при нескольких группах у игрока показывался старший ранг.
+lp group strannik setweight 10
+lp group geroy setweight 20
+lp group rycar setweight 30
+lp group baron setweight 40
+lp group lord setweight 50
+lp group knyaz setweight 60
+lp group imperator setweight 70
+lp group strannik meta setprefix 10 "&#CFCFCFСтранник &r"
+lp group geroy meta setprefix 20 "&#55FF55Герой &r"
+lp group rycar meta setprefix 30 "&#FFFF55Рыцарь &r"
+lp group baron meta setprefix 40 "&#FFAA00Барон &r"
+lp group lord meta setprefix 50 "&#55FFFFЛорд &r"
+lp group knyaz meta setprefix 60 "&#FF55FFКнязь &r"
+lp group imperator meta setprefix 70 "&#FFD93DИмператор &r"
+
+# ============================================================
+# Примечания:
+# * Выдача игроку — как раньше, parent add (НЕ parent set):
+#   lp user <ник> parent add <ранг>
+# * Киты (/kit strannik и т.д.) выдаёт LiteKits — доступ и кулдауны
+#   настраиваются в нём, не в LuckPerms (кит Князя — раз в 3 дня,
+#   Императора — раз в 7 дней задаются там же).
+# * Если worldguard.region.max-region-count.10 не сработает —
+#   лимит регионов правится в конфиге WorldGuard по мирам.
+# ============================================================
