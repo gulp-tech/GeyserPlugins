@@ -1,0 +1,19 @@
+name: VoidRtpZone
+version: '${project.version}'
+main: ru.voidpe.rtpzone.VoidRtpZone
+api-version: '26.2'
+author: VoidPE
+description: 'Зоны RTP: игрок заходит в выделенную зону — плагин сам выполняет за него /rtp. Выделение предметом, зоны в zones.yml.'
+commands:
+  rtpzone:
+    description: 'Зоны RTP: wand — предмет выделения, save/remove/list/reload'
+    usage: /rtpzone wand|save <имя>|remove <имя>|list|reload
+    aliases: [rtpz]
+    permission: voidrtpzone.admin
+permissions:
+  voidrtpzone.admin:
+    description: Выдача выделителя, сохранение и удаление зон, reload
+    default: op
+  voidrtpzone.bypass:
+    description: Игрока с этим правом зоны не телепортируют
+    default: false
