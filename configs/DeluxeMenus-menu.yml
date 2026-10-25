@@ -21,6 +21,19 @@ items:
       - '&7• &fУбийств: &#00F15E%statistic_player_kills%'
       - '&7• &fСмертей: &#00F15E%statistic_deaths%'
       - '&7• &fНаиграно часов: &#00F15E%statistic_hours_played%'
+      - ''
+      - '&fПодключение:'
+      - '&7• &fУстройство: &#00F15E%purpurbedrock_device%'
+      - '&7• &fУправление: &#00F15E%purpurbedrock_input%'
+      - '&7• &fВерсия: &#00F15E%purpurbedrock_version%'
+      - '&7• &fПинг: &#00F15E%purpurbedrock_ping% мс'
+    # Показывать профиль только Bedrock-игрокам (ядро Purpurbedrock).
+    view_requirement:
+      requirements:
+        bedrock:
+          type: string equals
+          input: '%purpurbedrock_is_bedrock%'
+          output: 'true'
 
   'Автошахта /warp mine':
     slots:

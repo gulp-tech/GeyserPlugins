@@ -1,6 +1,6 @@
 # ============================================================
 #  VoidTab — скорборд (таб) сервера VoidPE
-#  Purpur 26.2 + Geyser + Floodgate
+#  Ядро Purpurbedrock 26.2 (чистый Bedrock)
 #
 #  Цвета: &a, &#FFB340 (hex), <gradient:#FF7A00:#FFFFFF>Текст</gradient>
 #  Плейсхолдеры плагина:
@@ -11,8 +11,13 @@
 #    {icon:coin} {icon:spark} {icon:sapphire} {icon:shard}
 #    {icon:crown} {icon:sword} {icon:skull} {icon:clock}
 #    {icon:windows} {icon:android} {icon:apple} {icon:device} {icon:coins}
-#  Устройство игрока (Floodgate): {device_icon} — значок его платформы, {device} — её название.
-#  Платформа = DeviceOs + InputMode: телефон с клавиатурой/мышью — отдельная иконка kbmouse.
+#  Устройство игрока: {device_icon} — значок его платформы, {device} — её название.
+#  Иконки — глифы VoidResourcePack (как раньше, не меняются).
+#  Данные клиента от ядра Purpurbedrock (PlaceholderAPI, встроены в ядро):
+#    %purpurbedrock_device% %purpurbedrock_input% %purpurbedrock_version%
+#    %purpurbedrock_ping% %purpurbedrock_ping_colored% %purpurbedrock_os%
+#    %purpurbedrock_protocol% %purpurbedrock_ui% %purpurbedrock_xuid%
+#    %purpurbedrock_is_bedrock%
 #  Плюс любые %плейсхолдеры% PlaceholderAPI (если включён ниже).
 # ============================================================
 
@@ -68,6 +73,8 @@ scoreboard:
     - '&fМонеты: &#FFD93D{coins} {icon:coin}'
     - '&fОсколки: &#54C8FF{shards} {icon:shard}'
     - ''
+    - '&fПинг: &#7CFC00%purpurbedrock_ping%&f мс'
+    - '&fВерсия: &#FFA63D%purpurbedrock_version%'
     - '&fУ/С: &#C86BFF{kills}&f/&#FF6B6B{deaths}'
     - '&fВ игре: &#FFD93D{playtime_hours}ч {icon:clock}'
 
