@@ -27,6 +27,7 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityShootBowEvent;
+import org.bukkit.event.entity.EntityToggleGlideEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.entity.ProjectileLaunchEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -757,14 +758,43 @@ public final class VoidCombat extends JavaPlugin implements Listener, CommandExe
 
     // ------------------------------------------------------------ фейерверки в бою
 
+    /** Мир с особыми ограничениями (world-restrictions.worlds в конфиге). */
+    private boolean inRestrictedWorld(Player player) {
+        String world = player.getWorld().getName().toLowerCase(Locale.ROOT);
+        for (String name : getConfig().getStringList("world-restrictions.worlds")) {
+            if (name != null && name.equalsIgnoreCase(world)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private boolean blockFirework(Player player) {
-        if (!getConfig().getBoolean("fireworks.block-in-combat", true) || !isInCombat(player)) {
+        boolean inCombat = getConfig().getBoolean("fireworks.block-in-combat", true) && isInCombat(player);
+        boolean inWorld = getConfig().getBoolean("world-restrictions.block-fireworks", true)
+                && inRestrictedWorld(player);
+        if (!inCombat && !inWorld) {
             return false;
         }
         if (shouldSendBlockMessage(player, "firework")) {
-            msg(player, "firework-blocked");
+            msg(player, inWorld && !inCombat ? "firework-blocked-world" : "firework-blocked");
         }
         return true;
+    }
+
+    /** Запрет элитр в ограниченных мирах: нельзя начать планирование. */
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onToggleGlide(EntityToggleGlideEvent event) {
+        if (!event.isGliding() || !(event.getEntity() instanceof Player player)) {
+            return;
+        }
+        if (!getConfig().getBoolean("world-restrictions.block-elytra", true) || !inRestrictedWorld(player)) {
+            return;
+        }
+        event.setCancelled(true);
+        if (shouldSendBlockMessage(player, "elytra")) {
+            msg(player, "elytra-blocked");
+        }
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
