@@ -28,6 +28,15 @@ combat:
   duration-seconds: 30
   # Не ставить метку боя, если участник в креативе или наблюдателе.
   ignore-creative-and-spectator: true
+  # Полёт в бою запрещён: при получении метки боя fly отключается, а включить
+  # его обратно (двойным прыжком или командой) нельзя, пока метка не спадёт.
+  disable-fly: true
+  # Команды полёта, блокируемые в бою (без слэша; вариант essentials:fly тоже ловится).
+  block-fly-commands:
+    - fly
+    - efly
+    - flight
+    - eflight
 
   # Безопасные места: режим боя там НЕ ставится, а уже активная
   # метка снимается (clear-on-enter). Миры и зоны также добавляются
@@ -124,6 +133,8 @@ messages:
   combat-ended-safe: "&aБезопасная зона — режим боя снят."
   combat-status-active: "&cВы в режиме боя, осталось: &f{seconds} сек."
   combat-status-none: "&aВы не в режиме боя."
+  fly-blocked-combat: "&cВ режиме боя летать нельзя!"
+  fly-disabled-combat: "&cПолёт отключён: вы в режиме боя!"
   combat-status-off: "&7Режим боя сейчас выключен."
   cooldown: "&c{item} &cбудет доступно через &f{seconds} сек."
   firework-blocked: "&cФейерверки запрещены в режиме боя."

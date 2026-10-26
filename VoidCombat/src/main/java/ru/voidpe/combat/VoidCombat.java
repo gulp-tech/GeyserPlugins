@@ -31,9 +31,11 @@ import org.bukkit.event.entity.EntityToggleGlideEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.entity.ProjectileLaunchEvent;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
+import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemConsumeEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerToggleFlightEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -320,8 +322,79 @@ public final class VoidCombat extends JavaPlugin implements Listener, CommandExe
         if (!wasInCombat) {
             msg(player, "combat-started", "{player}", opponent.getName());
         }
+        // Летал до боя — приземляем сразу, в бою fly не работает.
+        enforceNoFly(player, true);
         // Боссбар показываем сразу, не дожидаясь следующего тика таймера.
         updateCombatBar(player, combatDuration() * 1000L);
+    }
+
+    /**
+     * Полёт в бою запрещён (combat.disable-fly): снимаем fly у игрока.
+     * Креатив/наблюдатель не трогаем — там полёт часть режима, а метка им и так не ставится.
+     */
+    private void enforceNoFly(Player player, boolean notify) {
+        if (!getConfig().getBoolean("combat.disable-fly", true)) {
+            return;
+        }
+        if (player.getGameMode() == GameMode.CREATIVE || player.getGameMode() == GameMode.SPECTATOR) {
+            return;
+        }
+        boolean hadFly = player.isFlying() || player.getAllowFlight();
+        if (player.isFlying()) {
+            player.setFlying(false);
+        }
+        if (player.getAllowFlight()) {
+            player.setAllowFlight(false);
+        }
+        if (hadFly && notify) {
+            msg(player, "fly-disabled-combat");
+        }
+    }
+
+    /** Включить полёт двойным прыжком в бою нельзя. */
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onToggleFlight(PlayerToggleFlightEvent event) {
+        Player player = event.getPlayer();
+        if (!event.isFlying() || !isInCombat(player)) {
+            return;
+        }
+        if (!getConfig().getBoolean("combat.disable-fly", true)) {
+            return;
+        }
+        if (player.getGameMode() == GameMode.CREATIVE || player.getGameMode() == GameMode.SPECTATOR) {
+            return;
+        }
+        event.setCancelled(true);
+        player.setFlying(false);
+        msg(player, "fly-blocked-combat");
+    }
+
+    /** Команды полёта (/fly и т.п. из combat.block-fly-commands) в бою не выполняются. */
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onFlyCommand(PlayerCommandPreprocessEvent event) {
+        Player player = event.getPlayer();
+        if (!isInCombat(player) || !getConfig().getBoolean("combat.disable-fly", true)) {
+            return;
+        }
+        String label = event.getMessage().trim();
+        if (label.startsWith("/")) {
+            label = label.substring(1);
+        }
+        int space = label.indexOf(' ');
+        if (space >= 0) {
+            label = label.substring(0, space);
+        }
+        int colon = label.indexOf(':'); // essentials:fly и т.п.
+        if (colon >= 0) {
+            label = label.substring(colon + 1);
+        }
+        for (String blocked : getConfig().getStringList("combat.block-fly-commands")) {
+            if (blocked != null && blocked.equalsIgnoreCase(label)) {
+                event.setCancelled(true);
+                msg(player, "fly-blocked-combat");
+                return;
+            }
+        }
     }
 
     private void tickCombat() {
@@ -342,6 +415,8 @@ public final class VoidCombat extends JavaPlugin implements Listener, CommandExe
                 msg(player, "combat-ended-safe");
                 continue;
             }
+            // Страховка: fly могли вернуть другим плагином уже после метки.
+            enforceNoFly(player, false);
             long leftMillis = entry.getValue() - now;
             if (leftMillis <= 0) {
                 it.remove();
