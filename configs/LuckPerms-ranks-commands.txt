@@ -16,6 +16,7 @@ lp creategroup baron
 lp creategroup lord
 lp creategroup knyaz
 lp creategroup imperator
+lp creategroup stazher
 
 # --- Наследование рангов (старший включает младших) ---
 lp group geroy parent add strannik
@@ -60,6 +61,29 @@ lp group imperator permission set essentials.sethome.multiple.imperator true
 lp group imperator permission set voiddrops.boost.imperator true
 lp group imperator permission set worldguard.region.max-region-count.8 true
 
+# --- Стажёр (младший состав: предупреждения и временные муты LiteBans) ---
+# Банов, постоянных мутов и IP-наказаний у стажёра нет. Снимать он может
+# только свои муты/варны (ноды *.own); полный unmute/unwarn — с хелпера.
+lp group stazher permission set litebans.group.stazher true
+lp group stazher permission set litebans.warn true
+lp group stazher permission set litebans.unwarn.own true
+lp group stazher permission set litebans.tempmute true
+lp group stazher permission set litebans.unmute.own true
+lp group stazher permission set litebans.history true
+lp group stazher permission set litebans.warnings.self true
+lp group stazher permission set litebans.warnings true
+lp group stazher permission set litebans.checkwarn true
+lp group stazher permission set litebans.checkmute true
+lp group stazher permission set litebans.mutelist true
+lp group stazher permission set litebans.warnlist true
+lp group stazher permission set litebans.notify.mute true
+lp group stazher permission set litebans.tabcomplete true
+lp group stazher permission set plhide.group.stazher true
+# Необязательные расширения (по решению владельца, по умолчанию выключены):
+# lp group stazher permission set litebans.kick true
+# lp group stazher permission set litebans.unmute true
+# lp group stazher permission set litebans.unwarn true
+
 # --- Веса и префиксы (если префиксы уже настроены — блок можно пропустить) ---
 # Вес нужен, чтобы при нескольких группах у игрока показывался старший ранг.
 lp group strannik setweight 10
@@ -69,6 +93,7 @@ lp group baron setweight 40
 lp group lord setweight 50
 lp group knyaz setweight 60
 lp group imperator setweight 70
+lp group stazher setweight 75
 lp group strannik meta setprefix 10 "&#CFCFCFСтранник &r"
 lp group geroy meta setprefix 20 "&#55FF55Герой &r"
 lp group rycar meta setprefix 30 "&#FFFF55Рыцарь &r"
@@ -76,6 +101,7 @@ lp group baron meta setprefix 40 "&#FFAA00Барон &r"
 lp group lord meta setprefix 50 "&#55FFFFЛорд &r"
 lp group knyaz meta setprefix 60 "&#FF55FFКнязь &r"
 lp group imperator meta setprefix 70 "&#FFD93DИмператор &r"
+lp group stazher meta setprefix 75 "&#FFD166Стажёр &r"
 
 # --- Приваты (лимит регионов WorldGuard) ---
 lp group strannik permission set worldguard.region.max-region-count.4 true
@@ -85,6 +111,7 @@ lp group baron permission set worldguard.region.max-region-count.5 true
 lp group lord permission set worldguard.region.max-region-count.6 true
 lp group knyaz permission set worldguard.region.max-region-count.7 true
 lp group imperator permission set worldguard.region.max-region-count.8 true
+lp group stazher permission set worldguard.region.max-region-count.4 true
 lp group helper permission set worldguard.region.max-region-count.4 true
 lp group moderator permission set worldguard.region.max-region-count.4 true
 lp group sozdatel permission set worldguard.region.max-region-count.12 true

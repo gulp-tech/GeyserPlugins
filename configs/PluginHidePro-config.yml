@@ -196,6 +196,36 @@ groups:
     #Read more here https://github.com/Nononitas/Plugin-Hide-Pro/wiki#Group#inheritance
     inherited-groups: []
 
+  # Стажёр: все команды игроков (наследование от default) + варны и временные муты LiteBans.
+  # Группа выдаётся правом plhide.group.stazher в LuckPerms.
+  stazher:
+    commands:
+      - warn
+      - unwarn
+      - tempmute
+      - unmute
+      - history
+      - warnings
+      - checkwarn
+      - checkmute
+      - mutelist
+      - warnlist
+    tabcomplete:
+      - warn
+      - unwarn
+      - tempmute
+      - unmute
+      - history
+      - warnings
+      - checkwarn
+      - checkmute
+      - mutelist
+      - warnlist
+    priority: 3
+    blocked-command-message: "Unknown command. Type \"/help\" for help."
+    inherited-groups:
+      - default
+
   # Хелпер: все команды игроков (наследование от default) + модерация по мелочи.
   # Группа выдаётся правом plhide.group.helper в LuckPerms.
   helper:

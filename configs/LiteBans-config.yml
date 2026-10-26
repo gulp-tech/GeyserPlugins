@@ -55,6 +55,9 @@ durations:
       permission: litebans.group.helper
       tempban: 15 days
       tempmute: 7 days   # хелпер: мут максимум 7 дней (банов у хелпера нет)
+    stazher:
+      permission: litebans.group.stazher
+      tempmute: 1 day    # стажёр: только временные муты, максимум 1 день (банов нет)
     other:
       permission: none
       tempban: 7 days
