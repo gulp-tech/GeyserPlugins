@@ -47,6 +47,10 @@ sql:
 durations:
   # Лимиты сроков по группам (права litebans.group.* выдаются в LuckPerms ниже в инструкции).
   limits:
+    kurator:
+      permission: litebans.group.kurator
+      tempban: 3 months  # куратор: временный бан максимум 3 месяца
+      tempmute: 3 months # куратор: временный мут максимум 3 месяца
     moderator:
       permission: litebans.group.moderator
       tempban: 1 month   # модератор: временный бан максимум 1 месяц

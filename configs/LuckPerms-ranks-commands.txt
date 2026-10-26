@@ -17,6 +17,7 @@ lp creategroup lord
 lp creategroup knyaz
 lp creategroup imperator
 lp creategroup stazher
+lp creategroup kurator
 
 # --- Наследование рангов (старший включает младших) ---
 lp group geroy parent add strannik
@@ -84,6 +85,40 @@ lp group stazher permission set plhide.group.stazher true
 # lp group stazher permission set litebans.unmute true
 # lp group stazher permission set litebans.unwarn true
 
+# --- Куратор (старший состав: полный LiteBans и контроль младшего состава) ---
+# Всё, что умеют модератор и хелпер (включая шаблоны — ноды litebans.group.*),
+# плюс снятие чужих наказаний, история состава и откат наказаний (staffrollback).
+# IP-банов/IP-мутов и обхода exempt (создатель) у куратора нет.
+lp group kurator permission set litebans.group.kurator true
+lp group kurator permission set litebans.group.moderator true
+lp group kurator permission set litebans.group.helper true
+lp group kurator permission set litebans.ban true
+lp group kurator permission set litebans.tempban true
+lp group kurator permission set litebans.unban.own true
+lp group kurator permission set litebans.unban true
+lp group kurator permission set litebans.mute true
+lp group kurator permission set litebans.tempmute true
+lp group kurator permission set litebans.unmute.own true
+lp group kurator permission set litebans.unmute true
+lp group kurator permission set litebans.warn true
+lp group kurator permission set litebans.unwarn.own true
+lp group kurator permission set litebans.unwarn true
+lp group kurator permission set litebans.kick true
+lp group kurator permission set litebans.history true
+lp group kurator permission set litebans.staffhistory true
+lp group kurator permission set litebans.staffrollback true
+lp group kurator permission set litebans.banlist true
+lp group kurator permission set litebans.mutelist true
+lp group kurator permission set litebans.warnlist true
+lp group kurator permission set litebans.warnings.self true
+lp group kurator permission set litebans.warnings true
+lp group kurator permission set litebans.checkban true
+lp group kurator permission set litebans.checkmute true
+lp group kurator permission set litebans.checkwarn true
+lp group kurator permission set litebans.notify.mute true
+lp group kurator permission set litebans.exempt true
+lp group kurator permission set plhide.group.kurator true
+
 # --- Веса и префиксы (если префиксы уже настроены — блок можно пропустить) ---
 # Вес нужен, чтобы при нескольких группах у игрока показывался старший ранг.
 lp group strannik setweight 10
@@ -94,6 +129,7 @@ lp group lord setweight 50
 lp group knyaz setweight 60
 lp group imperator setweight 70
 lp group stazher setweight 75
+lp group kurator setweight 95
 lp group strannik meta setprefix 10 "&#CFCFCFСтранник &r"
 lp group geroy meta setprefix 20 "&#55FF55Герой &r"
 lp group rycar meta setprefix 30 "&#FFFF55Рыцарь &r"
@@ -102,6 +138,7 @@ lp group lord meta setprefix 50 "&#55FFFFЛорд &r"
 lp group knyaz meta setprefix 60 "&#FF55FFКнязь &r"
 lp group imperator meta setprefix 70 "&#FFD93DИмператор &r"
 lp group stazher meta setprefix 75 "&#FFD166Стажёр &r"
+lp group kurator meta setprefix 95 "&#C86BFFКуратор &r"
 
 # --- Приваты (лимит регионов WorldGuard) ---
 lp group strannik permission set worldguard.region.max-region-count.4 true
@@ -112,6 +149,7 @@ lp group lord permission set worldguard.region.max-region-count.6 true
 lp group knyaz permission set worldguard.region.max-region-count.7 true
 lp group imperator permission set worldguard.region.max-region-count.8 true
 lp group stazher permission set worldguard.region.max-region-count.4 true
+lp group kurator permission set worldguard.region.max-region-count.8 true
 lp group helper permission set worldguard.region.max-region-count.4 true
 lp group moderator permission set worldguard.region.max-region-count.4 true
 lp group sozdatel permission set worldguard.region.max-region-count.12 true

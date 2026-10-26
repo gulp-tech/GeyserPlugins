@@ -130,6 +130,7 @@ icons:
   moderator: "E129" # Модератор — синий щит
   sozdatel: "E12A"  # Создатель — золотая звезда
   stazher: "E12B"   # Стажёр — янтарные часы (глиф — при пересборке пака, tools/make_icons.py)
+  kurator: "E12C"   # Куратор — фиолетовая корона (глиф — при пересборке пака, tools/make_icons.py)
   # Иконки берутся из VoidResourcePack.mcpack (plugins/Geyser-Spigot/packs), страница глифов E1 —
   # специально НЕ E0: страницу E0 занимает пак обводки GeyserJavaGlowing, если бы мы остались
   # на E0 — он перекрывал наши иконки своими. Поставьте в конфиге Geyser force-resource-packs: true.
@@ -205,6 +206,8 @@ groups:
     display: '&#FF5555Ютубер'
   tiktoker:
     display: '&#55E6FFТиктокер'
+  kurator:
+    display: '&#C86BFFКуратор'
   stazher:
     display: '&#FFD166Стажёр'
   helper:

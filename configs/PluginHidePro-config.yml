@@ -276,6 +276,58 @@ groups:
     inherited-groups:
       - helper
 
+  # Куратор: всё от модератора + контроль состава (история, откат наказаний, списки).
+  # Группа выдаётся правом plhide.group.kurator в LuckPerms.
+  kurator:
+    commands:
+      - ban
+      - tempban
+      - unban
+      - banlist
+      - mute
+      - tempmute
+      - unmute
+      - mutelist
+      - warn
+      - unwarn
+      - warnlist
+      - kick
+      - history
+      - staffhistory
+      - staffrollback
+      - warnings
+      - checkban
+      - checkmute
+      - checkwarn
+      - invsee
+      - vanish
+    tabcomplete:
+      - ban
+      - tempban
+      - unban
+      - banlist
+      - mute
+      - tempmute
+      - unmute
+      - mutelist
+      - warn
+      - unwarn
+      - warnlist
+      - kick
+      - history
+      - staffhistory
+      - staffrollback
+      - warnings
+      - checkban
+      - checkmute
+      - checkwarn
+      - invsee
+      - vanish
+    priority: 9
+    blocked-command-message: "Unknown command. Type \"/help\" for help."
+    inherited-groups:
+      - moderator
+
   # Создатель: видны и доступны ВСЕ команды.
   # Группа выдаётся правом plhide.group.staff в LuckPerms.
   staff:
