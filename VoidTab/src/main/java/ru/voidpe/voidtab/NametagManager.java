@@ -10,11 +10,13 @@ import org.bukkit.scoreboard.Objective;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.Team;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.WeakHashMap;
 
 /**
  * Оформление НИКА над головой (не скорборд!):
@@ -33,6 +35,13 @@ public final class NametagManager {
 
     private final VoidTab plugin;
     private final Map<UUID, String> appliedPrefix = new HashMap<>();
+    // Какой префикс уже стоит в команде на конкретном борде: если тот же —
+    // team.prefix() НЕ зовём (это пакет всем зрителям борда и перерисовка
+    // неймтега на Bedrock). WeakHashMap: борд вышедшего игрока не утекает.
+    private final Map<Scoreboard, Map<String, String>> boardPrefixCache =
+            Collections.synchronizedMap(new WeakHashMap<>());
+    // Когда последний раз принудительно пересылали display/list name (троттлинг).
+    private final Map<UUID, Long> lastForceResend = new HashMap<>();
 
     public NametagManager(VoidTab plugin) {
         this.plugin = plugin;
@@ -107,24 +116,42 @@ public final class NametagManager {
 
         Component prefixComponent = component(
                 TextUtil.color(plugin.getConfig().getString("nametag.prefix-color", "&f")) + prefix);
+        String name = teamName(player);
         for (Scoreboard board : allBoards()) {
             ensureHealthObjective(board);
-            Team team = board.getTeam(teamName(player));
+            Team team = board.getTeam(name);
             if (team == null) {
-                team = board.registerNewTeam(teamName(player));
+                team = board.registerNewTeam(name);
             }
             if (!team.hasEntry(player.getName())) {
                 team.addEntry(player.getName());
             }
-            // ставим всегда: у позже зашедшего игрока новый борд, и без этого
-            // его команды остались бы вообще без значка устройства
-            team.prefix(prefixComponent);
+            // Ставим префикс, только если на ЭТОМ борде он ещё не такой:
+            // team.prefix() = пакет всем зрителям и перерисовка неймтега,
+            // а раньше он слался каждые 2 секунды по всем бордам (лаги/вылеты).
+            // Новый борд (позже зашедший игрок) в кэше отсутствует — получит префикс.
+            Map<String, String> boardCache =
+                    boardPrefixCache.computeIfAbsent(board, b -> new HashMap<>());
+            if (!prefix.equals(boardCache.get(name))) {
+                team.prefix(prefixComponent);
+                boardCache.put(name, prefix);
+            }
         }
 
         // Bedrock (Geyser): неймтег над головой берётся из display/list имени — дублируем туда.
-        // forceNames нужен после смены префикса LuckPerms: Geyser мог закэшировать
-        // старое имя, поэтому периодически пересылаем display/list name принудительно.
-        if ((changed || forceNames) && plugin.getConfig().getBoolean("nametag.use-display-name", true)) {
+        // Пересылаем при реальном изменении префикса/титула. Принудительная пересылка
+        // (forceNames, страховка от кэша Geyser) — не чаще, чем раз в
+        // luckperms.force-name-resend-interval-seconds: раньше она уходила всем
+        // каждые 2 секунды и клиент перерисовывал все неймтеги (фризы/вылеты).
+        long now = System.currentTimeMillis();
+        long forceIntervalMs = Math.max(0L,
+                plugin.getConfig().getLong("luckperms.force-name-resend-interval-seconds", 60L)) * 1000L;
+        boolean forceDue = forceNames && forceIntervalMs > 0
+                && now - lastForceResend.getOrDefault(player.getUniqueId(), 0L) >= forceIntervalMs;
+        if ((changed || forceDue) && plugin.getConfig().getBoolean("nametag.use-display-name", true)) {
+            if (forceDue && !changed) {
+                lastForceResend.put(player.getUniqueId(), now);
+            }
             Component name = Component.text(prefix).append(Component.text(player.getName()));
             player.displayName(name);
             String tabName = TextUtil.color(
@@ -140,8 +167,14 @@ public final class NametagManager {
     /** Игрок вышел — убрать его неймтег-команды со всех бордов. */
     public void remove(Player player) {
         appliedPrefix.remove(player.getUniqueId());
+        lastForceResend.remove(player.getUniqueId());
+        String name = teamName(player);
         for (Scoreboard board : allBoards()) {
-            Team team = board.getTeam(teamName(player));
+            Map<String, String> boardCache = boardPrefixCache.get(board);
+            if (boardCache != null) {
+                boardCache.remove(name);
+            }
+            Team team = board.getTeam(name);
             if (team != null) {
                 team.unregister();
             }

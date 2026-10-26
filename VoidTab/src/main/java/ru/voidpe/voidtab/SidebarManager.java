@@ -40,6 +40,7 @@ public final class SidebarManager {
 
     private final VoidTab plugin;
     private final Map<UUID, List<String>> cache = new HashMap<>();
+    private final Map<UUID, String> titleCache = new HashMap<>();
     private final Set<UUID> hidden = new HashSet<>();
     private File hiddenFile;
 
@@ -77,6 +78,7 @@ public final class SidebarManager {
 
     public void remove(UUID uuid) {
         cache.remove(uuid);
+        titleCache.remove(uuid);
     }
 
     public void updateAll() {
@@ -103,7 +105,8 @@ public final class SidebarManager {
         }
 
         UUID uuid = player.getUniqueId();
-        if (!force && lines.equals(cache.get(uuid))) {
+        List<String> oldLines = cache.get(uuid);
+        if (!force && lines.equals(oldLines)) {
             return; // ничего не изменилось — не трогаем скорборд (нет мерцания)
         }
         cache.put(uuid, lines);
@@ -114,11 +117,15 @@ public final class SidebarManager {
             player.setScoreboard(board);
         }
         Objective objective = board.getObjective(OBJECTIVE);
+        // Заголовок — пакет клиенту: ставим только если текст реально изменился.
+        String title = renderTitle(player);
         if (objective == null) {
-            objective = board.registerNewObjective(OBJECTIVE, Criteria.DUMMY, component(renderTitle(player)));
+            objective = board.registerNewObjective(OBJECTIVE, Criteria.DUMMY, component(title));
             objective.setDisplaySlot(DisplaySlot.SIDEBAR);
-        } else {
-            objective.displayName(component(renderTitle(player)));
+            titleCache.put(uuid, title);
+        } else if (!title.equals(titleCache.get(uuid))) {
+            objective.displayName(component(title));
+            titleCache.put(uuid, title);
         }
 
         int total = lines.size();
@@ -130,10 +137,17 @@ public final class SidebarManager {
                 team.addEntry(entry);
             }
             if (i < total) {
-                team.prefix(component(lines.get(i)));
+                // Префикс строки — пакет: обновляем только изменившиеся строки
+                // (раньше при смене одного пинга пересылались все 15 строк).
+                String prev = oldLines != null && i < oldLines.size() ? oldLines.get(i) : null;
+                if (force || !lines.get(i).equals(prev)) {
+                    team.prefix(component(lines.get(i)));
+                }
                 objective.getScore(entry).setScore(total - i);
             } else {
-                team.prefix(Component.empty());
+                if (oldLines != null && i < oldLines.size()) {
+                    team.prefix(Component.empty());
+                }
                 board.resetScores(entry);
             }
         }
