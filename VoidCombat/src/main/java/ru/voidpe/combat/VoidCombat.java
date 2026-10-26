@@ -369,11 +369,17 @@ public final class VoidCombat extends JavaPlugin implements Listener, CommandExe
         msg(player, "fly-blocked-combat");
     }
 
-    /** Команды полёта (/fly и т.п. из combat.block-fly-commands) в бою не выполняются. */
+    /**
+     * Команды в бою. По умолчанию (combat.block-all-commands: true) запрещены ВСЕ
+     * команды игрока, пока на нём метка боя: нельзя улететь, уйти на /home, /tpa,
+     * /rtp и т.д. Исключения — combat.allowed-commands (без слэша).
+     * Если block-all-commands выключен, работают старые правила: блокируются
+     * только команды полёта из combat.block-fly-commands.
+     */
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
-    public void onFlyCommand(PlayerCommandPreprocessEvent event) {
+    public void onCombatCommand(PlayerCommandPreprocessEvent event) {
         Player player = event.getPlayer();
-        if (!isInCombat(player) || !getConfig().getBoolean("combat.disable-fly", true)) {
+        if (!isInCombat(player)) {
             return;
         }
         String label = event.getMessage().trim();
@@ -387,6 +393,19 @@ public final class VoidCombat extends JavaPlugin implements Listener, CommandExe
         int colon = label.indexOf(':'); // essentials:fly и т.п.
         if (colon >= 0) {
             label = label.substring(colon + 1);
+        }
+        if (getConfig().getBoolean("combat.block-all-commands", true)) {
+            for (String allowed : getConfig().getStringList("combat.allowed-commands")) {
+                if (allowed != null && allowed.equalsIgnoreCase(label)) {
+                    return; // команда из белого списка — пропускаем
+                }
+            }
+            event.setCancelled(true);
+            msg(player, "commands-blocked-combat");
+            return;
+        }
+        if (!getConfig().getBoolean("combat.disable-fly", true)) {
+            return;
         }
         for (String blocked : getConfig().getStringList("combat.block-fly-commands")) {
             if (blocked != null && blocked.equalsIgnoreCase(label)) {

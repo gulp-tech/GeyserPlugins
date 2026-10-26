@@ -37,6 +37,12 @@ combat:
     - efly
     - flight
     - eflight
+  # В бою запрещены ВСЕ команды игрока (нельзя /home, /tpa, /rtp, /fly и т.д.),
+  # пока метка боя не спадёт. Работает только при block-all-commands: true.
+  block-all-commands: true
+  # Исключения из запрета выше (без слэша). Пусто — запрещены вообще все команды.
+  # Пример: allowed-commands: [combat, msg]
+  allowed-commands: []
 
   # Безопасные места: режим боя там НЕ ставится, а уже активная
   # метка снимается (clear-on-enter). Миры и зоны также добавляются
@@ -135,6 +141,7 @@ messages:
   combat-status-none: "&aВы не в режиме боя."
   fly-blocked-combat: "&cВ режиме боя летать нельзя!"
   fly-disabled-combat: "&cПолёт отключён: вы в режиме боя!"
+  commands-blocked-combat: "&cВ режиме боя команды запрещены!"
   combat-status-off: "&7Режим боя сейчас выключен."
   cooldown: "&c{item} &cбудет доступно через &f{seconds} сек."
   firework-blocked: "&cФейерверки запрещены в режиме боя."
