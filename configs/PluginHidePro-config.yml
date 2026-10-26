@@ -115,7 +115,7 @@ groups:
       - shoppickaxes
       - shoptalismans
       - shopspheres
-      - vench anvil
+      - vench
       - combat
       - shopenchants
       - wcity
@@ -126,6 +126,8 @@ groups:
       - cases
       - titles
       - voidtab
+      - event
+      - events
     #The list of commands that will be made visible only in tabcomplete
     tabcomplete:
       - spawn
@@ -175,7 +177,7 @@ groups:
       - shoppickaxes
       - shoptalismans
       - shopspheres
-      - vench anvil
+      - vench
       - combat
       - shopenchants
       - wcity
@@ -186,6 +188,8 @@ groups:
       - cases
       - titles
       - voidtab
+      - event
+      - events
     #If a player is in two groups, the group with the higher priority number is used
     #The minimum value is 0
     priority: 0
@@ -221,7 +225,7 @@ groups:
       - checkmute
       - mutelist
       - warnlist
-    priority: 3
+    priority: 4
     blocked-command-message: "Unknown command. Type \"/help\" for help."
     inherited-groups:
       - default
@@ -233,11 +237,17 @@ groups:
       - kick
       - mute
       - unmute
+      - warn
+      - unwarn
+      - checkban
       - vanish
     tabcomplete:
       - kick
       - mute
       - unmute
+      - warn
+      - unwarn
+      - checkban
       - vanish
     priority: 5
     blocked-command-message: "Unknown command. Type \"/help\" for help."
@@ -252,12 +262,14 @@ groups:
       - tempban
       - banip
       - unban
+      - banlist
       - invsee
     tabcomplete:
       - ban
       - tempban
       - banip
       - unban
+      - banlist
       - invsee
     priority: 8
     blocked-command-message: "Unknown command. Type \"/help\" for help."
