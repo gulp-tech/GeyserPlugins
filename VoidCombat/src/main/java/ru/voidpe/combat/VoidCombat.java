@@ -30,6 +30,7 @@ import org.bukkit.event.entity.EntityShootBowEvent;
 import org.bukkit.event.entity.EntityToggleGlideEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.entity.ProjectileLaunchEvent;
+import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemConsumeEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
@@ -758,10 +759,10 @@ public final class VoidCombat extends JavaPlugin implements Listener, CommandExe
 
     // ------------------------------------------------------------ фейерверки в бою
 
-    /** Мир с особыми ограничениями (world-restrictions.worlds в конфиге). */
-    private boolean inRestrictedWorld(Player player) {
-        String world = player.getWorld().getName().toLowerCase(Locale.ROOT);
-        for (String name : getConfig().getStringList("world-restrictions.worlds")) {
+    /** Игрок находится в мире из списка конфига (elytra.banned-worlds и т.п.). */
+    private boolean inWorldList(Player player, String path) {
+        String world = player.getWorld().getName();
+        for (String name : getConfig().getStringList(path)) {
             if (name != null && name.equalsIgnoreCase(world)) {
                 return true;
             }
@@ -771,8 +772,7 @@ public final class VoidCombat extends JavaPlugin implements Listener, CommandExe
 
     private boolean blockFirework(Player player) {
         boolean inCombat = getConfig().getBoolean("fireworks.block-in-combat", true) && isInCombat(player);
-        boolean inWorld = getConfig().getBoolean("world-restrictions.block-fireworks", true)
-                && inRestrictedWorld(player);
+        boolean inWorld = inWorldList(player, "fireworks.banned-worlds");
         if (!inCombat && !inWorld) {
             return false;
         }
@@ -782,18 +782,27 @@ public final class VoidCombat extends JavaPlugin implements Listener, CommandExe
         return true;
     }
 
-    /** Запрет элитр в ограниченных мирах: нельзя начать планирование. */
+    /** Запрет элитр в мирах из elytra.banned-worlds: взлететь нельзя. */
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onToggleGlide(EntityToggleGlideEvent event) {
         if (!event.isGliding() || !(event.getEntity() instanceof Player player)) {
             return;
         }
-        if (!getConfig().getBoolean("world-restrictions.block-elytra", true) || !inRestrictedWorld(player)) {
+        if (!inWorldList(player, "elytra.banned-worlds")) {
             return;
         }
         event.setCancelled(true);
         if (shouldSendBlockMessage(player, "elytra")) {
             msg(player, "elytra-blocked");
+        }
+    }
+
+    /** Влетел в мир с запрещёнными элитрами — сразу опускаем на землю. */
+    @EventHandler
+    public void onWorldChangeGlide(PlayerChangedWorldEvent event) {
+        Player player = event.getPlayer();
+        if (player.isGliding() && inWorldList(player, "elytra.banned-worlds")) {
+            player.setGliding(false);
         }
     }
 
@@ -810,7 +819,8 @@ public final class VoidCombat extends JavaPlugin implements Listener, CommandExe
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onElytraBoost(PlayerElytraBoostEvent event) {
-        if (blockFirework(event.getPlayer())) {
+        Player player = event.getPlayer();
+        if (blockFirework(player) || inWorldList(player, "elytra.banned-worlds")) {
             event.setCancelled(true);
         }
     }
