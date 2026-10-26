@@ -220,6 +220,9 @@ public final class VoidTab extends JavaPlugin implements Listener, CommandExecut
         if (player.hasPermission("voidtab.bedrock-bypass")) {
             return false;
         }
+        if (hooks.hasPurpurBedrock()) {
+            return false; // ядро Purpurbedrock: все подключения — Bedrock по построению
+        }
         if (!hooks.hasFloodgate()) {
             if (!warnedNoFloodgate) {
                 warnedNoFloodgate = true;
@@ -272,6 +275,16 @@ public final class VoidTab extends JavaPlugin implements Listener, CommandExecut
                     + " &7| Модель=&b" + hooks.deviceModel(tu));
             sender.sendMessage(prefix + "Итог: &b" + hooks.deviceOs(tu) + " &7-> значок &b" + sidebar.deviceIconName(target)
                     + " &7(" + sidebar.deviceName(target) + ") | Префикс ника: '" + nametag.appliedPrefix(tu) + "'");
+            if (hooks.hasPurpurBedrock()) {
+                sender.sendMessage(prefix + "Purpurbedrock: device=&b" + hooks.bedrockDevice(target)
+                        + " &7| id=&b" + hooks.bedrockDeviceId(target)
+                        + " &7| os=&b" + hooks.bedrockOs(target)
+                        + " &7| ввод=&b" + hooks.bedrockInput(target)
+                        + " &7| КМ-телефон=&b" + hooks.bedrockQuery(target, "is_phone_kbm")
+                        + " &7| модель=&b" + hooks.bedrockModel(target)
+                        + " &7| версия=&b" + hooks.bedrockVersion(target)
+                        + " &7| пинг=&b" + hooks.bedrockPing(target));
+            }
             String[] dbgLp = hooks.hasLuckPerms() ? hooks.luckPermsGroup(tu) : null;
             String dbgRaw = sidebar.groupRaw(target);
             sender.sendMessage(prefix + "Группа: LuckPerms=&b" + (dbgLp == null ? "null (не подключён/игрок не загружен)" : dbgLp[0])

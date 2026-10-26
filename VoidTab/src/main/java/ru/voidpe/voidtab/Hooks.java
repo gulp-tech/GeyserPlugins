@@ -42,6 +42,9 @@ public final class Hooks {
     private Object geyserApi;        // GeyserApi (запасной источник устройства)
     private Method geyserConnectionByUuid;
 
+    private Method bedrockResolve;   // Purpurbedrock: BedrockPlaceholderHook.resolveOnline(Player, String)
+    private boolean bedrockTried;
+
     private Method papiSetPlaceholders; // PlaceholderAPI.setPlaceholders (static)
     private boolean papiTried;
 
@@ -52,6 +55,7 @@ public final class Hooks {
         initPlayerPoints();
         initFloodgate();
         initGeyser();
+        initPurpurBedrock();
     }
 
     // ---------------------------------------------------------------- Vault
@@ -440,6 +444,16 @@ public final class Hooks {
     }
 
     public boolean isBedrock(UUID uuid) {
+        if (bedrockResolve != null) {
+            // Ядро Purpurbedrock: все подключения Bedrock по построению.
+            // Явное "false" от ядра уважаем, молчание (null) считаем Bedrock.
+            Player online = Bukkit.getPlayer(uuid);
+            if (online == null) {
+                return false;
+            }
+            String q = bedrockQuery(online, "is_bedrock");
+            return q == null || "true".equalsIgnoreCase(q);
+        }
         if (!hasFloodgate()) {
             return false;
         }
@@ -449,6 +463,108 @@ public final class Hooks {
         } catch (Throwable t) {
             return false;
         }
+    }
+
+    // ------------------------------------------------- Purpurbedrock (ядро)
+
+    /**
+     * Подключение к встроенному Bedrock-движку ядра Purpurbedrock через лёгкий
+     * кэшированный Reflection — без Floodgate, без PlaceholderAPI и без внешних jar:
+     * org.purpurmc.purpur.bedrock.BedrockPlaceholderHook.resolveOnline(Player, String).
+     * Класс ищется и в класслоадере плагина, и в класслоадере сервера.
+     */
+    private void initPurpurBedrock() {
+        if (bedrockTried) {
+            return;
+        }
+        bedrockTried = true;
+        try {
+            Class<?> hook = null;
+            ClassLoader[] loaders = {getClass().getClassLoader(), Bukkit.class.getClassLoader()};
+            for (ClassLoader cl : loaders) {
+                if (cl == null) {
+                    continue;
+                }
+                try {
+                    hook = Class.forName("org.purpurmc.purpur.bedrock.BedrockPlaceholderHook", false, cl);
+                    break;
+                } catch (Throwable ignored) {
+                    // пробуем следующий класслоадер
+                }
+            }
+            if (hook == null) {
+                return; // обычное ядро Paper/Purpur — остаются Floodgate/Geyser ниже
+            }
+            bedrockResolve = findMethod(hook, "resolveOnline", Player.class, String.class);
+            if (bedrockResolve != null) {
+                log.info("Purpurbedrock подключён (устройство/пинг/версия из ядра)");
+            }
+        } catch (Throwable t) {
+            log.warning("Purpurbedrock hook: " + t.getMessage());
+        }
+    }
+
+    public boolean hasPurpurBedrock() {
+        return bedrockResolve != null;
+    }
+
+    /**
+     * Сырой запрос к ядру. Ключи: device, device_id, os, input, device_model,
+     * version, ping, is_phone_kbm, is_bedrock. Нет ядра/значения — null.
+     */
+    public String bedrockQuery(Player player, String key) {
+        if (player == null || bedrockResolve == null) {
+            return null;
+        }
+        try {
+            Object v = bedrockResolve.invoke(null, player, key);
+            if (v == null) {
+                return null;
+            }
+            String s = String.valueOf(v).trim();
+            return s.isEmpty() ? null : s;
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
+    /** Машинный id устройства: windows/android/ios/xbox/ps4_5/phone_kbm. */
+    public String bedrockDeviceId(Player player) {
+        return bedrockQuery(player, "device_id");
+    }
+
+    /** Отображаемое устройство: Windows/Android/IOS/Xbox/PS 4-5/Клавиатура + мышь. */
+    public String bedrockDevice(Player player) {
+        return bedrockQuery(player, "device");
+    }
+
+    public String bedrockOs(Player player) {
+        return bedrockQuery(player, "os");
+    }
+
+    public String bedrockInput(Player player) {
+        return bedrockQuery(player, "input");
+    }
+
+    public String bedrockModel(Player player) {
+        return bedrockQuery(player, "device_model");
+    }
+
+    public String bedrockVersion(Player player) {
+        return bedrockQuery(player, "version");
+    }
+
+    /** Реальный RakNet-пинг от ядра (мс); fallback — обычный Player#getPing(). */
+    public int bedrockPing(Player player) {
+        String raw = bedrockQuery(player, "ping");
+        if (raw != null) {
+            try {
+                return Math.max(0, Integer.parseInt(raw));
+            } catch (NumberFormatException ignored) {
+                // падаем на ванильный пинг ниже
+            }
+        }
+        return player.getPing();
     }
 
     /**

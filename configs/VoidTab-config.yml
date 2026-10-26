@@ -13,10 +13,13 @@
 #    {icon:windows} {icon:android} {icon:apple} {icon:device} {icon:coins}
 #  Устройство игрока: {device_icon} — значок его платформы, {device} — её название.
 #  Иконки — глифы VoidResourcePack (как раньше, не меняются).
-#  Данные клиента от ядра Purpurbedrock (PlaceholderAPI, встроены в ядро):
-#    %purpurbedrock_device% %purpurbedrock_input% %purpurbedrock_version%
-#    %purpurbedrock_ping% %purpurbedrock_ping_colored% %purpurbedrock_os%
-#    %purpurbedrock_protocol% %purpurbedrock_ui% %purpurbedrock_xuid%
+#  {device_icon}, {device} и {ping} плагин берёт НАПРЯМУЮ из ядра Purpurbedrock
+#  (BedrockPlaceholderHook, без Floodgate и PlaceholderAPI): устройство — по
+#  device_id (windows/android/ios/xbox/ps4_5/phone_kbm), пинг — реальный RakNet RTT.
+#  Для любых других плагинов ядро даёт плейсхолдеры PlaceholderAPI (%...%):
+#    %purpurbedrock_device% %purpurbedrock_device_id% %purpurbedrock_os%
+#    %purpurbedrock_input% %purpurbedrock_device_model% %purpurbedrock_version%
+#    %purpurbedrock_ping% %purpurbedrock_ping_colored% %purpurbedrock_is_phone_kbm%
 #    %purpurbedrock_is_bedrock%
 #  Плюс любые %плейсхолдеры% PlaceholderAPI (если включён ниже).
 # ============================================================

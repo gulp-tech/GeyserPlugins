@@ -11,12 +11,20 @@
 #    {icon:coin} {icon:spark} {icon:sapphire} {icon:shard}
 #    {icon:crown} {icon:sword} {icon:skull} {icon:clock}
 #    {icon:windows} {icon:android} {icon:apple} {icon:device} {icon:coins}
-#  Устройство игрока (Floodgate): {device_icon} — значок его платформы, {device} — её название.
-#  Платформа = DeviceOs + InputMode: телефон с клавиатурой/мышью — отдельная иконка kbmouse.
+#  Устройство игрока: {device_icon} — значок его платформы, {device} — её название.
+#  Иконки — глифы VoidResourcePack (как раньше, не меняются).
+#  {device_icon}, {device} и {ping} плагин берёт НАПРЯМУЮ из ядра Purpurbedrock
+#  (BedrockPlaceholderHook, без Floodgate и PlaceholderAPI): устройство — по
+#  device_id (windows/android/ios/xbox/ps4_5/phone_kbm), пинг — реальный RakNet RTT.
+#  Для любых других плагинов ядро даёт плейсхолдеры PlaceholderAPI (%...%):
+#    %purpurbedrock_device% %purpurbedrock_device_id% %purpurbedrock_os%
+#    %purpurbedrock_input% %purpurbedrock_device_model% %purpurbedrock_version%
+#    %purpurbedrock_ping% %purpurbedrock_ping_colored% %purpurbedrock_is_phone_kbm%
+#    %purpurbedrock_is_bedrock%
 #  Плюс любые %плейсхолдеры% PlaceholderAPI (если включён ниже).
 # ============================================================
 
-# СЕРВЕР ТОЛЬКО ДЛЯ BEDROCK (Geyser + Floodgate). Java-игроков плагин кикает — см. bedrock-only ниже.
+# СЕРВЕР ТОЛЬКО ДЛЯ BEDROCK (ядро Purpurbedrock). Java-игроков плагин кикает — см. bedrock-only ниже.
 # Никаких Java-заглушек вместо иконок нет и не нужно: у всех игроков Bedrock и ресурспак.
 
 # Только Bedrock: игрок без Floodgate (т.е. зашёл с Java напрямую мимо Geyser) будет кикнут.
@@ -76,6 +84,8 @@ scoreboard:
     - "&fМонеты: &#FFD93D{coins} {icon:coin}"
     - "&fОсколки: &#54C8FF{shards} {icon:shard}"
     - ""
+    - "&fПинг: &#7CFC00%purpurbedrock_ping%&f мс"
+    - "&fВерсия: &#FFA63D%purpurbedrock_version%"
     - "&fУ/С: &#C86BFF{kills}&f/&#FF6B6B{deaths}"
     - "&fВ игре: &#FFD93D{playtime_hours}ч {icon:clock}"
 

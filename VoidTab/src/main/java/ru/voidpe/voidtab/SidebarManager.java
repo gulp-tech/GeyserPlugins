@@ -264,7 +264,7 @@ public final class SidebarManager {
         values.put("kd", kd);
         values.put("online", String.valueOf(Bukkit.getOnlinePlayers().size()));
         values.put("max", String.valueOf(Bukkit.getMaxPlayers()));
-        values.put("ping", String.valueOf(player.getPing()));
+        values.put("ping", String.valueOf(plugin.hooks().bedrockPing(player)));
         values.put("playtime_hours", String.valueOf(hours));
         values.put("playtime_minutes", String.valueOf(totalSeconds / 60L));
         values.put("playtime", playtime);
@@ -281,7 +281,8 @@ public final class SidebarManager {
     }
 
     /**
-     * Имя иконки устройства: Floodgate DeviceOs (Enum.name) + InputMode.
+     * Имя иконки устройства. Приоритет: ручной override → ядро Purpurbedrock
+     * (device_id из BedrockPlaceholderHook) → Floodgate DeviceOs + InputMode.
      * Телефон/планшет с подключённой клавиатурой и мышью — отдельное устройство kbmouse.
      */
     public String deviceIconName(Player player) {
@@ -290,6 +291,20 @@ public final class SidebarManager {
         String forced = plugin.getConfig().getString("nametag.device-overrides." + player.getName(), "");
         if (forced != null && !forced.isBlank()) {
             return forced.trim().toLowerCase(java.util.Locale.ROOT);
+        }
+        // Ядро Purpurbedrock — главный источник: device_id уже различает все шесть
+        // категорий (включая телефон с клавиатурой/мышью), мапим в наши иконки 1-в-1.
+        String coreId = plugin.hooks().bedrockDeviceId(player);
+        if (coreId != null) {
+            switch (coreId.trim().toLowerCase(java.util.Locale.ROOT)) {
+                case "windows": return "windows";
+                case "android": return "android";
+                case "ios": return "apple";
+                case "xbox": return "xbox";
+                case "ps4_5": return "playstation";
+                case "phone_kbm": return "kbmouse";
+                default: break; // неизвестный id — падаем на Floodgate/Geyser ниже
+            }
         }
         String os = plugin.hooks().deviceOs(player.getUniqueId());
         String input = plugin.hooks().inputMode(player.getUniqueId());
