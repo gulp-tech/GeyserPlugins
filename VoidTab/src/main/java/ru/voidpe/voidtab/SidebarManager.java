@@ -100,9 +100,11 @@ public final class SidebarManager {
             return;
         }
 
+        // Значения — один раз на игрока, а не на каждую строку (главная экономия цикла).
+        Map<String, String> values = computeValues(player);
         List<String> lines = new ArrayList<>();
         for (String raw : plugin.getConfig().getStringList("scoreboard.lines")) {
-            lines.add(render(player, raw));
+            lines.add(renderLine(player, raw, values));
             if (lines.size() >= MAX_LINES) {
                 break;
             }
@@ -191,18 +193,16 @@ public final class SidebarManager {
 
     // ------------------------------------------------------------ рендер строки
     String render(Player player, String raw) {
+        return renderLine(player, raw, computeValues(player));
+    }
+
+    /**
+     * Значения плейсхолдеров игрока. Считаются ОДИН раз на обновление скорборда:
+     * раньше вся эта работа (LuckPerms, Vault, PlayerPoints, статистика)
+     * повторялась на КАЖДУЮ строку — 9 строк = 9 одинаковых вычислений.
+     */
+    private Map<String, String> computeValues(Player player) {
         Hooks hooks = plugin.hooks();
-        String text = raw;
-
-        // иконки: {icon:coin} и т.д.
-        for (String name : plugin.getConfig().getConfigurationSection("icons") == null
-                ? Set.<String>of() : plugin.getConfig().getConfigurationSection("icons").getKeys(false)) {
-            String token = "{icon:" + name + "}";
-            if (text.contains(token)) {
-                text = text.replace(token, iconChar(name));
-            }
-        }
-
         String groupRaw = "default";
         String groupDisplay = null;
         String[] lp = hooks.hasLuckPerms() ? hooks.luckPermsGroup(player.getUniqueId()) : null;
@@ -265,10 +265,9 @@ public final class SidebarManager {
                 .replace("{h}", String.valueOf(hours))
                 .replace("{m}", String.valueOf(minutes));
 
-        text = text.replace("{device_icon}", deviceIconChar(player));
-        text = text.replace("{device}", deviceName(player));
-
         Map<String, String> values = new HashMap<>();
+        values.put("device_icon", deviceIconChar(player));
+        values.put("device", deviceName(player));
         values.put("player", player.getName());
         values.put("group", group);
         values.put("group_icon", rankIconChar(player));
@@ -288,12 +287,29 @@ public final class SidebarManager {
         values.put("playtime", playtime);
         values.put("world", player.getWorld().getName());
 
+        return values;
+    }
+
+    /** Одна строка скорборда из готовых значений: только подстановки, без вычислений. */
+    private String renderLine(Player player, String raw, Map<String, String> values) {
+        String text = raw;
+        // иконки: {icon:coin} и т.д. (перебираем секцию только если иконки в строке есть)
+        if (text.contains("{icon:")) {
+            for (String name : plugin.getConfig().getConfigurationSection("icons") == null
+                    ? Set.<String>of() : plugin.getConfig().getConfigurationSection("icons").getKeys(false)) {
+                String token = "{icon:" + name + "}";
+                if (text.contains(token)) {
+                    text = text.replace(token, iconChar(name));
+                }
+            }
+        }
         for (Map.Entry<String, String> e : values.entrySet()) {
             text = text.replace("{" + e.getKey() + "}", e.getValue());
         }
-
-        if (plugin.getConfig().getBoolean("hooks.placeholderapi", true)) {
-            text = hooks.applyPlaceholders(player, text);
+        // PlaceholderAPI зовём, только если в строке реально есть %...%:
+        // раньше он дёргался на каждую строку каждого игрока каждые 2 секунды.
+        if (text.contains("%") && plugin.getConfig().getBoolean("hooks.placeholderapi", true)) {
+            text = plugin.hooks().applyPlaceholders(player, text);
         }
         return TextUtil.color(text);
     }

@@ -32,6 +32,7 @@ public final class VoidTab extends JavaPlugin implements Listener, CommandExecut
     private SidebarManager sidebar;
     private NametagManager nametag;
     private BukkitTask task;
+    private long lastLpRefreshMs;
     private boolean warnedNoFloodgate;
 
     @Override
@@ -150,11 +151,18 @@ public final class VoidTab extends JavaPlugin implements Listener, CommandExecut
         }
         long interval = Math.max(10L, getConfig().getLong("update-interval-ticks", 40L));
         task = Bukkit.getScheduler().runTaskTimer(this, () -> {
-            // Префикс LuckPerms — единый источник. Перед каждым обновлением
-            // сбрасываем кэш LP, иначе после внешней смены префикса скорборд
-            // и ник могли показывать старое значение до перезахода.
+            // Префикс LuckPerms — единый источник, но кэш LP обновляем не каждый
+            // цикл, а раз в luckperms.refresh-cache-seconds (по умолчанию 10 сек):
+            // полный обход LuckPerms по всем игрокам — дорогая рефлексия.
+            // Смена префикса при этом применится максимум через 10 секунд,
+            // а сообщение в чат обновляет кэш мгновенно (onChatRefreshLuckPerms).
             if (getConfig().getBoolean("luckperms.refresh-cache", true)) {
-                hooks.refreshLuckPermsMeta();
+                long nowMs = System.currentTimeMillis();
+                long periodMs = Math.max(1L, getConfig().getLong("luckperms.refresh-cache-seconds", 10L)) * 1000L;
+                if (nowMs - lastLpRefreshMs >= periodMs) {
+                    lastLpRefreshMs = nowMs;
+                    hooks.refreshLuckPermsMeta();
+                }
             }
             sidebar.updateAll();
             boolean forceNames = getConfig().getBoolean("luckperms.force-name-resend", true);

@@ -55,6 +55,8 @@ update-interval-ticks: 40
 # Ручное обновление одного игрока: /voidtab refresh <ник>
 luckperms:
   refresh-cache: true
+  # Как часто (сек) обновлять кэш префиксов LuckPerms по всем игрокам.
+  refresh-cache-seconds: 10
   force-name-resend: true
   # Как часто (сек) принудительно пересылать display/list name, если ничего не изменилось.
   # Реальные изменения префикса/титула пересылаются сразу. 0 — только при изменениях.
