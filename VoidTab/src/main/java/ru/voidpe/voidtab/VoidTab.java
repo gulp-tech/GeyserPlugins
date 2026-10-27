@@ -33,8 +33,15 @@ public final class VoidTab extends JavaPlugin implements Listener, CommandExecut
     private SidebarManager sidebar;
     private NametagManager nametag;
     private BukkitTask task;
+    private BukkitTask appearanceTask;
     private long lastLpRefreshMs;
     private int refreshCursor;
+    // Игроки, которых надо обновить после появления (вход/телепорт). Работа НЕ
+    // делается в тик спауна: в этот момент клиент и так грузит скин и модель
+    // игрока, и лишние пакеты сверху вешают слабые телефоны («игра застывает,
+    // когда игрок появляется перед тобой»). Очередь дренируется по одному
+    // игроку за тик — появление остаётся «голым» спауном ваниллы.
+    private final java.util.ArrayDeque<java.util.UUID> appearanceQueue = new java.util.ArrayDeque<>();
     private boolean warnedNoFloodgate;
 
     @Override
@@ -53,6 +60,7 @@ public final class VoidTab extends JavaPlugin implements Listener, CommandExecut
         }
 
         startTask();
+        startAppearanceTask();
         // игроки, уже онлайн при /reload
         hooks.refreshLuckPermsMeta();
         Bukkit.getOnlinePlayers().forEach(p -> {
@@ -67,6 +75,41 @@ public final class VoidTab extends JavaPlugin implements Listener, CommandExecut
         if (task != null) {
             task.cancel();
         }
+        if (appearanceTask != null) {
+            appearanceTask.cancel();
+        }
+    }
+
+    /** Поставить игрока в очередь обновления после появления (без дублей). */
+    private void queueAppearance(Player player) {
+        if (player != null && !appearanceQueue.contains(player.getUniqueId())) {
+            appearanceQueue.add(player.getUniqueId());
+        }
+    }
+
+    /**
+     * Дренаж очереди появления: не больше performance.appearance-per-tick
+     * игроков за тик. Ник/скорборд появляются на долю секунды позже спауна,
+     * зато сам момент появления игрока не нагружает ни сервер, ни клиентов.
+     */
+    private void startAppearanceTask() {
+        if (appearanceTask != null) {
+            appearanceTask.cancel();
+        }
+        appearanceTask = Bukkit.getScheduler().runTaskTimer(this, () -> {
+            int perTick = Math.max(1, getConfig().getInt("performance.appearance-per-tick", 1));
+            for (int i = 0; i < perTick; i++) {
+                java.util.UUID uuid = appearanceQueue.poll();
+                if (uuid == null) {
+                    return;
+                }
+                Player p = Bukkit.getPlayer(uuid);
+                if (p != null && p.isOnline()) {
+                    sidebar.update(p, false);
+                    nametag.apply(p, false);
+                }
+            }
+        }, 1L, 1L);
     }
 
     /** Переезд с FaralTab: подхватить конфиг и hidden.yml из plugins/FaralTab. */
@@ -203,8 +246,10 @@ public final class VoidTab extends JavaPlugin implements Listener, CommandExecut
         long delay = Math.max(0L, getConfig().getLong("join-delay-ticks", 20L));
         Bukkit.getScheduler().runTaskLater(this, () -> {
             hooks.refreshLuckPermsMeta(player.getUniqueId());
-            sidebar.update(player, true);
-            nametag.apply(player, true);
+            // НЕ обновляем ник/скорборд прямо сейчас: игрок только что заспавнился
+            // у остальных, их клиенты грузят его скин. Ставим в очередь появления —
+            // обработается по одному за тик чуть позже (см. startAppearanceTask).
+            queueAppearance(player);
             showJoinTitle(player);
             // в лог сервера: чем клиент представился и какой значок получил (диагностика устройств)
             getLogger().info("Устройство " + player.getName() + ": OS=" + hooks.deviceOs(player.getUniqueId())
@@ -272,25 +317,27 @@ public final class VoidTab extends JavaPlugin implements Listener, CommandExecut
 
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
+        appearanceQueue.remove(event.getPlayer().getUniqueId());
         sidebar.remove(event.getPlayer().getUniqueId());
         nametag.remove(event.getPlayer());
     }
 
     /**
-     * Телепорт: лёгкий точечный рефреш ТОЛЬКО телепортирующегося в следующем тике.
-     * Благодаря кэшам это почти бесплатно: пакеты уйдут, только если что-то
-     * реально не стоит на бордах (например, клиент пересоздал скорборд).
-     * Никаких глобальных обновлений всех игроков здесь нет и быть не должно.
+     * Телепорт: точечный рефреш ТОЛЬКО телепортирующегося, но НЕ в тик появления
+     * и не в следующий: клиент в этот момент впервые рисует игрока (скин, модель,
+     * ник) и лишние пакеты сверху дают фриз у видящих его игроков. Ждём
+     * performance.appearance-delay-ticks и ставим в общую очередь появления
+     * (по одному игроку за тик) — телепорт остаётся чистым ванильным спауном.
      */
     @EventHandler
     public void onTeleport(PlayerTeleportEvent event) {
         Player player = event.getPlayer();
-        Bukkit.getScheduler().runTask(this, () -> {
+        long delay = Math.max(0L, getConfig().getLong("performance.appearance-delay-ticks", 5L));
+        Bukkit.getScheduler().runTaskLater(this, () -> {
             if (player.isOnline()) {
-                sidebar.update(player, false);
-                nametag.apply(player, false);
+                queueAppearance(player);
             }
-        });
+        }, delay);
     }
 
     // ------------------------------------------------------------- команды
