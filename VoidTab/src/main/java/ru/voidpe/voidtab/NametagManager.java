@@ -114,8 +114,8 @@ public final class NametagManager {
         boolean changed = !(prefix + "|" + titleSuffix).equals(appliedPrefix.get(player.getUniqueId()));
         appliedPrefix.put(player.getUniqueId(), prefix + "|" + titleSuffix);
 
-        Component prefixComponent = component(
-                TextUtil.color(plugin.getConfig().getString("nametag.prefix-color", "&f")) + prefix);
+        // Компонент собираем лениво: если префикс везде уже стоит, парсинга не будет вообще.
+        Component prefixComponent = null;
         String teamId = teamName(player);
         for (Scoreboard board : allBoards()) {
             ensureHealthObjective(board);
@@ -133,6 +133,10 @@ public final class NametagManager {
             Map<String, String> boardCache =
                     boardPrefixCache.computeIfAbsent(board, b -> new HashMap<>());
             if (!prefix.equals(boardCache.get(teamId))) {
+                if (prefixComponent == null) {
+                    prefixComponent = component(TextUtil.color(
+                            plugin.getConfig().getString("nametag.prefix-color", "&f")) + prefix);
+                }
                 team.prefix(prefixComponent);
                 boardCache.put(teamId, prefix);
             }

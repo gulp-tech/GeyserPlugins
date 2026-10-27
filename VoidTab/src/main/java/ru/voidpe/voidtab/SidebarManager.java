@@ -41,6 +41,9 @@ public final class SidebarManager {
     private final VoidTab plugin;
     private final Map<UUID, List<String>> cache = new HashMap<>();
     private final Map<UUID, String> titleCache = new HashMap<>();
+    // Кэш анализа устройства: UUID -> (иконка, когда посчитана).
+    private record DeviceCacheEntry(String icon, long at) {}
+    private final Map<UUID, DeviceCacheEntry> deviceCache = new HashMap<>();
     private final Set<UUID> hidden = new HashSet<>();
     private File hiddenFile;
 
@@ -79,6 +82,7 @@ public final class SidebarManager {
     public void remove(UUID uuid) {
         cache.remove(uuid);
         titleCache.remove(uuid);
+        deviceCache.remove(uuid);
     }
 
     public void updateAll() {
@@ -295,11 +299,36 @@ public final class SidebarManager {
     }
 
     /**
+     * Имя иконки устройства С КЭШЕМ: анализ устройства (рефлексия в ядро/Floodgate)
+     * делается не чаще, чем раз в performance.device-cache-seconds (по умолчанию 30 с).
+     * Раньше анализ повторялся на каждый рендер ника/скорборда — при прогрузке
+     * игрока это давало лаг. Устройство за 30 секунд не меняется (телефон с
+     * клавиатурой ядро и так определяет с защитой от ложных переключений).
+     */
+    public String deviceIconName(Player player) {
+        // Ручное переопределение — без кэша, применяется мгновенно.
+        String forced = plugin.getConfig().getString("nametag.device-overrides." + player.getName(), "");
+        if (forced != null && !forced.isBlank()) {
+            return forced.trim().toLowerCase(java.util.Locale.ROOT);
+        }
+        UUID uuid = player.getUniqueId();
+        long ttlMs = Math.max(1L, plugin.getConfig().getLong("performance.device-cache-seconds", 30L)) * 1000L;
+        long now = System.currentTimeMillis();
+        DeviceCacheEntry cached = deviceCache.get(uuid);
+        if (cached != null && now - cached.at < ttlMs) {
+            return cached.icon;
+        }
+        String icon = computeDeviceIconName(player);
+        deviceCache.put(uuid, new DeviceCacheEntry(icon, now));
+        return icon;
+    }
+
+    /**
      * Имя иконки устройства. Приоритет: ручной override → ядро Purpurbedrock
      * (device_id из BedrockPlaceholderHook) → Floodgate DeviceOs + InputMode.
      * Телефон/планшет с подключённой клавиатурой и мышью — отдельное устройство kbmouse.
      */
-    public String deviceIconName(Player player) {
+    private String computeDeviceIconName(Player player) {
         // Ручное переопределение в config.yml (nametag.device-overrides.<ник>) — выше всего:
         // если клиент врёт про своё устройство, админ чинит это одной строкой.
         String forced = plugin.getConfig().getString("nametag.device-overrides." + player.getName(), "");
