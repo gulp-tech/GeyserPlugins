@@ -94,13 +94,17 @@ public final class NametagManager {
                 prefix += icon + " ";
             }
         }
-        if (plugin.getConfig().getBoolean("nametag.rank-icon", true)) {
+        // Лёгкий режим (performance.light-nametags): над головой только значок
+        // устройства, без иконки ранга и названия — клиенту Bedrock заметно
+        // легче рендерить короткие неймтеги в толпе (слабые телефоны).
+        boolean light = plugin.getConfig().getBoolean("performance.light-nametags", false);
+        if (!light && plugin.getConfig().getBoolean("nametag.rank-icon", true)) {
             String rankIcon = plugin.sidebar().rankIconChar(player);
             if (!rankIcon.isBlank()) {
                 prefix += rankIcon + " ";
             }
         }
-        if (plugin.getConfig().getBoolean("nametag.rank-name", true)) {
+        if (!light && plugin.getConfig().getBoolean("nametag.rank-name", true)) {
             prefix += TextUtil.color(plugin.sidebar().rankDisplayName(player)) + " ";
         }
         // Титул (суффикс LP) в TAB после ника; учитываем в "changed", чтобы таб обновлялся при получении титула

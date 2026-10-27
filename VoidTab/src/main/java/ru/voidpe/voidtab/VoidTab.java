@@ -15,6 +15,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitTask;
 
@@ -33,6 +34,7 @@ public final class VoidTab extends JavaPlugin implements Listener, CommandExecut
     private NametagManager nametag;
     private BukkitTask task;
     private long lastLpRefreshMs;
+    private int refreshCursor;
     private boolean warnedNoFloodgate;
 
     @Override
@@ -149,7 +151,10 @@ public final class VoidTab extends JavaPlugin implements Listener, CommandExecut
         if (task != null) {
             task.cancel();
         }
-        long interval = Math.max(10L, getConfig().getLong("update-interval-ticks", 40L));
+        // Цикл НЕ проходит всех игроков в одном тике (это давало микро-фриз каждые
+        // 2 секунды, особенно заметный при телепортах): задача крутится каждые
+        // 2 тика и обрабатывает небольшую пачку игроков по кругу. Полный обход
+        // всех занимает примерно update-interval-ticks, как раньше.
         task = Bukkit.getScheduler().runTaskTimer(this, () -> {
             // Префикс LuckPerms — единый источник, но кэш LP обновляем не каждый
             // цикл, а раз в luckperms.refresh-cache-seconds (по умолчанию 10 сек):
@@ -164,10 +169,24 @@ public final class VoidTab extends JavaPlugin implements Listener, CommandExecut
                     hooks.refreshLuckPermsMeta();
                 }
             }
-            sidebar.updateAll();
+            java.util.List<Player> players = new java.util.ArrayList<>(Bukkit.getOnlinePlayers());
+            if (players.isEmpty()) {
+                return;
+            }
+            long interval = Math.max(10L, getConfig().getLong("update-interval-ticks", 40L));
+            int configured = getConfig().getInt("performance.batch-size", 0);
+            // Авто-пачка: так, чтобы полный круг занял ~interval тиков.
+            int batch = configured > 0 ? configured
+                    : Math.max(1, (int) Math.ceil(players.size() * 2.0 / interval));
+            int count = Math.min(batch, players.size());
             boolean forceNames = getConfig().getBoolean("luckperms.force-name-resend", true);
-            Bukkit.getOnlinePlayers().forEach(p -> nametag.apply(p, forceNames));
-        }, interval, interval);
+            for (int i = 0; i < count; i++) {
+                Player p = players.get((refreshCursor + i) % players.size());
+                sidebar.update(p, false);
+                nametag.apply(p, forceNames);
+            }
+            refreshCursor = (refreshCursor + count) % players.size();
+        }, 2L, 2L);
     }
 
     // ------------------------------------------------------------- события
@@ -255,6 +274,23 @@ public final class VoidTab extends JavaPlugin implements Listener, CommandExecut
     public void onQuit(PlayerQuitEvent event) {
         sidebar.remove(event.getPlayer().getUniqueId());
         nametag.remove(event.getPlayer());
+    }
+
+    /**
+     * Телепорт: лёгкий точечный рефреш ТОЛЬКО телепортирующегося в следующем тике.
+     * Благодаря кэшам это почти бесплатно: пакеты уйдут, только если что-то
+     * реально не стоит на бордах (например, клиент пересоздал скорборд).
+     * Никаких глобальных обновлений всех игроков здесь нет и быть не должно.
+     */
+    @EventHandler
+    public void onTeleport(PlayerTeleportEvent event) {
+        Player player = event.getPlayer();
+        Bukkit.getScheduler().runTask(this, () -> {
+            if (player.isOnline()) {
+                sidebar.update(player, false);
+                nametag.apply(player, false);
+            }
+        });
     }
 
     // ------------------------------------------------------------- команды
