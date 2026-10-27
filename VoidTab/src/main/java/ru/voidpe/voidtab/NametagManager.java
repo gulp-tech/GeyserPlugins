@@ -116,12 +116,12 @@ public final class NametagManager {
 
         Component prefixComponent = component(
                 TextUtil.color(plugin.getConfig().getString("nametag.prefix-color", "&f")) + prefix);
-        String name = teamName(player);
+        String teamId = teamName(player);
         for (Scoreboard board : allBoards()) {
             ensureHealthObjective(board);
-            Team team = board.getTeam(name);
+            Team team = board.getTeam(teamId);
             if (team == null) {
-                team = board.registerNewTeam(name);
+                team = board.registerNewTeam(teamId);
             }
             if (!team.hasEntry(player.getName())) {
                 team.addEntry(player.getName());
@@ -132,9 +132,9 @@ public final class NametagManager {
             // Новый борд (позже зашедший игрок) в кэше отсутствует — получит префикс.
             Map<String, String> boardCache =
                     boardPrefixCache.computeIfAbsent(board, b -> new HashMap<>());
-            if (!prefix.equals(boardCache.get(name))) {
+            if (!prefix.equals(boardCache.get(teamId))) {
                 team.prefix(prefixComponent);
-                boardCache.put(name, prefix);
+                boardCache.put(teamId, prefix);
             }
         }
 
