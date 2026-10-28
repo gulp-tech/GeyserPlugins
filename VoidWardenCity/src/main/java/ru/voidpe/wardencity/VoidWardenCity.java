@@ -77,6 +77,8 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
     private final Map<String, Long> chestRefills = new HashMap<>();
     /** Кулдауны телепорта игроков. */
     private final Map<UUID, Long> tpCooldowns = new HashMap<>();
+    /** Идущие прогревы телепорта (/wcity): игрок -> задача. */
+    private final Map<UUID, org.bukkit.scheduler.BukkitTask> tpWarmups = new HashMap<>();
     /** Голограммы над сундуками: ключ сундука -> UUID стенда. */
     private final Map<String, UUID> holograms = new HashMap<>();
 
@@ -1133,6 +1135,13 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
     /** Приветствие при входе на территорию города (один раз, пока не выйдешь). */
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onMoveCity(PlayerMoveEvent event) {
+        // Движение с места отменяет прогрев телепорта (поворот головы — нет).
+        if (tpWarmups.containsKey(event.getPlayer().getUniqueId()) && event.getTo() != null
+                && (event.getFrom().getBlockX() != event.getTo().getBlockX()
+                || event.getFrom().getBlockY() != event.getTo().getBlockY()
+                || event.getFrom().getBlockZ() != event.getTo().getBlockZ())) {
+            cancelWarmup(event.getPlayer(), true);
+        }
         if (!getConfig().getBoolean("announcements.enter-enabled", true)) {
             return;
         }
@@ -1155,8 +1164,17 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
 
     @EventHandler
     public void onQuitCity(PlayerQuitEvent event) {
+        cancelWarmup(event.getPlayer(), false);
         insideCity.remove(event.getPlayer().getUniqueId());
         tpCooldowns.remove(event.getPlayer().getUniqueId());
+    }
+
+    /** Урон отменяет прогрев телепорта: в бою сбежать в город нельзя. */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onDamageWarmup(org.bukkit.event.entity.EntityDamageEvent event) {
+        if (event.getEntity() instanceof Player player) {
+            cancelWarmup(player, true);
+        }
     }
 
     // ------------------------------------------------------------- защита
@@ -1386,6 +1404,32 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
             }
         }
         int cost = getConfig().getInt("teleport.cost-points", 0);
+        // Прогрев: телепорт не сразу, а через teleport.warmup-seconds.
+        // Осколки и кулдаун применяются в момент САМОГО телепорта (doTeleportNow):
+        // если прогрев отменили движением/уроном, игрок ничего не теряет.
+        long warmupSeconds = bypass ? 0L : Math.max(0L, getConfig().getLong("teleport.warmup-seconds", 3L));
+        if (warmupSeconds > 0) {
+            if (tpWarmups.containsKey(player.getUniqueId())) {
+                send(player, msg("tp-warmup-already"));
+                return;
+            }
+            Location finalTarget = target.clone();
+            org.bukkit.scheduler.BukkitTask task = Bukkit.getScheduler().runTaskLater(this, () -> {
+                tpWarmups.remove(player.getUniqueId());
+                if (player.isOnline()) {
+                    doTeleportNow(player, finalTarget, bypass, cost);
+                }
+            }, warmupSeconds * 20L);
+            tpWarmups.put(player.getUniqueId(), task);
+            send(player, msg("tp-warmup").replace("{seconds}", String.valueOf(warmupSeconds)));
+            return;
+        }
+        doTeleportNow(player, target, bypass, cost);
+    }
+
+    /** Сам телепорт: списание осколков, кулдаун, звук, сообщение. */
+    private void doTeleportNow(Player player, Location target, boolean bypass, int cost) {
+        long now = System.currentTimeMillis();
         if (!bypass && cost > 0) {
             Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "points take " + player.getName() + " " + cost);
         }
@@ -1398,6 +1442,17 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
         }
         send(player, msg(cost > 0 && !bypass ? "teleported-paid" : "teleported")
                 .replace("{cost}", String.valueOf(cost)));
+    }
+
+    /** Отменить идущий прогрев телепорта (движение/урон/выход). */
+    private void cancelWarmup(Player player, boolean notify) {
+        org.bukkit.scheduler.BukkitTask task = tpWarmups.remove(player.getUniqueId());
+        if (task != null) {
+            task.cancel();
+            if (notify) {
+                send(player, msg("tp-warmup-cancelled"));
+            }
+        }
     }
 
     private boolean admin(CommandSender sender) {
