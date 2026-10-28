@@ -70,6 +70,9 @@ public final class ItemsService implements Listener {
         UUID owner;
         UUID target;
         final Map<Location, BlockData> changed = new LinkedHashMap<>();
+        // Блоки, которые трапка НЕ трогает (сундуки, регионные блоки и т.п.):
+        // они остаются как есть, но на время трапки их нельзя сломать/взорвать.
+        final Set<Location> protectedOnly = new HashSet<>();
         int minX, maxX, minY, maxY, minZ, maxZ;
         String world;
         BukkitTask task;
@@ -584,6 +587,12 @@ public final class ItemsService implements Listener {
                     if (trapBlocks.containsKey(key(block.getLocation()))) {
                         continue;
                     }
+                    if (isTrapUntouchable(block)) {
+                        // Сундуки/регионные блоки не снапшотим и не заменяем:
+                        // иначе содержимое сундука погибнет. Только защита.
+                        protectTrapBlock(trap, block);
+                        continue;
+                    }
                     trap.changed.put(block.getLocation(), block.getBlockData().clone());
                 }
             }
@@ -595,6 +604,9 @@ public final class ItemsService implements Listener {
             Block block = base.getWorld().getBlockAt(bx + cell.x - shiftX, by + cell.y, bz + cell.z - shiftZ);
             if (block.getType() == Material.BEDROCK) {
                 continue; // бедрок не трогаем
+            }
+            if (isTrapUntouchable(block)) {
+                continue; // сундуки и регионные блоки не заменяем (уже под защитой)
             }
             try {
                 block.setBlockData(Bukkit.createBlockData(cell.blockData), false);
@@ -637,6 +649,10 @@ public final class ItemsService implements Listener {
                 if (floorBlock.getType() == Material.AIR || floorBlock.getType() == Material.BEDROCK) {
                     continue; // в этой колонке пола нет (пролёт схематики) или бедрок
                 }
+                if (floorBlock.getState() instanceof org.bukkit.block.TileState
+                        || floorBlock.getState() instanceof org.bukkit.block.Container) {
+                    continue; // под сундуками/печами пол не дорисовываем их же блоком
+                }
                 BlockData floorData = floorBlock.getBlockData().clone();
                 for (int d = 1; d <= depth; d++) {
                     Block block = world.getBlockAt(x, bottom - d, z);
@@ -645,6 +661,10 @@ public final class ItemsService implements Listener {
                     }
                     if (trapBlocks.containsKey(key(block.getLocation()))) {
                         continue; // блок другой трапки
+                    }
+                    if (isTrapUntouchable(block)) {
+                        protectTrapBlock(trap, block); // сундуки/регионные блоки не затираем полом
+                        continue;
                     }
                     trap.changed.putIfAbsent(block.getLocation(), block.getBlockData().clone());
                     block.setBlockData(floorData.clone(), false);
@@ -655,12 +675,50 @@ public final class ItemsService implements Listener {
         trap.minY = bottom - depth;
     }
 
+    /**
+     * Блоки, которые трапка не имеет права заменять:
+     *  - регионные/ценные: алмазный блок, алмазная руда (и глубинная), изумрудная
+     *    руда (и глубинная), золотой блок, укреплённый глубинный сланец;
+     *  - любые блоки с блок-сущностью: сундуки, бочки, шалкеры, печи, спавнеры,
+     *    таблички и т.п. Раньше сундук заменялся блоком трапки, и его содержимое
+     *    погибало навсегда (в снапшоте только BlockData, без инвентаря) —
+     *    после конца трапки возвращался ПУСТОЙ сундук.
+     * Такие блоки остаются на месте; protectTrapBlock лишь делает их
+     * несломаемыми, пока трапка жива, чтобы нельзя было выломаться через них.
+     */
+    private static final Set<Material> TRAP_UNTOUCHABLE = java.util.EnumSet.of(
+            Material.DIAMOND_BLOCK,
+            Material.DIAMOND_ORE, Material.DEEPSLATE_DIAMOND_ORE,
+            Material.EMERALD_ORE, Material.DEEPSLATE_EMERALD_ORE,
+            Material.GOLD_BLOCK,
+            Material.REINFORCED_DEEPSLATE);
+
+    private boolean isTrapUntouchable(Block block) {
+        if (TRAP_UNTOUCHABLE.contains(block.getType())) {
+            return true;
+        }
+        // Контейнеры и прочие блок-сущности: содержимое/данные не переживут замену.
+        org.bukkit.block.BlockState state = block.getState();
+        return state instanceof org.bukkit.block.TileState
+                || state instanceof org.bukkit.block.Container;
+    }
+
+    /** Не менять блок, а только защитить его от ломания/взрыва на время трапки. */
+    private void protectTrapBlock(Trap trap, Block block) {
+        trapBlocks.put(key(block.getLocation()), trap);
+        trap.protectedOnly.add(block.getLocation());
+    }
+
     private void setTrapBlock(Trap trap, Block block, Material material) {
         if (block.getType() == Material.BEDROCK) {
             return; // бедрок не трогаем
         }
         if (trapBlocks.containsKey(key(block.getLocation()))) {
             return; // блок другой трапки
+        }
+        if (isTrapUntouchable(block)) {
+            protectTrapBlock(trap, block); // не ломаем и не заменяем — только защита
+            return;
         }
         // Запоминаем ВСЁ, что меняем (включая очистку внутренности), —
         // когда трапка рассыплется, территория восстановится блок в блок.
@@ -681,6 +739,13 @@ public final class ItemsService implements Listener {
             }
         }
         trap.changed.clear();
+        // Снять защиту с блоков, которые трапка не меняла (сундуки, регионные блоки).
+        for (Location loc : trap.protectedOnly) {
+            if (trapBlocks.get(key(loc)) == trap) {
+                trapBlocks.remove(key(loc));
+            }
+        }
+        trap.protectedOnly.clear();
         Player target = Bukkit.getPlayer(trap.target);
         if (target != null) {
             msg(target, "trap-ended", null);
