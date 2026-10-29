@@ -264,6 +264,11 @@ groups:
       - unban
       - banlist
       - invsee
+      - gamemode
+      - tp
+      - tphere
+      - tppos
+      - back
     tabcomplete:
       - ban
       - tempban
@@ -271,6 +276,11 @@ groups:
       - unban
       - banlist
       - invsee
+      - gamemode
+      - tp
+      - tphere
+      - tppos
+      - back
     priority: 8
     blocked-command-message: "Unknown command. Type \"/help\" for help."
     inherited-groups:
@@ -301,6 +311,11 @@ groups:
       - checkwarn
       - invsee
       - vanish
+      - gamemode
+      - tp
+      - tphere
+      - tppos
+      - back
     tabcomplete:
       - ban
       - tempban
@@ -323,6 +338,11 @@ groups:
       - checkwarn
       - invsee
       - vanish
+      - gamemode
+      - tp
+      - tphere
+      - tppos
+      - back
     priority: 9
     blocked-command-message: "Unknown command. Type \"/help\" for help."
     inherited-groups:
