@@ -125,6 +125,18 @@ lp group kurator permission set essentials.gamemode true
 lp group kurator permission set essentials.gamemode.spectator true
 lp group kurator permission set essentials.gamemode.survival true
 
+# --- Телепортация персонала (куратор и модератор) ---
+# /tp — к игроку, /tphere — игрока к себе, /tppos — по координатам,
+# /back — вернуться обратно. Массовый /tpall НЕ выдаём.
+lp group kurator permission set essentials.tp true
+lp group kurator permission set essentials.tphere true
+lp group kurator permission set essentials.tppos true
+lp group kurator permission set essentials.back true
+lp group moderator permission set essentials.tp true
+lp group moderator permission set essentials.tphere true
+lp group moderator permission set essentials.tppos true
+lp group moderator permission set essentials.back true
+
 # --- Веса и префиксы (если префиксы уже настроены — блок можно пропустить) ---
 # Вес нужен, чтобы при нескольких группах у игрока показывался старший ранг.
 lp group strannik setweight 10
