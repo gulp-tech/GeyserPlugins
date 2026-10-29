@@ -250,6 +250,23 @@ public final class VoidEnchants extends JavaPlugin implements Listener, TabCompl
         }
         boolean creative = player.getGameMode() == GameMode.CREATIVE;
 
+        // Контейнеры (сундуки, бочки, шалкеры, печи...) НЕ перехватываем:
+        // getDrops() для них возвращает только сам блок, а содержимое ванилла
+        // роняет отдельно именно потому, что дроп не запрещён. Наш
+        // setDropItems(false) ниже УДАЛЯЛ всё содержимое сундука насмерть
+        // (баг: «кирка с магнитом/автоплавкой ломает сундук — вещи пропали»).
+        // Поэтому контейнер ломает ванилла, магнит лишь подберёт выброшенное,
+        // а бур вокруг сработает как обычно (сами контейнеры бур не тронет).
+        if (event.getBlock().getState() instanceof org.bukkit.block.Container) {
+            if (magnet(tool) > 0) {
+                magnetSweep(player, event.getBlock().getLocation());
+            }
+            if (drill(tool) > 0 && (!creative || getConfig().getBoolean("drill.in-creative", true))) {
+                expandDrill(player, event.getBlock(), tool, drill(tool));
+            }
+            return;
+        }
+
         // Дроп уже забрал другой плагин (кастомный дроп шахты LMAutoMine: керамика -> жемчуг, пурпур -> хорус).
         // Блок не трогаем, но магнит подберёт выброшенное, а бур всё равно сработает.
         if (!event.isDropItems()) {
@@ -287,6 +304,9 @@ public final class VoidEnchants extends JavaPlugin implements Listener, TabCompl
             for (Block target : targets) {
                 if (target.getType().isAir() || target.getType() == Material.BEDROCK) {
                     continue;
+                }
+                if (target.getState() instanceof org.bukkit.block.Container) {
+                    continue; // контейнеры бур не ломает: setType(AIR) стёр бы содержимое
                 }
                 BlockBreakEvent synthetic = new BlockBreakEvent(target, player);
                 Bukkit.getPluginManager().callEvent(synthetic);
