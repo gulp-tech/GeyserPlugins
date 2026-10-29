@@ -118,6 +118,12 @@ lp group kurator permission set litebans.checkwarn true
 lp group kurator permission set litebans.notify.mute true
 lp group kurator permission set litebans.exempt true
 lp group kurator permission set plhide.group.kurator true
+# Спектатор для надзора (только себе, не другим; обратно — survival).
+# essentials.gamemode без суффикса = сама команда, дальше ограничены режимы:
+# только spectator и survival — креатива у куратора нет.
+lp group kurator permission set essentials.gamemode true
+lp group kurator permission set essentials.gamemode.spectator true
+lp group kurator permission set essentials.gamemode.survival true
 
 # --- Веса и префиксы (если префиксы уже настроены — блок можно пропустить) ---
 # Вес нужен, чтобы при нескольких группах у игрока показывался старший ранг.
