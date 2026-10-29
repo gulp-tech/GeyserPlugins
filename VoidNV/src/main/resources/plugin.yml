@@ -1,0 +1,22 @@
+name: VoidNV
+version: '${project.version}'
+main: ru.voidpe.nv.VoidNV
+api-version: '26.2'
+author: VoidPE
+description: '/nv — ночное зрение навсегда (до смерти). После смерти не восстанавливается, кулдаун 5 минут.'
+commands:
+  nv:
+    description: 'Включить ночное зрение до смерти'
+    usage: /nv
+    permission: voidnv.use
+  voidnv:
+    description: 'VoidNV: reload конфига'
+    usage: /voidnv reload
+    permission: voidnv.admin
+permissions:
+  voidnv.use:
+    description: Использование /nv
+    default: true
+  voidnv.admin:
+    description: Перезагрузка конфига
+    default: op

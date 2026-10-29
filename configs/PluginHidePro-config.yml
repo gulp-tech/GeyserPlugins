@@ -126,6 +126,7 @@ groups:
       - cases
       - titles
       - voidtab
+      - nv
       - event
       - events
     #The list of commands that will be made visible only in tabcomplete
@@ -188,6 +189,7 @@ groups:
       - cases
       - titles
       - voidtab
+      - nv
       - event
       - events
     #If a player is in two groups, the group with the higher priority number is used
