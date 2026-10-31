@@ -1,0 +1,36 @@
+# ============================================================
+#  VoidPE — медиа-ранги TikToker и YouTuber (LuckPerms)
+#  Вводить в консоли Pterodactyl ПО ОДНОЙ строке, без слэша.
+#  Порядок: сначала создать группу, потом префикс, потом выдать игроку.
+# ============================================================
+
+# ---- 1. Создать группы (если LuckPerms ответит, что группа уже есть — пропустить строку)
+lp creategroup tiktoker
+lp creategroup youtuber
+
+# ---- 2. Префикс для чата, TAB и ника над головой (единый источник — LuckPerms).
+#        80 — вес: выше Императора (70), ниже Куратора (95).
+lp group tiktoker meta setprefix 80 "&#55E6FFТиктокер &r"
+lp group youtuber meta setprefix 80 "&#FF5555Ютубер &r"
+
+# ---- 3. Лимит приватов: 6 регионов (если эта строка ещё не применялась)
+lp group tiktoker permission set worldguard.region.max-region-count.6 true
+lp group youtuber permission set worldguard.region.max-region-count.6 true
+
+# ---- 4. Выдача игроку. Замени Ник на настоящий ник. parent add, НЕ parent set.
+lp user Ник parent add tiktoker
+# lp user Ник parent add youtuber
+
+# ---- 5. Проверка
+lp user Ник info
+lp group tiktoker info
+
+# ============================================================
+#  Примечания:
+#  * Значок в VoidTab (E11F «Тиктокер», E11E «Ютубер») уже настроен,
+#    отдельно ничего включать не нужно.
+#  * Снять ранг: lp user Ник parent remove tiktoker
+#  * Сейчас у медиа-рангов есть только значок и лимит приватов.
+#    Если нужно дать кит, /fly или права как у Князя — сказать,
+#    добавим отдельными командами.
+# ============================================================
