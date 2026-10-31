@@ -859,7 +859,9 @@ public final class ItemsService implements Listener {
             for (CustomItem.EffectDef e : effects) {
                 other.addPotionEffect(new PotionEffect(e.type(), e.durationSeconds() * 20, e.amplifier(), true, false, true));
             }
-            if (item.num("rotate-view", 1) > 0) {
+            // Разворот через teleport() ломает прицел на Bedrock (бьют мимо — и по ним, и по тем, кто кидает).
+            // По умолчанию выключен: rotate-view: 1 в конфиге включит обратно.
+            if (item.num("rotate-view", 0) > 0) {
                 Location loc = other.getLocation();
                 float turn = 120f + ThreadLocalRandom.current().nextFloat() * 120f;
                 if (ThreadLocalRandom.current().nextBoolean()) {

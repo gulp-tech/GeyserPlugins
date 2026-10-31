@@ -140,10 +140,10 @@ items:
     lore:
       - "&7ПКМ: враги в радиусе получают:"
       - "&cСлепота 5 сек, Тошнота 5 сек,"
-      - "&cЗамедление III 5 сек + разворот экрана."
+      - "&cЗамедление III 5 сек."
     radius: 9
     cooldown-seconds: 45
-    rotate-view: 1         # 1 — разворачивать экран врагам, 0 — нет
+    rotate-view: 0         # 1 — разворачивать экран врагам (ломает прицел на Bedrock), 0 — нет
     sound: "entity.wither.ambient"
     effects:
       - {type: BLINDNESS, amplifier: 0, duration: 5}
