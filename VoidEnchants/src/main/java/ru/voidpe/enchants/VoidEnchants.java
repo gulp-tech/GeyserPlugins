@@ -28,6 +28,7 @@ import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.inventory.PrepareAnvilEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerItemDamageEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.AnvilInventory;
 import org.bukkit.inventory.EquipmentSlot;
@@ -232,6 +233,56 @@ public final class VoidEnchants extends JavaPlugin implements Listener, TabCompl
 
     private String plainName(String enchant) {
         return color(getConfig().getString("enchant-names." + enchant, enchant)).replaceAll("§.", "");
+    }
+
+    // ------------------------------------------------------------ износ брони
+
+    /**
+     * Износ надетой брони. Ванильная скорость износа на сервере ощущается слишком
+     * жёсткой: при постоянном PvP и мобах нагрудник сгорает за пару часов. Множитель
+     * armor.durability-multiplier в config.yml уменьшает урон прочности брони.
+     *
+     * Считаем вероятностно, а не округлением: броня теряет 1 единицу прочности за
+     * событие, поэтому при 0.4 каждое событие с шансом 40% проходит как обычно,
+     * а в 60% случаев прочность не тратится. Итог — износ ровно в 2.5 раза медленнее.
+     */
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onArmorDurability(PlayerItemDamageEvent event) {
+        if (!isArmorPiece(event.getItem().getType())) {
+            return;
+        }
+        double multiplier = getConfig().getDouble("armor.durability-multiplier", 0.4);
+        if (multiplier >= 1.0) {
+            return; // 1.0 и выше — ванильное поведение, ничего не меняем
+        }
+        if (multiplier <= 0.0) {
+            event.setCancelled(true); // броня не изнашивается вообще
+            return;
+        }
+        int damage = event.getDamage();
+        if (damage <= 0) {
+            return;
+        }
+        double scaled = damage * multiplier;
+        int kept = (int) Math.floor(scaled);
+        if (ThreadLocalRandom.current().nextDouble() < scaled - kept) {
+            kept++;
+        }
+        if (kept >= damage) {
+            return;
+        }
+        event.setDamage(Math.max(0, kept));
+    }
+
+    /** Надеваемая броня: шлемы, нагрудники, поножи, ботинки (включая черепаший панцирь и броню волка). */
+    private boolean isArmorPiece(Material type) {
+        String name = type.name();
+        return name.endsWith("_HELMET")
+                || name.endsWith("_CHESTPLATE")
+                || name.endsWith("_LEGGINGS")
+                || name.endsWith("_BOOTS")
+                || type == Material.TURTLE_HELMET
+                || type == Material.WOLF_ARMOR;
     }
 
     // ------------------------------------------------------------ добыча: автоплавка + магнит + бур
