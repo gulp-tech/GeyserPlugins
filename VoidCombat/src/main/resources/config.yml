@@ -189,3 +189,7 @@ item-names:
   golden-apple: "Золотое яблоко"
   enchanted-golden-apple: "Зачарованное золотое яблоко"
   healing-potion: "Зелье исцеления"
+
+# Булава: удар засчитывается только полностью заряженный (иначе отменяется).
+mace:
+  require-full-charge: true

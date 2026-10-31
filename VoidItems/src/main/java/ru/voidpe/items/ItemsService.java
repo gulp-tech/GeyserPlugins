@@ -64,6 +64,7 @@ public final class ItemsService implements Listener {
     private final Map<UUID, Map<String, Long>> cooldowns = new HashMap<>();
     private final List<Trap> traps = new ArrayList<>();
     private final Map<String, Trap> trapBlocks = new HashMap<>(); // "world:x,y,z" -> трапка
+    private final Map<UUID, Integer> lastUseTick = new HashMap<>(); // последний тик использования кастомного предмета
     private final Map<UUID, Long> revealed = new HashMap<>(); // подсвеченные явной пылью: uuid -> конец (мс)
 
     private static final class Trap {
@@ -399,7 +400,9 @@ public final class ItemsService implements Listener {
     // ------------------------------------------------------------------ использование (ПКМ)
     @EventHandler(ignoreCancelled = true)
     public void onUse(PlayerInteractEvent event) {
-        if (event.getHand() != EquipmentSlot.HAND) {
+        // Bedrock присылает клик по воздуху без руки (null) — раньше такие клики молча отбрасывались.
+        // Отбрасываем только вторую руку: предмет всё равно берём из основной.
+        if (event.getHand() == EquipmentSlot.OFF_HAND) {
             return;
         }
         Action action = event.getAction();
@@ -409,6 +412,13 @@ public final class ItemsService implements Listener {
         Player player = event.getPlayer();
         String id = identify(player.getInventory().getItemInMainHand());
         if (id == null) {
+            return;
+        }
+        // Один клик может прийти двумя событиями (с рукой и без) — обрабатываем только первое за тик.
+        int tick = Bukkit.getCurrentTick();
+        Integer lastTick = lastUseTick.put(player.getUniqueId(), tick);
+        if (lastTick != null && lastTick == tick) {
+            event.setCancelled(true);
             return;
         }
         CustomItem item = byId(id);

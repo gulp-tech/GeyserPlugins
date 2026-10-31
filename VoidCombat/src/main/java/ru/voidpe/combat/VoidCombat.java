@@ -26,6 +26,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityShootBowEvent;
 import org.bukkit.event.entity.EntityToggleGlideEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
@@ -780,7 +781,8 @@ public final class VoidCombat extends JavaPlugin implements Listener, CommandExe
      */
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onCustomInteract(PlayerInteractEvent event) {
-        if (event.getHand() != EquipmentSlot.HAND) {
+        // null (клик по воздуху из Bedrock) — тоже обрабатываем; отбрасываем только вторую руку
+        if (event.getHand() == EquipmentSlot.OFF_HAND) {
             return;
         }
         Action action = event.getAction();
@@ -815,6 +817,29 @@ public final class VoidCombat extends JavaPlugin implements Listener, CommandExe
                 startCooldown(player, item);
             }
         });
+    }
+
+    /**
+     * Булава: урон только при полностью заряженном ударе (как в ванили). Частые клики
+     * без перезарядки давали огромный урон — такие удары отменяем.
+     */
+    @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
+    public void onMaceHit(EntityDamageByEntityEvent event) {
+        if (event.getCause() != EntityDamageEvent.DamageCause.ENTITY_ATTACK) {
+            return;
+        }
+        if (!(event.getDamager() instanceof Player player)) {
+            return;
+        }
+        if (player.getInventory().getItemInMainHand().getType() != Material.MACE) {
+            return;
+        }
+        if (!getConfig().getBoolean("mace.require-full-charge", true)) {
+            return;
+        }
+        if (player.getAttackCooldown() < 0.95f) {
+            event.setCancelled(true);
+        }
     }
 
     /** Лом спавнеров срабатывает не кликом, а ломанием спавнера. */
