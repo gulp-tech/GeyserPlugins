@@ -6,7 +6,7 @@
 
     <groupId>ru.voidpe</groupId>
     <artifactId>VoidDrops</artifactId>
-    <version>1.1.0</version>
+    <version>1.1.1</version>
     <packaging>jar</packaging>
     <name>VoidDrops</name>
     <description>Дроп монет с мобов и игроков для Bedrock-сервера VoidPE: зачарованный золотой слиток, подбор начисляет монеты Vault. Всё настраивается в config.yml.</description>

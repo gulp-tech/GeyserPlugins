@@ -67,6 +67,13 @@ public final class VoidEnchants extends JavaPlugin implements Listener, TabCompl
 
     private NamespacedKey keyAutosmelt;
     private NamespacedKey keyMagnet;
+    /** Монета VoidDrops (золотой слиток с меткой): в инвентарь магнитом НЕ берём — только через подбор с начислением. */
+    private final NamespacedKey keyCoin = new NamespacedKey("voiddrops", "coin_amount");
+
+    private boolean isCoin(ItemStack stack) {
+        return stack != null && stack.hasItemMeta()
+                && stack.getItemMeta().getPersistentDataContainer().has(keyCoin, PersistentDataType.LONG);
+    }
     private NamespacedKey keyDrill;
 
     /** Игроки, у которых прямо сейчас обрабатываются дополнительные блоки бура (анти-рекурсия). */
@@ -355,6 +362,9 @@ public final class VoidEnchants extends JavaPlugin implements Listener, TabCompl
         Bukkit.getScheduler().runTask(this, () -> {
             for (org.bukkit.entity.Entity entity : center.getWorld().getNearbyEntities(center, 1.6, 1.6, 1.6)) {
                 if (entity instanceof org.bukkit.entity.Item itemEntity && itemEntity.getTicksLived() < 40) {
+                    if (isCoin(itemEntity.getItemStack())) {
+                        continue; // монета VoidDrops не уходит в инвентарь (дюп) — остаётся на земле для подбора с начислением
+                    }
                     ItemStack stack = itemEntity.getItemStack().clone();
                     itemEntity.remove();
                     if (tryAutoBuy(player, stack)) {
@@ -529,6 +539,10 @@ public final class VoidEnchants extends JavaPlugin implements Listener, TabCompl
         List<ItemStack> drops = new ArrayList<>(event.getDrops());
         event.getDrops().clear();
         for (ItemStack drop : drops) {
+            if (isCoin(drop)) {
+                event.getDrops().add(drop); // монета VoidDrops — не в инвентарь, падает на землю
+                continue;
+            }
             Map<Integer, ItemStack> left = killer.getInventory().addItem(drop);
             for (ItemStack rest : left.values()) {
                 killer.getWorld().dropItemNaturally(killer.getLocation(), rest);

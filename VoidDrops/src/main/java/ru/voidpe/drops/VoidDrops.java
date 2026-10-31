@@ -23,6 +23,7 @@ import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.event.inventory.InventoryPickupItemEvent;
 import org.bukkit.event.server.PluginEnableEvent;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
@@ -250,6 +251,20 @@ public final class VoidDrops extends JavaPlugin implements Listener, CommandExec
         event.getItem().remove();
         String text = getConfig().getString("messages.picked", "&#FFD93D+{amount} монет");
         player.sendActionBar(comp(text.replace("{amount}", fmt(total))));
+    }
+
+    /**
+     * Монеты нельзя положить в инвентарь ни одним путём: хоппер/воронка и прочие
+     * InventoryPickupItem не должны забирать монету в сундук/инвентарь (дюп — предмет
+     * без начисления). Монета берётся только обычным подбором игроком с начислением.
+     */
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
+    public void onInventoryPickup(InventoryPickupItemEvent event) {
+        ItemStack stack = event.getItem().getItemStack();
+        if (stack.getItemMeta() != null
+                && stack.getItemMeta().getPersistentDataContainer().has(coinKey, PersistentDataType.LONG)) {
+            event.setCancelled(true);
+        }
     }
 
     // ------------------------------------------------------------------ команда
