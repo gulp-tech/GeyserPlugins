@@ -1,19 +1,23 @@
 # AGENT HANDOFF — проект VoidPE (GeyserPlugins)
 
-> Ты продолжаешь работу над Minecraft-сервером **VoidPE**. Прочитай этот файл ЦЕЛИКОМ перед любыми действиями. С пользователем общаться **по-русски**. Работаешь в репозитории https://github.com/gulp-tech/GeyserPlugins, ветка **`arena/874b2be9-geyserplugins`** (коммитить и пушить только в неё; PR из ветки уже открыт, статус `pr_open`). Текущий HEAD: `17d5c22`.
+> Ты продолжаешь работу над Minecraft-сервером **VoidPE**. Прочитай этот файл ЦЕЛИКОМ перед любыми действиями. С пользователем общаться **по-русски**. Работаешь в репозитории https://github.com/gulp-tech/GeyserPlugins, ветка **`arena/874b2be9-geyserplugins`** (коммитить и пушить только в неё; PR из ветки уже открыт, статус `pr_open`). Текущий HEAD: `f617116` (релиз v1.72.0).
 
 ## 1. Что за проект
 
 - Bedrock-only сервер **VoidPE** (раньше FaralMC). Исторический стек: **Purpur 26.2 (Java 25)** + Geyser 2.12 + Floodgate, заход с Java запрещён.
 - **НОВОЕ (указание пользователя):** сервер переезжает на кастомное ядро **Purpurbedrock 26.2** — чистый Bedrock-сервер с полной поддержкой Java-плагинов и сундучных Java-меню, клиенты Bedrock **1.21.0–26.52**. На нём НЕ используются плагины Geyser-Spigot/Floodgate и eCloud-расширения; данные игрока Bedrock ядро отдаёт через встроенные плейсхолдеры PlaceholderAPI `%purpurbedrock_*%` (см. раздел 8). Расширения Geyser из репозитория пока не удаляем — без прямого указания пользователя ничего не сносить.
 - Всё самописное: плагины Paper/Purpur (Maven, Java 25), расширения Geyser (Gradle), ресурспаки Bedrock, конфиги в `configs/`.
-- Релизы: тег `v*` → `release.yml` публикует GitHub Release с **отдельными jar каждого модуля**; пользователь качает прямые ссылки. Последний релиз: **v1.71.0** (15 ассетов). Следующий запланирован **v1.72.0** (16 ассетов: + VoidVersionsExtension 1.4.0, VoidRtpZone 1.0.0, VoidTab 1.16.0, VoidCombat 1.3.0).
+- Релизы: тег `v*` → `release.yml` публикует GitHub Release с **отдельными jar каждого модуля**; пользователь качает прямые ссылки. Последний релиз: **v1.72.0** (18 ассетов, 2026-11-01).
 
-## 2. ⚠️ ГЛАВНЫЙ БЛОКЕР: GitHub Actions не работает (биллинг)
+## 2. ✅ CI РАБОТАЕТ — сборка и релизы только через GitHub Actions
 
-- Все джобы падают на старте: «The job was not started because recent account payments have failed or your spending limit needs to be increased». Проверено многократно, включая последний коммит `17d5c22` (ран `40201964974`). Пока пользователь не починит оплату/лимит в **GitHub → Settings → Billing & plans**, собрать или выпустить НЕЛЬЗЯ НИЧЕГО. Теги не ставить (релизный ран упадёт; перевыпуск потом — удалить тег и запушить заново).
-- Как только пользователь напишет, что биллинг починен: (1) найти CI-ран на последний коммит ветки и проверить, что шаги **VoidVersionsExtension** и **VoidRtpZone** = success (финальный статус рана может быть failure из-за квоты upload-artifact — смотреть именно шаги); (2) поставить тег `v1.72.0`; (3) проверить `gh release view v1.72.0` — 16 ассетов, есть `VoidVersionsExtension-1.4.0.jar` и `VoidRtpZone-1.0.0.jar`; (4) дать пользователю прямые ссылки.
-- Пользователю уже обещана ссылка вида `https://github.com/gulp-tech/GeyserPlugins/releases/download/v1.72.0/VoidRtpZone-1.0.0.jar` — она оживёт после релиза.
+- Биллинг GitHub починен 2026-11-01: раны проходят (последние — `41317810289` build, `41318042924` release, оба success).
+- **Указание пользователя: следующий раз собирать через GitHub Actions**, а не отдавать zip с исходниками.
+- Релиз **v1.72.0 опубликован** (2026-11-01, 18 ассетов): VoidEnchants-1.2.5, VoidItems-1.8.3, VoidShulker-1.0.0, VoidNV-1.0.0, VoidCombat-1.3.1, VoidDrops-1.1.1, VoidTab-1.16.5, VoidWardenCity-1.4.1, VoidRtpZone-1.0.0, VoidVersionsExtension-1.4.0, VoidAnvilExtension-1.0.0, VoidTalismans-1.7.5, VoidCases-1.4.2, VoidClans-1.2.0, VoidAntiCheat-1.0.0, VoidAuthSpawn-1.2.0, VoidResourcePack.mcpack, VoidSpheres.mcpack.
+- Ссылки вида `https://github.com/gulp-tech/GeyserPlugins/releases/download/v1.72.0/VoidItems-1.8.3.jar` (302 → отдаётся в браузере; в песочнице содержимое не скачать).
+- CI исправлен (`f617116`): build.yml собирает VoidShulker и кладёт в артефакт `VoidPE-release` jar VoidItems/VoidEnchants/VoidShulker/VoidNV; release.yml собирает VoidShulker, VoidNV и прикладывает их к релизу.
+- Как выпускать следующий релиз: `git tag -a vX.Y.Z -m "..." && git push origin vX.Y.Z` → release.yml сам соберёт и опубликует. Артефакты Actions (`VoidPE-release.zip`) скачиваются только из UI/браузера — блоб-хранилище `productionresultssa*.blob.core.windows.net` в песочнице недоступно.
+- Срок жизни артефактов — 90 дней.
 
 ## 3. Среда песочницы (важно, не тратить время зря)
 
