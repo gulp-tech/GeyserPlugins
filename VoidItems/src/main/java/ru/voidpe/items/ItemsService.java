@@ -21,9 +21,11 @@ import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockExplodeEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
+import org.bukkit.event.Event;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemConsumeEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
@@ -64,7 +66,7 @@ public final class ItemsService implements Listener {
     private final Map<UUID, Map<String, Long>> cooldowns = new HashMap<>();
     private final List<Trap> traps = new ArrayList<>();
     private final Map<String, Trap> trapBlocks = new HashMap<>(); // "world:x,y,z" -> трапка
-    private final Map<UUID, Integer> lastUseTick = new HashMap<>(); // последний тик использования кастомного предмета
+    private final Map<UUID, String> lastUse = new HashMap<>(); // "id@тик" — чтобы один клик не срабатывал дважды
     private final Map<UUID, Long> revealed = new HashMap<>(); // подсвеченные явной пылью: uuid -> конец (мс)
 
     private static final class Trap {
@@ -355,26 +357,49 @@ public final class ItemsService implements Listener {
     }
 
     // ------------------------------------------------------------------ кулдауны
-    private long cooldownLeft(UUID uuid, CustomItem item) {
-        Map<String, Long> byItem = cooldowns.get(uuid);
-        if (byItem == null) {
-            return 0;
-        }
-        Long until = byItem.get(item.id());
-        if (until == null) {
-            return 0;
-        }
-        long left = (until - System.currentTimeMillis()) / 1000L;
-        return Math.max(0, left);
+    //
+    // Кулдаун хранится и в памяти, и в данных игрока (PersistentDataContainer):
+    // после рестарта сервера он не сбрасывается — раньше «кд пропадал» именно из-за этого.
+
+    private NamespacedKey cooldownKey(CustomItem item) {
+        return new NamespacedKey(plugin, "cd_" + item.id().toLowerCase(java.util.Locale.ROOT));
     }
 
-    private void startCooldown(UUID uuid, CustomItem item) {
+    private long cooldownLeft(Player player, CustomItem item) {
+        long until = 0;
+        Map<String, Long> byItem = cooldowns.get(player.getUniqueId());
+        if (byItem != null) {
+            Long value = byItem.get(item.id());
+            if (value != null) {
+                until = value;
+            }
+        }
+        if (until <= System.currentTimeMillis()) {
+            // страховка на случай рестарта: срок хранится в самом игроке
+            Long saved = player.getPersistentDataContainer().get(cooldownKey(item), PersistentDataType.LONG);
+            if (saved != null && saved > until) {
+                until = saved;
+                cooldowns.computeIfAbsent(player.getUniqueId(), k -> new HashMap<>()).put(item.id(), until);
+            }
+        }
+        if (until <= 0) {
+            return 0;
+        }
+        long leftMillis = until - System.currentTimeMillis();
+        if (leftMillis <= 0) {
+            return 0;
+        }
+        return (long) Math.ceil(leftMillis / 1000.0);
+    }
+
+    private void startCooldown(Player player, CustomItem item) {
         long seconds = (long) item.num("cooldown-seconds", 30);
         if (seconds <= 0) {
             return;
         }
-        cooldowns.computeIfAbsent(uuid, k -> new HashMap<>())
-                .put(item.id(), System.currentTimeMillis() + seconds * 1000L);
+        long until = System.currentTimeMillis() + seconds * 1000L;
+        cooldowns.computeIfAbsent(player.getUniqueId(), k -> new HashMap<>()).put(item.id(), until);
+        player.getPersistentDataContainer().set(cooldownKey(item), PersistentDataType.LONG, until);
     }
 
     private void consumeMainHand(Player player) {
@@ -398,56 +423,93 @@ public final class ItemsService implements Listener {
     }
 
     // ------------------------------------------------------------------ использование (ПКМ)
-    @EventHandler(ignoreCancelled = true)
-    public void onUse(PlayerInteractEvent event) {
-        // Bedrock присылает клик по воздуху без руки (null) — раньше такие клики молча отбрасывались.
-        // Отбрасываем только вторую руку: предмет всё равно берём из основной.
-        if (event.getHand() == EquipmentSlot.OFF_HAND) {
-            return;
+    //
+    // ВАЖНО (Bedrock): клик ПО ВОЗДУХУ приходит от клиента уже отменённым событием и
+    // без руки (hand == null). Из-за ignoreCancelled = true такой клик молча терялся —
+    // трапку и пыль нельзя было применить, глядя в небо или в стену вдалеке.
+    // Поэтому клик по воздуху ловим отдельным обработчиком на LOWEST и БЕЗ
+    // ignoreCancelled: отменённое событие нам всё равно нужно. Клик по блоку
+    // обрабатываем как раньше (уважаем отмену защитой региона).
+    @EventHandler(priority = EventPriority.LOWEST)
+    public void onUseAir(PlayerInteractEvent event) {
+        if (event.getAction() == Action.RIGHT_CLICK_AIR) {
+            handleUse(event);
         }
-        Action action = event.getAction();
-        if (action != Action.RIGHT_CLICK_AIR && action != Action.RIGHT_CLICK_BLOCK) {
+    }
+
+    @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
+    public void onUseBlock(PlayerInteractEvent event) {
+        if (event.getAction() == Action.RIGHT_CLICK_BLOCK) {
+            handleUse(event);
+        }
+    }
+
+    /** Общая обработка ПКМ кастомным предметом. */
+    private void handleUse(PlayerInteractEvent event) {
+        // Отбрасываем только вторую руку: предмет берём из основной.
+        if (event.getHand() == EquipmentSlot.OFF_HAND) {
             return;
         }
         Player player = event.getPlayer();
         String id = identify(player.getInventory().getItemInMainHand());
-        if (id == null) {
-            return;
-        }
-        // Один клик может прийти двумя событиями (с рукой и без) — обрабатываем только первое за тик.
-        int tick = Bukkit.getCurrentTick();
-        Integer lastTick = lastUseTick.put(player.getUniqueId(), tick);
-        if (lastTick != null && lastTick == tick) {
-            event.setCancelled(true);
-            return;
-        }
-        CustomItem item = byId(id);
+        CustomItem item = id == null ? null : byId(id);
         if (item == null || item.kind() == CustomItem.Kind.POTION || item.kind() == CustomItem.Kind.LOM
                 || item.kind() == CustomItem.Kind.ARMOR || item.kind() == CustomItem.Kind.GEAR) {
-            return; // зелья пьются как обычно, лом работает при ломании блока, броня и инструменты используются как обычные
+            return; // зелья пьются как обычно, лом работает при ломании блока, броня и инструменты — как обычные
         }
+        // Наш предмет: гасим ванильное использование (постановка блока, каст предмета).
         event.setCancelled(true);
+        event.setUseItemInHand(Event.Result.DENY);
+        event.setUseInteractedBlock(Event.Result.DENY);
+
+        // Один клик может прийти двумя событиями (обе руки / два пакета) — обрабатываем
+        // только первое за тик. Ключ включает id предмета, чтобы разные предметы не мешали друг другу.
+        int tick = Bukkit.getCurrentTick();
+        String key = item.id() + "@" + tick;
+        if (key.equals(lastUse.get(player.getUniqueId()))) {
+            return;
+        }
+        lastUse.put(player.getUniqueId(), key);
+
         if (isBanned(player.getLocation())) {
             msg(player, "banned", item);
             return;
         }
-        long left = cooldownLeft(player.getUniqueId(), item);
+        long left = cooldownLeft(player, item);
         if (left > 0) {
             msg(player, "cooldown", item, "{seconds}", String.valueOf(left));
             return;
         }
-        boolean used = false;
+        boolean activated = false;
+        boolean consume = false;
         if (item.kind() == CustomItem.Kind.TRAP) {
-            used = useTrap(player, item);
+            useTrap(player, item);
+            activated = true;
+            consume = true;
         } else if (item.kind() == CustomItem.Kind.DUST) {
-            used = useDust(player, item);
+            useDust(player, item);
+            activated = true;
+            consume = true;
         } else if (item.kind() == CustomItem.Kind.DISORIENT) {
-            used = useDisorient(player, item);
+            // КД включается ВСЕГДА, даже если рядом никого не было (раньше в этом случае
+            // кулдаун не запускался и предмет можно было жать без ограничений).
+            consume = useDisorient(player, item);
+            activated = true;
         }
-        if (used) {
+        if (consume) {
             consumeMainHand(player);
-            startCooldown(player.getUniqueId(), item);
         }
+        if (activated) {
+            startCooldown(player, item);
+        }
+    }
+
+    /** Чистим память при выходе: кулдауны восстановятся из данных игрока (PDC). */
+    @EventHandler
+    public void onQuit(PlayerQuitEvent event) {
+        UUID uuid = event.getPlayer().getUniqueId();
+        lastUse.remove(uuid);
+        cooldowns.remove(uuid);
     }
 
     /** Кастомные зелья в запретной зоне пить нельзя (раньше зелья были исключением). */
