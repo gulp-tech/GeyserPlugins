@@ -732,17 +732,19 @@ public final class VoidEnchants extends JavaPlugin implements Listener, TabCompl
         int aFirst = autosmelt(first), aSecond = autosmelt(second);
         int mFirst = magnet(first), mSecond = magnet(second);
         int dFirst = drill(first), dSecond = drill(second);
-        // кастомные чары: одинаковый уровень объединяется в +1 (бур — до II), применимость проверяем
+        // кастомные чары: одинаковый уровень объединяется в +1, кроме бура — у него
+        // потолок из конфига (по умолчанию 1, то есть бур I + бур I не соединяется).
+        int drillCap = drillMaxLevel();
         int a = combine(aFirst, aSecond, 1);
         int m = combine(mFirst, mSecond, 1);
-        int d = combine(dFirst, dSecond, 2);
+        int d = combine(dFirst, dSecond, drillCap);
         if (!applicable("autosmelt", result)) a = Math.max(aFirst, 0);
         if (!applicable("magnet", result)) m = Math.max(mFirst, 0);
         if (!applicable("drill", result)) d = Math.max(dFirst, 0);
         if (isBook(result)) {
             a = combine(aFirst, aSecond, 1);
             m = combine(mFirst, mSecond, 1);
-            d = combine(dFirst, dSecond, 2);
+            d = combine(dFirst, dSecond, drillCap);
         }
         setCustom(result, a, m, d);
         return result;
@@ -992,6 +994,11 @@ public final class VoidEnchants extends JavaPlugin implements Listener, TabCompl
     private void takeCombineResult(Player player, Inventory inv) {
         ItemStack result = inv.getItem(COMBINE_RESULT);
         if (result == null || result.getType().isAir()) {
+            // Пустой слот: объясняем причину, если это потолок бура.
+            if (drillAtMax(inv.getItem(COMBINE_LEFT), inv.getItem(COMBINE_RIGHT))) {
+                msg(player, "anvil-drill-max");
+                player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 0.8f, 1.0f);
+            }
             return;
         }
         int cost = Math.max(0, getConfig().getInt("anvil.xp-cost", 8));
@@ -1035,6 +1042,23 @@ public final class VoidEnchants extends JavaPlugin implements Listener, TabCompl
             }
         }
         event.getInventory().setItem(COMBINE_RESULT, null);
+    }
+
+    /** Потолок бура при объединении: anvil.drill-max-level (1 — бур I + бур I не соединяются). */
+    private int drillMaxLevel() {
+        return Math.max(1, getConfig().getInt("anvil.drill-max-level", 1));
+    }
+
+    /**
+     * Бур на максимуме: две одинаковые книги/кирки с буром на потолке больше не усиливаются.
+     * Нужно, чтобы игрок получал объяснение, а не пустой слот результата.
+     */
+    private boolean drillAtMax(ItemStack first, ItemStack second) {
+        if (first == null || second == null) {
+            return false;
+        }
+        int left = drill(first);
+        return left > 0 && left == drill(second) && left >= drillMaxLevel();
     }
 
     private int combine(int first, int second, int cap) {
@@ -1195,7 +1219,7 @@ public final class VoidEnchants extends JavaPlugin implements Listener, TabCompl
                 msg(player, "not-applicable");
                 return true;
             }
-            int cap = enchant.equals("drill") ? 2 : 1;
+            int cap = enchant.equals("drill") ? drillMaxLevel() : 1;
             setCustom(hand,
                     enchant.equals("autosmelt") ? Math.min(level, cap) : autosmelt(hand),
                     enchant.equals("magnet") ? Math.min(level, cap) : magnet(hand),
