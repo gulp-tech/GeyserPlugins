@@ -53,11 +53,13 @@ public final class NametagManager {
      * Команды неймтегов включены? На Bedrock неймтег над головой берётся из
      * display-name игрока, а команды нужны только как страховка. Каждая команда
      * живёт на борде КАЖДОГО игрока (у всех свой сайдбар-борд), то есть их N x N —
-     * это самая дорогая часть плагина. Выключение (nametag.use-teams: false)
-     * убирает тысячи пакетов и разгружает клиенты слабых телефонов.
+     * это самая дорогая часть плагина. Стоимость снижена: команды создаются
+     * только для игроков своего мира, новый борд наполняется до назначения
+     * (один пакет), принудительная пересылка имён выключена. Полное выключение
+     * (настройка false) убирает оформление над головой — это не рекомендуется.
      */
     private boolean teamsEnabled() {
-        return plugin.getConfig().getBoolean("nametag.use-teams", false);
+        return plugin.getConfig().getBoolean("nametag.use-teams", true);
     }
 
     private void ensureHealthObjective(Scoreboard board) {

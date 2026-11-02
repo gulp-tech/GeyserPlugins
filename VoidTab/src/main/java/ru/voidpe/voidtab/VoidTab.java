@@ -190,6 +190,17 @@ public final class VoidTab extends JavaPlugin implements Listener, CommandExecut
             getLogger().info("Миграция 1.16.6: команды неймтегов выключены (use-teams: false), принудительная пересылка имён выключена — меньше пакетов и фризов.");
         }
 
+        // 1.16.7: в 1.16.6 команды неймтегов были выключены — из-за этого пропало
+        // оформление над головой. Возвращаем их всем, кто успел обновиться.
+        if (!getConfig().getBoolean("nametag-teams-restored-1-16-7", false)) {
+            if (!getConfig().getBoolean("nametag.use-teams", true)) {
+                getConfig().set("nametag.use-teams", true);
+                getLogger().info("Миграция 1.16.7: команды неймтегов снова включены (оформление над головой вернулось).");
+            }
+            getConfig().set("nametag-teams-restored-1-16-7", true);
+            saveConfig();
+        }
+
         // Заголовок скорборда: пиксельная полоса -> обычный читаемый текст VoidPE (один раз).
         if (!getConfig().getBoolean("scoreboard.title-text-migrated", false)) {
             getConfig().set("scoreboard.title-logo.enabled", false);
@@ -354,10 +365,26 @@ public final class VoidTab extends JavaPlugin implements Listener, CommandExecut
     @EventHandler
     public void onTeleport(PlayerTeleportEvent event) {
         Player player = event.getPlayer();
+        boolean worldChange = event.getTo() != null && event.getFrom().getWorld() != null
+                && event.getTo().getWorld() != null
+                && !event.getFrom().getWorld().equals(event.getTo().getWorld());
         long delay = Math.max(0L, getConfig().getLong("performance.appearance-delay-ticks", 5L));
         Bukkit.getScheduler().runTaskLater(this, () -> {
-            if (player.isOnline()) {
-                queueAppearance(player);
+            if (!player.isOnline()) {
+                return;
+            }
+            queueAppearance(player);
+            // Смена мира: команды неймтегов создаются только для игроков ТОГО ЖЕ мира
+            // (в чужих мирах ник не виден — не тратим пакеты). Поэтому после перехода
+            // надо один раз пересобрать ники всем, кто теперь в этом мире: иначе у
+            // них не будет оформления над головой. Идёт через ту же очередь
+            // появления (по одному игроку за тик), а не залпом в одном тике.
+            if (worldChange && player.getWorld() != null) {
+                for (Player other : player.getWorld().getPlayers()) {
+                    if (!other.equals(player)) {
+                        queueAppearance(other);
+                    }
+                }
             }
         }, delay);
     }
