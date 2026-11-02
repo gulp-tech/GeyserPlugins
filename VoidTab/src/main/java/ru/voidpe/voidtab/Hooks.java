@@ -7,7 +7,10 @@ import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.entity.Player;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 
 /**
@@ -47,6 +50,49 @@ public final class Hooks {
 
     private Method papiSetPlaceholders; // PlaceholderAPI.setPlaceholders (static)
     private boolean papiTried;
+
+    /** Кэш метаданных LuckPerms (группа/префикс/титул): UUID -> значения + время. */
+    private static final class MetaSnapshot {
+        final String[] group;
+        final String prefix;
+        final String suffix;
+        final long at;
+        MetaSnapshot(String[] group, String prefix, String suffix, long at) {
+            this.group = group;
+            this.prefix = prefix;
+            this.suffix = suffix;
+            this.at = at;
+        }
+    }
+    private final ConcurrentHashMap<UUID, MetaSnapshot> metaCache = new ConcurrentHashMap<>();
+    private volatile long metaCacheTtlMs = 5000L;
+
+    /** Срок жизни кэша метаданных LuckPerms в миллисекундах (0 — кэш выключен). */
+    public void setMetaCacheSeconds(long seconds) {
+        this.metaCacheTtlMs = Math.max(0L, seconds) * 1000L;
+    }
+
+    private MetaSnapshot cachedMeta(UUID uuid) {
+        if (metaCacheTtlMs <= 0 || uuid == null) {
+            return null;
+        }
+        MetaSnapshot snap = metaCache.get(uuid);
+        if (snap == null) {
+            return null;
+        }
+        if (System.currentTimeMillis() - snap.at > metaCacheTtlMs) {
+            metaCache.remove(uuid, snap);
+            return null;
+        }
+        return snap;
+    }
+
+    private void storeMeta(UUID uuid, String[] group, String prefix, String suffix) {
+        if (metaCacheTtlMs <= 0 || uuid == null) {
+            return;
+        }
+        metaCache.put(uuid, new MetaSnapshot(group, prefix, suffix, System.currentTimeMillis()));
+    }
 
     public Hooks(Logger log) {
         this.log = log;
@@ -141,6 +187,26 @@ public final class Hooks {
 
     /** @return массив [rawGroup, displayNameOrNull] или null. */
     public String[] luckPermsGroup(UUID uuid) {
+        MetaSnapshot snap = cachedMeta(uuid);
+        if (snap != null) {
+            return snap.group;
+        }
+        String[] group = readLuckPermsGroup(uuid);
+        storeMeta(uuid, group, peekPrefix(uuid), peekSuffix(uuid));
+        return group;
+    }
+
+    private String peekPrefix(UUID uuid) {
+        MetaSnapshot snap = cachedMeta(uuid);
+        return snap != null ? snap.prefix : readLuckPermsPrefix(uuid);
+    }
+
+    private String peekSuffix(UUID uuid) {
+        MetaSnapshot snap = cachedMeta(uuid);
+        return snap != null ? snap.suffix : readLuckPermsSuffix(uuid);
+    }
+
+    private String[] readLuckPermsGroup(UUID uuid) {
         if (luckPerms == null || lpGetUserManager == null) {
             return null;
         }
@@ -178,6 +244,21 @@ public final class Hooks {
      * Сначала префикс самого игрока, если нет — префикс его основной группы. null — префикса нет.
      */
     public String luckPermsPrefix(UUID uuid) {
+        MetaSnapshot snap = cachedMeta(uuid);
+        if (snap != null) {
+            return snap.prefix;
+        }
+        String prefix = readLuckPermsPrefix(uuid);
+        storeMeta(uuid, peekGroup(uuid), prefix, peekSuffix(uuid));
+        return prefix;
+    }
+
+    private String[] peekGroup(UUID uuid) {
+        MetaSnapshot snap = cachedMeta(uuid);
+        return snap != null ? snap.group : readLuckPermsGroup(uuid);
+    }
+
+    private String readLuckPermsPrefix(UUID uuid) {
         if (luckPerms == null || lpGetUserManager == null) {
             return null;
         }
@@ -224,6 +305,7 @@ public final class Hooks {
         if (luckPerms == null || lpGetUserManager == null) {
             return;
         }
+        metaCache.clear(); // наш собственный кэш метаданных тоже устарел
         for (Player player : Bukkit.getOnlinePlayers()) {
             refreshLuckPermsMeta(player.getUniqueId());
         }
@@ -249,7 +331,11 @@ public final class Hooks {
 
     /** Сбросить кэш метаданных LuckPerms одного игрока. */
     public void refreshLuckPermsMeta(UUID uuid) {
-        if (luckPerms == null || lpGetUserManager == null || uuid == null) {
+        if (uuid == null) {
+            return;
+        }
+        metaCache.remove(uuid);
+        if (luckPerms == null || lpGetUserManager == null) {
             return;
         }
         try {
@@ -262,6 +348,13 @@ public final class Hooks {
             invalidateCachedData(user);
         } catch (Throwable ignored) {
             // см. выше
+        }
+    }
+
+    /** Игрок вышел: убрать его из наших кэшей, чтобы они не росли. */
+    public void forget(UUID uuid) {
+        if (uuid != null) {
+            metaCache.remove(uuid);
         }
     }
 
@@ -294,6 +387,16 @@ public final class Hooks {
      * (meta setsuffix). null — титула нет.
      */
     public String luckPermsSuffix(UUID uuid) {
+        MetaSnapshot snap = cachedMeta(uuid);
+        if (snap != null) {
+            return snap.suffix;
+        }
+        String suffix = readLuckPermsSuffix(uuid);
+        storeMeta(uuid, peekGroup(uuid), peekPrefix(uuid), suffix);
+        return suffix;
+    }
+
+    private String readLuckPermsSuffix(UUID uuid) {
         if (luckPerms == null || lpGetUserManager == null) {
             return null;
         }
@@ -742,15 +845,56 @@ public final class Hooks {
     }
 
     // ---------------------------------------------------------------- util
+
+    /** Кэш: ключ «класс#метод#параметры». Промахи не кэшируем — их единицы. */
+    private static final ConcurrentHashMap<String, Method> METHOD_FOUND = new ConcurrentHashMap<>();
+
+    private static String methodKey(Class<?> clazz, String name, Class<?>... params) {
+        StringBuilder sb = new StringBuilder(64);
+        sb.append(clazz.getName()).append('#').append(name).append('#');
+        for (Class<?> p : params) {
+            sb.append(p == null ? "null" : p.getName()).append(',');
+        }
+        return sb.toString();
+    }
+
+    /**
+     * Найти метод один раз и запомнить. Раньше поиск (getMethod + setAccessible,
+     * а при промахе — перебор getMethods() с аллокацией) шёл на КАЖДОЕ чтение
+     * Vault/LuckPerms/ядра. На сервере с 40 игроками это тысячи поисков в
+     * секунду: именно это давало просадки, когда игрок появляется и для него
+     * разом пересчитываются ник, скорборд и скорбордные команды.
+     */
     static Method findMethod(Class<?> clazz, String name, Class<?>... params) {
+        if (clazz == null) {
+            return null;
+        }
+        String key = methodKey(clazz, name, params);
+        Method cached = METHOD_FOUND.get(key);
+        if (cached != null) {
+            return cached;
+        }
+        Method found = lookupMethod(clazz, name, params);
+        if (found == null) {
+            return null;
+        }
+        Method prev = METHOD_FOUND.putIfAbsent(key, found);
+        return prev != null ? prev : found;
+    }
+
+    /** Настоящий поиск (один раз на класс+метод, дальше — кэш выше). */
+    private static Method lookupMethod(Class<?> clazz, String name, Class<?>... params) {
         Class<?> c = clazz;
         while (c != null) {
             try {
                 Method m = c.getMethod(name, params);
-                m.setAccessible(true);
+                try {
+                    m.setAccessible(true);
+                } catch (Throwable ignored) {
+                    // модуль может запретить доступ — вернём как есть
+                }
                 return m;
             } catch (NoSuchMethodException ignored) {
-                // ищем этим же именем c любым набором параметров ниже по иерархии
                 for (Method m : c.getMethods()) {
                     if (m.getName().equals(name) && m.getParameterCount() == params.length) {
                         boolean ok = true;
@@ -762,7 +906,11 @@ public final class Hooks {
                             }
                         }
                         if (ok) {
-                            m.setAccessible(true);
+                            try {
+                                m.setAccessible(true);
+                            } catch (Throwable ignored2) {
+                                // см. выше
+                            }
                             return m;
                         }
                     }
@@ -774,4 +922,5 @@ public final class Hooks {
         }
         return null;
     }
+
 }

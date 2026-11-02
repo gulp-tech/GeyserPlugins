@@ -47,6 +47,27 @@ public final class SidebarManager {
     private final Set<UUID> hidden = new HashSet<>();
     private File hiddenFile;
 
+    // ---- кэши, чтобы цикл скорборда не парсил конфиг заново на каждого игрока
+    private List<String> cachedLines;               // scoreboard.lines как есть
+    private final Map<String, String> iconCache = new HashMap<>();     // icons.<имя> -> глиф
+    private final Map<String, DecimalFormat> formatCache = new HashMap<>();
+    private final Map<UUID, long[]> pingCache = new HashMap<>();       // uuid -> [значение, время]
+
+    /** Сбросить кэши после /voidtab reload (иначе останутся старые строки и иконки). */
+    public void invalidate() {
+        cachedLines = null;
+        iconCache.clear();
+        formatCache.clear();
+        pingCache.clear();
+    }
+
+    private List<String> lines() {
+        if (cachedLines == null) {
+            cachedLines = plugin.getConfig().getStringList("scoreboard.lines");
+        }
+        return cachedLines;
+    }
+
     public SidebarManager(VoidTab plugin) {
         this.plugin = plugin;
         loadHidden();
@@ -83,6 +104,7 @@ public final class SidebarManager {
         cache.remove(uuid);
         titleCache.remove(uuid);
         deviceCache.remove(uuid);
+        pingCache.remove(uuid);
     }
 
     public void updateAll() {
@@ -103,7 +125,7 @@ public final class SidebarManager {
         // Значения — один раз на игрока, а не на каждую строку (главная экономия цикла).
         Map<String, String> values = computeValues(player);
         List<String> lines = new ArrayList<>();
-        for (String raw : plugin.getConfig().getStringList("scoreboard.lines")) {
+        for (String raw : lines()) {
             lines.add(renderLine(player, raw, values));
             if (lines.size() >= MAX_LINES) {
                 break;
@@ -112,15 +134,22 @@ public final class SidebarManager {
 
         UUID uuid = player.getUniqueId();
         List<String> oldLines = cache.get(uuid);
-        if (!force && lines.equals(oldLines)) {
+        boolean needBoard = player.getScoreboard().getObjective(OBJECTIVE) == null;
+        if (!force && !needBoard && lines.equals(oldLines)) {
             return; // ничего не изменилось — не трогаем скорборд (нет мерцания)
         }
         cache.put(uuid, lines);
 
         Scoreboard board = player.getScoreboard();
-        if (board.getObjective(OBJECTIVE) == null) {
+        // Новый борд (вход, переключение сайдбара, сброс другим плагином): собираем
+        // его ПОЛНОСТЬЮ до player.setScoreboard() и назначаем одним разом. Раньше
+        // сначала назначался пустой борд, а потом команды неймтегов для всех
+        // остальных игроков прилетали по одной в течение нескольких секунд — клиент
+        // Bedrock в этот момент непрерывно перерисовывал все неймтеги (фриз ровно
+        // тогда, когда рядом появляется игрок). Теперь борд приходит одним пакетом.
+        boolean freshBoard = needBoard;
+        if (freshBoard) {
             board = Bukkit.getScoreboardManager().getNewScoreboard();
-            player.setScoreboard(board);
         }
         Objective objective = board.getObjective(OBJECTIVE);
         // Заголовок — пакет клиенту: ставим только если текст реально изменился.
@@ -156,6 +185,11 @@ public final class SidebarManager {
                 }
                 board.resetScores(entry);
             }
+        }
+        if (freshBoard) {
+            // команды неймтегов для всех онлайн-игроков — до назначения борда
+            plugin.nametag().prefill(board);
+            player.setScoreboard(board);
         }
     }
 
@@ -281,13 +315,30 @@ public final class SidebarManager {
         values.put("kd", kd);
         values.put("online", String.valueOf(Bukkit.getOnlinePlayers().size()));
         values.put("max", String.valueOf(Bukkit.getMaxPlayers()));
-        values.put("ping", String.valueOf(plugin.hooks().bedrockPing(player)));
+        values.put("ping", String.valueOf(cachedPing(player)));
         values.put("playtime_hours", String.valueOf(hours));
         values.put("playtime_minutes", String.valueOf(totalSeconds / 60L));
         values.put("playtime", playtime);
         values.put("world", player.getWorld().getName());
 
         return values;
+    }
+
+    /**
+     * Пинг с коротким кэшем: bedrockPing — это рефлексия в ядро (RakNet RTT).
+     * Дёргать её на каждый цикл для каждого игрока незачем, пинг не меняется
+     * за 2 секунды настолько, чтобы это было видно в скорборде.
+     */
+    private int cachedPing(Player player) {
+        long ttl = Math.max(0L, plugin.getConfig().getLong("performance.ping-cache-seconds", 2L)) * 1000L;
+        long now = System.currentTimeMillis();
+        long[] cached = pingCache.get(player.getUniqueId());
+        if (ttl > 0 && cached != null && now - cached[1] < ttl) {
+            return (int) cached[0];
+        }
+        int ping = plugin.hooks().bedrockPing(player);
+        pingCache.put(player.getUniqueId(), new long[]{ping, now});
+        return ping;
     }
 
     /** Одна строка скорборда из готовых значений: только подстановки, без вычислений. */
@@ -491,16 +542,23 @@ public final class SidebarManager {
 
     /** Иконка — всегда глиф из Bedrock-ресурспака: сервер только для Bedrock. */
     private String iconChar(String name) {
+        String cachedIcon = iconCache.get(name);
+        if (cachedIcon != null) {
+            return cachedIcon;
+        }
         String code = plugin.getConfig().getString("icons." + name, "");
         if (code == null || code.isBlank()) {
             return "";
         }
+        String glyph;
         try {
             int cp = Integer.parseInt(code.trim(), 16);
-            return new String(Character.toChars(cp));
+            glyph = new String(Character.toChars(cp));
         } catch (IllegalArgumentException e) {
-            return "";
+            glyph = "";
         }
+        iconCache.put(name, glyph);
+        return glyph;
     }
 
     // ------------------------------------------------------------ утилиты
@@ -513,6 +571,11 @@ public final class SidebarManager {
     }
 
     private String formatNumber(double value, int decimals, boolean grouping) {
+        String key = decimals + (grouping ? "g" : "p");
+        DecimalFormat cachedFormat = formatCache.get(key);
+        if (cachedFormat != null) {
+            return cachedFormat.format(value);
+        }
         DecimalFormatSymbols symbols = new DecimalFormatSymbols(Locale.ROOT);
         if (grouping) {
             symbols.setGroupingSeparator(
@@ -523,7 +586,9 @@ public final class SidebarManager {
             pattern.append('.');
             pattern.append("0".repeat(decimals));
         }
-        return new DecimalFormat(pattern.toString(), symbols).format(value);
+        DecimalFormat format = new DecimalFormat(pattern.toString(), symbols);
+        formatCache.put(key, format);
+        return format.format(value);
     }
 
     private Component component(String legacySectionText) {

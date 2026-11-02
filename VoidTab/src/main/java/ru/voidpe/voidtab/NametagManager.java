@@ -12,7 +12,6 @@ import org.bukkit.scoreboard.Team;
 
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -40,6 +39,9 @@ public final class NametagManager {
     // неймтега на Bedrock). WeakHashMap: борд вышедшего игрока не утекает.
     private final Map<Scoreboard, Map<String, String>> boardPrefixCache =
             Collections.synchronizedMap(new WeakHashMap<>());
+    // Борды, где объектив здоровья уже создан (иначе getObjective звался всегда).
+    private final Set<Scoreboard> boardsWithHealth =
+            Collections.synchronizedSet(Collections.newSetFromMap(new WeakHashMap<>()));
     // Когда последний раз принудительно пересылали display/list name (троттлинг).
     private final Map<UUID, Long> lastForceResend = new HashMap<>();
 
@@ -47,25 +49,62 @@ public final class NametagManager {
         this.plugin = plugin;
     }
 
-    /** Все борды, где должны жить неймтеги: главный + персональный борд каждого игрока. */
-    private Set<Scoreboard> allBoards() {
-        Set<Scoreboard> boards = new HashSet<>();
-        boards.add(Bukkit.getScoreboardManager().getMainScoreboard());
-        for (Player viewer : Bukkit.getOnlinePlayers()) {
-            boards.add(viewer.getScoreboard());
-        }
-        return boards;
+    /**
+     * Команды неймтегов включены? На Bedrock неймтег над головой берётся из
+     * display-name игрока, а команды нужны только как страховка. Каждая команда
+     * живёт на борде КАЖДОГО игрока (у всех свой сайдбар-борд), то есть их N x N —
+     * это самая дорогая часть плагина. Выключение (nametag.use-teams: false)
+     * убирает тысячи пакетов и разгружает клиенты слабых телефонов.
+     */
+    private boolean teamsEnabled() {
+        return plugin.getConfig().getBoolean("nametag.use-teams", false);
     }
 
     private void ensureHealthObjective(Scoreboard board) {
         if (!plugin.getConfig().getBoolean("nametag.health-below-name", true)) {
             return;
         }
+        if (boardsWithHealth.contains(board)) {
+            return; // уже создан — не зовём getObjective при каждом обновлении
+        }
         Objective objective = board.getObjective(HEALTH_OBJECTIVE);
         if (objective == null) {
             objective = board.registerNewObjective(HEALTH_OBJECTIVE, Criteria.HEALTH,
                     component(TextUtil.color(plugin.getConfig().getString("nametag.health-suffix", "&c❤"))));
             objective.setDisplaySlot(DisplaySlot.BELOW_NAME);
+        }
+        boardsWithHealth.add(board);
+    }
+
+    /**
+     * Заполнить НОВЫЙ борд командами неймтегов всех онлайн-игроков ДО того, как
+     * борд назначен игроку (см. SidebarManager.update). Клиент получает борд
+     * целиком одним пакетом, а не «пустой борд + N команд по одной».
+     */
+    public void prefill(Scoreboard board) {
+        if (board == null || !teamsEnabled()) {
+            return;
+        }
+        ensureHealthObjective(board);
+        Map<String, String> boardCache = boardPrefixCache.computeIfAbsent(board, b -> new HashMap<>());
+        for (Player target : Bukkit.getOnlinePlayers()) {
+            String teamId = teamName(target);
+            Team team = board.getTeam(teamId);
+            if (team == null) {
+                team = board.registerNewTeam(teamId);
+            }
+            if (!team.hasEntry(target.getName())) {
+                team.addEntry(target.getName());
+            }
+            String prefix = appliedPrefix.get(target.getUniqueId());
+            if (prefix == null) {
+                continue;
+            }
+            int sep = prefix.indexOf('|');
+            String nickPrefix = sep >= 0 ? prefix.substring(0, sep) : prefix;
+            team.prefix(component(TextUtil.color(
+                    plugin.getConfig().getString("nametag.prefix-color", "&f")) + nickPrefix));
+            boardCache.put(teamId, nickPrefix);
         }
     }
 
@@ -121,8 +160,17 @@ public final class NametagManager {
         // Компонент собираем лениво: если префикс везде уже стоит, парсинга не будет вообще.
         Component prefixComponent = null;
         String teamId = teamName(player);
-        for (Scoreboard board : allBoards()) {
+        boolean teams = teamsEnabled();
+        for (Player viewer : Bukkit.getOnlinePlayers()) {
+            Scoreboard board = viewer.getScoreboard();
+            // Игрок из другого мира этого ника не видит — команду ему не создаём.
+            if (teams && !viewer.getWorld().equals(player.getWorld())) {
+                continue;
+            }
             ensureHealthObjective(board);
+            if (!teams) {
+                continue; // режим «без команд»: неймтег берётся из display-name
+            }
             Team team = board.getTeam(teamId);
             if (team == null) {
                 team = board.registerNewTeam(teamId);
@@ -133,7 +181,6 @@ public final class NametagManager {
             // Ставим префикс, только если на ЭТОМ борде он ещё не такой:
             // team.prefix() = пакет всем зрителям и перерисовка неймтега,
             // а раньше он слался каждые 2 секунды по всем бордам (лаги/вылеты).
-            // Новый борд (позже зашедший игрок) в кэше отсутствует — получит префикс.
             Map<String, String> boardCache =
                     boardPrefixCache.computeIfAbsent(board, b -> new HashMap<>());
             if (!prefix.equals(boardCache.get(teamId))) {
@@ -145,6 +192,28 @@ public final class NametagManager {
                 boardCache.put(teamId, prefix);
             }
         }
+        if (teams) {
+            // Главный борд: команды на нём нужны, пока им пользуется хоть кто-то.
+            Scoreboard mainBoard = Bukkit.getScoreboardManager().getMainScoreboard();
+            ensureHealthObjective(mainBoard);
+            Team mainTeam = mainBoard.getTeam(teamId);
+            if (mainTeam == null) {
+                mainTeam = mainBoard.registerNewTeam(teamId);
+            }
+            if (!mainTeam.hasEntry(player.getName())) {
+                mainTeam.addEntry(player.getName());
+            }
+            Map<String, String> mainCache =
+                    boardPrefixCache.computeIfAbsent(mainBoard, b -> new HashMap<>());
+            if (!prefix.equals(mainCache.get(teamId))) {
+                if (prefixComponent == null) {
+                    prefixComponent = component(TextUtil.color(
+                            plugin.getConfig().getString("nametag.prefix-color", "&f")) + prefix);
+                }
+                mainTeam.prefix(prefixComponent);
+                mainCache.put(teamId, prefix);
+            }
+        }
 
         // Bedrock (Geyser): неймтег над головой берётся из display/list имени — дублируем туда.
         // Пересылаем при реальном изменении префикса/титула. Принудительная пересылка
@@ -153,7 +222,7 @@ public final class NametagManager {
         // каждые 2 секунды и клиент перерисовывал все неймтеги (фризы/вылеты).
         long now = System.currentTimeMillis();
         long forceIntervalMs = Math.max(0L,
-                plugin.getConfig().getLong("luckperms.force-name-resend-interval-seconds", 60L)) * 1000L;
+                plugin.getConfig().getLong("luckperms.force-name-resend-interval-seconds", 0L)) * 1000L;
         boolean forceDue = forceNames && forceIntervalMs > 0
                 && now - lastForceResend.getOrDefault(player.getUniqueId(), 0L) >= forceIntervalMs;
         if ((changed || forceDue) && plugin.getConfig().getBoolean("nametag.use-display-name", true)) {
@@ -177,7 +246,12 @@ public final class NametagManager {
         appliedPrefix.remove(player.getUniqueId());
         lastForceResend.remove(player.getUniqueId());
         String name = teamName(player);
-        for (Scoreboard board : allBoards()) {
+        Team own = player.getScoreboard().getTeam(name);
+        if (own != null) {
+            own.unregister();
+        }
+        for (Player viewer : Bukkit.getOnlinePlayers()) {
+            Scoreboard board = viewer.getScoreboard();
             Map<String, String> boardCache = boardPrefixCache.get(board);
             if (boardCache != null) {
                 boardCache.remove(name);
@@ -186,6 +260,14 @@ public final class NametagManager {
             if (team != null) {
                 team.unregister();
             }
+        }
+        Map<String, String> mainCache = boardPrefixCache.get(Bukkit.getScoreboardManager().getMainScoreboard());
+        if (mainCache != null) {
+            mainCache.remove(name);
+        }
+        Team mainTeam = Bukkit.getScoreboardManager().getMainScoreboard().getTeam(name);
+        if (mainTeam != null) {
+            mainTeam.unregister();
         }
     }
 

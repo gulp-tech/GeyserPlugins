@@ -50,6 +50,7 @@ public final class VoidTab extends JavaPlugin implements Listener, CommandExecut
         saveDefaultConfig();
         migrateConfig();
         hooks = new Hooks(getLogger());
+        hooks.setMetaCacheSeconds(getConfig().getLong("luckperms.cache-seconds", 5L));
         sidebar = new SidebarManager(this);
         nametag = new NametagManager(this);
 
@@ -169,6 +170,26 @@ public final class VoidTab extends JavaPlugin implements Listener, CommandExecut
             getConfig().set("scoreboard.title-bold-migrated", true);
             saveConfig();
         }
+        // 1.16.6: тяжёлые настройки производительности применяем и на старом конфиге
+        // (пользователь обновляет плагин, не удаляя config.yml, — иначе фиксы не доедут).
+        if (!getConfig().getBoolean("performance-migrated-1-16-6", false)) {
+            if (getConfig().get("nametag.use-teams") == null) {
+                getConfig().set("nametag.use-teams", false);
+            }
+            if (!getConfig().isSet("luckperms.cache-seconds")) {
+                getConfig().set("luckperms.cache-seconds", 5);
+            }
+            if (!getConfig().isSet("performance.ping-cache-seconds")) {
+                getConfig().set("performance.ping-cache-seconds", 2);
+            }
+            if (getConfig().getLong("luckperms.force-name-resend-interval-seconds", 60L) == 60L) {
+                getConfig().set("luckperms.force-name-resend-interval-seconds", 0);
+            }
+            getConfig().set("performance-migrated-1-16-6", true);
+            saveConfig();
+            getLogger().info("Миграция 1.16.6: команды неймтегов выключены (use-teams: false), принудительная пересылка имён выключена — меньше пакетов и фризов.");
+        }
+
         // Заголовок скорборда: пиксельная полоса -> обычный читаемый текст VoidPE (один раз).
         if (!getConfig().getBoolean("scoreboard.title-text-migrated", false)) {
             getConfig().set("scoreboard.title-logo.enabled", false);
@@ -319,6 +340,7 @@ public final class VoidTab extends JavaPlugin implements Listener, CommandExecut
     public void onQuit(PlayerQuitEvent event) {
         appearanceQueue.remove(event.getPlayer().getUniqueId());
         sidebar.remove(event.getPlayer().getUniqueId());
+        hooks.forget(event.getPlayer().getUniqueId());
         nametag.remove(event.getPlayer());
     }
 
@@ -419,13 +441,39 @@ public final class VoidTab extends JavaPlugin implements Listener, CommandExecut
             sender.sendMessage(prefix + TextUtil.color(getConfig().getString("messages.refreshed", "&aПрефикс, скорборд и ник обновлены.")));
             return true;
         }
+        if (args.length >= 1 && args[0].equalsIgnoreCase("perf")) {
+            if (!sender.hasPermission("voidtab.admin")) {
+                sender.sendMessage(prefix + TextUtil.color(getConfig().getString("messages.no-permission", "&cНет прав.")));
+                return true;
+            }
+            int online = Bukkit.getOnlinePlayers().size();
+            long start = System.nanoTime();
+            for (Player online1 : Bukkit.getOnlinePlayers()) {
+                sidebar.update(online1, false);
+                nametag.apply(online1, false);
+            }
+            long ms = (System.nanoTime() - start) / 1_000_000L;
+            int boards = 1;
+            int teams = 0;
+            for (Player online2 : Bukkit.getOnlinePlayers()) {
+                boards++;
+                teams += online2.getScoreboard().getTeams().size();
+            }
+            sender.sendMessage(prefix + "Полный проход: &b" + online + " &7игрок(ов) за &b" + ms + " мс");
+            sender.sendMessage(prefix + "Бордов: &b" + boards + " &7| команд на них: &b" + teams
+                    + " &7| команды неймтегов: " + (getConfig().getBoolean("nametag.use-teams", false) ? "&aвкл" : "&cвыкл")
+                    + " &7| health-below-name: " + (getConfig().getBoolean("nametag.health-below-name", true) ? "&aвкл" : "&cвыкл"));
+            return true;
+        }
         if (args.length >= 1 && args[0].equalsIgnoreCase("reload")) {
             if (!sender.hasPermission("voidtab.admin")) {
                 sender.sendMessage(prefix + TextUtil.color(getConfig().getString("messages.no-permission", "&cНет прав.")));
                 return true;
             }
             reloadConfig();
+            hooks.setMetaCacheSeconds(getConfig().getLong("luckperms.cache-seconds", 5L));
             hooks.refreshLuckPermsMeta();
+            sidebar.invalidate();
             startTask();
             Bukkit.getOnlinePlayers().forEach(online -> {
                 sidebar.update(online, true);
@@ -471,7 +519,7 @@ public final class VoidTab extends JavaPlugin implements Listener, CommandExecut
             target.sendMessage(prefix + TextUtil.color(getConfig().getString(key, def)));
             return true;
         }
-        sender.sendMessage(prefix + "Использование: /voidtab <reload|refresh [игрок]|debug [игрок]|toggle [игрок]|on|off>");
+        sender.sendMessage(prefix + "Использование: /voidtab <reload|refresh [игрок]|debug [игрок]|perf|toggle [игрок]|on|off>");
         return true;
     }
 
@@ -479,14 +527,14 @@ public final class VoidTab extends JavaPlugin implements Listener, CommandExecut
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
             List<String> subs = new ArrayList<>();
-            for (String sub : List.of("reload", "refresh", "debug", "toggle", "on", "off")) {
+            for (String sub : List.of("reload", "refresh", "debug", "perf", "toggle", "on", "off")) {
                 if (sub.startsWith(args[0].toLowerCase(java.util.Locale.ROOT))) {
                     subs.add(sub);
                 }
             }
             return subs;
         }
-        if (args.length == 2 && List.of("refresh", "debug", "toggle", "on", "off").contains(args[0].toLowerCase(java.util.Locale.ROOT))) {
+        if (args.length == 2 && List.of("refresh", "debug", "perf", "toggle", "on", "off").contains(args[0].toLowerCase(java.util.Locale.ROOT))) {
             List<String> names = new ArrayList<>();
             for (Player online : Bukkit.getOnlinePlayers()) {
                 if (online.getName().toLowerCase(java.util.Locale.ROOT).startsWith(args[1].toLowerCase(java.util.Locale.ROOT))) {

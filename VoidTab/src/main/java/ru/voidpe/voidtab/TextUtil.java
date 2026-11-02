@@ -17,11 +17,38 @@ public final class TextUtil {
     private TextUtil() {
     }
 
+    /**
+     * Кэш готовых строк: одна и та же строка (заголовок, префикс, текст сообщения,
+     * лор) перекрашивается сотни раз в секунду — на 40 игроков это были тысячи
+     * прогонов regex за цикл скорборда. Ограничен по размеру, чтобы не течь.
+     */
+    private static final java.util.concurrent.ConcurrentHashMap<String, String> CACHE =
+            new java.util.concurrent.ConcurrentHashMap<>();
+
     public static String color(String text) {
         if (text == null) {
             return "";
         }
-        String out = applyGradients(text);
+        // быстрый путь: нечего красить — не гоняем ни один regex
+        int amp = text.indexOf('&');
+        int lt = text.indexOf('<');
+        if (amp < 0 && lt < 0) {
+            return text;
+        }
+        String cached = CACHE.get(text);
+        if (cached != null) {
+            return cached;
+        }
+        String result = paint(text);
+        if (CACHE.size() > 4096) {
+            CACHE.clear(); // защита от роста на уникальных строках
+        }
+        CACHE.put(text, result);
+        return result;
+    }
+
+    private static String paint(String text) {
+        String out = text.indexOf('<') < 0 ? text : applyGradients(text);
         Matcher m = HEX.matcher(out);
         StringBuilder sb = new StringBuilder();
         while (m.find()) {
