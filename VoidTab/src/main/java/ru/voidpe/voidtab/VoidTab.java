@@ -536,22 +536,34 @@ public final class VoidTab extends JavaPlugin implements Listener, CommandExecut
                 return true;
             }
             int online = Bukkit.getOnlinePlayers().size();
-            long start = System.nanoTime();
-            for (Player online1 : Bukkit.getOnlinePlayers()) {
-                sidebar.update(online1, false);
-                nametag.apply(online1, false);
+            long t0 = System.nanoTime();
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                sidebar.update(p, false);
             }
-            long ms = (System.nanoTime() - start) / 1_000_000L;
-            int boards = 1;
+            long tSidebar = (System.nanoTime() - t0) / 1_000_000L;
+            t0 = System.nanoTime();
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                nametag.apply(p, false);
+            }
+            long tNametag = (System.nanoTime() - t0) / 1_000_000L;
+            // Худший случай: «появился игрок» — всем зрителям создаются команды.
+            t0 = System.nanoTime();
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                nametag.apply(p, true);
+            }
+            long tBurst = (System.nanoTime() - t0) / 1_000_000L;
             int teams = 0;
-            for (Player online2 : Bukkit.getOnlinePlayers()) {
+            int boards = 1;
+            for (Player p : Bukkit.getOnlinePlayers()) {
                 boards++;
-                teams += online2.getScoreboard().getTeams().size();
+                teams += p.getScoreboard().getTeams().size();
             }
-            sender.sendMessage(prefix + "Полный проход: &b" + online + " &7игрок(ов) за &b" + ms + " мс");
-            sender.sendMessage(prefix + "Бордов: &b" + boards + " &7| команд на них: &b" + teams
-                    + " &7| команды неймтегов: " + (getConfig().getBoolean("nametag.use-teams", false) ? "&aвкл" : "&cвыкл")
-                    + " &7| health-below-name: " + (getConfig().getBoolean("nametag.health-below-name", true) ? "&aвкл" : "&cвыкл"));
+            boolean teamsOn = getConfig().getBoolean("nametag.use-teams", true);
+            sender.sendMessage(prefix + "Игроков: &b" + online + "&7, бордов: &b" + boards + "&7, команд: &b" + teams);
+            sender.sendMessage(prefix + "Скорборд: &b" + tSidebar + " мс &7| ник: &b" + tNametag
+                    + " мс &7| появление (все сразу): &b" + tBurst + " мс");
+            sender.sendMessage(prefix + "Режим ника: " + (teamsOn ? "&aкоманды вкл" : "&cкоманды выкл")
+                    + " &7| команд на борд: &b" + (online == 0 ? 0 : teams / boards));
             return true;
         }
         if (args.length >= 1 && args[0].equalsIgnoreCase("reload")) {
