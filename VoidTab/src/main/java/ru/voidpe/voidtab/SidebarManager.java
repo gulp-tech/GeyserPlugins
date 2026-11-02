@@ -27,16 +27,20 @@ import java.util.UUID;
 
 /**
  * Компактный Bedrock-скорборд (сервер VoidPE — только Bedrock: Geyser + Floodgate).
- * Иконки — всегда глифы из VoidResourcePack, никаких Java-заглушек.
+ * Ресурспак убран: иконок-картинок нет, значки берутся из icons (пусто по умолчанию).
  * Строки скорборда — это префиксы команд (entries невидимы), поэтому:
  *  - нет мерцания при обновлении (меняем только изменившиеся строки);
- *  - иконка из ресурспака занимает ровно 1 символ и не раздувает таб.
+ *  - значок занимает ровно 1 символ и не раздувает таб.
  */
 public final class SidebarManager {
 
     private static final String OBJECTIVE = "voidtab";
     private static final int MAX_LINES = 15;
     private static final char[] ENTRY_CODES = "0123456789abcde".toCharArray();
+
+    /** Код глифа из убранного ресурспака (E101, E12B...): показывать его нельзя. */
+    private static final java.util.regex.Pattern LEGACY_GLYPH =
+            java.util.regex.Pattern.compile("^[Ee][0-9A-Fa-f]{3}$");
 
     private final VoidTab plugin;
     private final Map<UUID, List<String>> cache = new HashMap<>();
@@ -49,7 +53,7 @@ public final class SidebarManager {
 
     // ---- кэши, чтобы цикл скорборда не парсил конфиг заново на каждого игрока
     private List<String> cachedLines;               // scoreboard.lines как есть
-    private final Map<String, String> iconCache = new HashMap<>();     // icons.<имя> -> глиф
+    private final Map<String, String> iconCache = new HashMap<>();     // icons.<имя> -> символ
     private final Map<String, DecimalFormat> formatCache = new HashMap<>();
     private final Map<UUID, long[]> pingCache = new HashMap<>();       // uuid -> [значение, время]
 
@@ -205,23 +209,8 @@ public final class SidebarManager {
     }
 
     private String renderTitle(Player player) {
-        // Заголовок — маленькая картинка VoidPE из ресурспака: полоса глифов \uE010..\uE017,
-        // высота ровно одна строка, как обычный текст, только текстурой.
-        if (plugin.getConfig().getBoolean("scoreboard.title-logo.enabled", true)) {
-            try {
-                int start = Integer.parseInt(
-                        plugin.getConfig().getString("scoreboard.title-logo.start-code", "E010").trim(), 16);
-                int count = Math.max(1, Math.min(12,
-                        plugin.getConfig().getInt("scoreboard.title-logo.glyphs", 8)));
-                StringBuilder logo = new StringBuilder();
-                for (int i = 0; i < count; i++) {
-                    logo.append(new String(Character.toChars(start + i)));
-                }
-                return logo.toString();
-            } catch (IllegalArgumentException ignored) {
-                // битый конфиг — упадём на текстовый заголовок ниже
-            }
-        }
+        // Заголовок — обычный текст. Картинка-логотип (полоса глифов из ресурспака)
+        // убрана вместе с паком: глифы без пака рисуются пустыми квадратами.
         return render(player, plugin.getConfig().getString("scoreboard.title", "VoidPE"));
     }
 
@@ -496,7 +485,7 @@ public final class SidebarManager {
         }
     }
 
-    /** Глиф устройства из ресурспака для ника/скорборда. */
+    /** Значок устройства (icons.<device>) для ника/скорборда. */
     public String deviceIconChar(Player player) {
         return iconChar(deviceIconName(player));
     }
@@ -515,7 +504,7 @@ public final class SidebarManager {
         return "default";
     }
 
-    /** Кастомный значок привилегии из ресурспака (иконка названа как группа: icons.<группа>). */
+    /** Значок привилегии: имя иконки совпадает с именем группы LuckPerms (icons.<группа>). */
     public String rankIconChar(Player player) {
         return iconChar(groupRaw(player));
     }
@@ -540,25 +529,27 @@ public final class SidebarManager {
         return display;
     }
 
-    /** Иконка — всегда глиф из Bedrock-ресурспака: сервер только для Bedrock. */
+    /** Значение icons.<имя>: свой символ из конфига; код старого глифа даёт пустую строку. */
     private String iconChar(String name) {
         String cachedIcon = iconCache.get(name);
         if (cachedIcon != null) {
             return cachedIcon;
         }
-        String code = plugin.getConfig().getString("icons." + name, "");
-        if (code == null || code.isBlank()) {
+        String value = plugin.getConfig().getString("icons." + name, "");
+        if (value == null || value.isBlank()) {
+            iconCache.put(name, "");
             return "";
         }
-        String glyph;
-        try {
-            int cp = Integer.parseInt(code.trim(), 16);
-            glyph = new String(Character.toChars(cp));
-        } catch (IllegalArgumentException e) {
-            glyph = "";
+        String icon;
+        if (LEGACY_GLYPH.matcher(value.trim()).matches()) {
+            // Старый конфиг: здесь код глифа из убранного ресурспака (E101 и т.п.).
+            // Такой символ без пака — пустой квадрат, поэтому не показываем ничего.
+            icon = "";
+        } else {
+            icon = value; // свой символ/эмодзи из конфига
         }
-        iconCache.put(name, glyph);
-        return glyph;
+        iconCache.put(name, icon);
+        return icon;
     }
 
     // ------------------------------------------------------------ утилиты

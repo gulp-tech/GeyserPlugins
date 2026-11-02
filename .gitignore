@@ -4,4 +4,4 @@ target/
 *.iml
 .vscode/
 .DS_Store
-# FaralResourcePack.mcpack в корне — готовый пак для скачивания, его коммитим специально.
+# *.mcpack в корне коммитим специально — сейчас это только VoidSpheres.mcpack (вид сфер).

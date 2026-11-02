@@ -2,8 +2,11 @@
 
 Плагины пишутся **исключительно для Bedrock-игроков**: связка Purpur 26.2 (ядро на Java 25) +
 Geyser + Floodgate. **С Java заходить нельзя** — FaralTab кикает любого игрока без Floodgate
-(`bedrock-only` в конфиге), поэтому никаких Java-заглушек вместо иконок в проекте нет:
-у всех игроков Bedrock, у всех стоит ресурспак.
+(`bedrock-only` в конфиге), поэтому никаких Java-заглушек в проекте нет.
+
+> **Ресурспак убран из проекта полностью.** Пак с глифами иконок давал сильные лаги
+> при появлении игроков, поэтому иконки-картинки удалены: скорборд и ник теперь
+> текстовые (`icons: {}` в конфиге VoidTab).
 
 ## FaralTab — таб / скорборд с кастомными иконками
 
@@ -141,9 +144,9 @@ softdepend через рефлексию, PacketEvents/ProtocolLib не нужн
    (вкладка Actions → последний запуск → `FaralMC-release`) → в `plugins/` Purpur 26.2.
    Для всех функций поставьте рядом: **Vault** + экономика, **PlayerPoints**, **LuckPerms**
    (всё это softdepend — без них плагин стартует, строки покажут `defaults:` из конфига).
-2. **Ресурспак:** `VoidResourcePack.mcpack` → в `plugins/Geyser-Spigot/packs/`, рестарт.
-   В конфиге Geyser поставьте **`force-resource-packs: true`** — без пака игрок не зайдёт,
-   а иконки не превратятся в пустоту. Подробнее: [VoidResourcePack/README.md](VoidResourcePack/README.md).
+2. **Ресурспак не нужен** — он убран из проекта (иконки-глифы вызывали лаги).
+   Если старый пак уже лежит в `packs/`, удалите `VoidResourcePack.mcpack` и поставьте
+   `force-resource-packs: false`.
 3. Перезагрузка конфига на лету: `/faraltab reload`. Скрыть/показать таб: `/faraltab toggle`.
 
 ### Команды и права
@@ -161,8 +164,6 @@ softdepend через рефлексию, PacketEvents/ProtocolLib не нужн
 
 ```bash
 cd FaralTab && mvn package        # нужен JDK 25, jar в target/
-python3 tools/build_mcpack.py     # VoidResourcePack.mcpack в корне
-python3 tools/make_icons.py       # перегенерация иконок и превью
 ```
 
 > Если в Maven-репозитории Purpur ещё нет `purpur-api 26.2-R0.1-SNAPSHOT`,
@@ -195,9 +196,6 @@ python3 tools/make_icons.py       # перегенерация иконок и �
 ```
 FaralTab/               скорборд и ник (Maven, Java 25, api-version 26.2)
 FaralTalismans/         талисманы как на FunTime (Maven, Java 25, api-version 26.2)
-VoidResourcePack/      исходники Bedrock-пака (manifest.json, font/glyph_E0.png)
-VoidResourcePack.mcpack  готовый пак для Geyser (папка packs/)
-preview/                превью иконок и мокап скорборда
-tools/                  генераторы иконок и сборщик .mcpack
-.github/workflows/      CI: собирает jar + mcpack в артефакты при каждом пуше
+VoidSpheres.mcpack     пак ТОЛЬКО для вида сфер (иконки скорборда не трогает)
+.github/workflows/      CI: собирает jar в артефакты и релиз при каждом пуше
 ```

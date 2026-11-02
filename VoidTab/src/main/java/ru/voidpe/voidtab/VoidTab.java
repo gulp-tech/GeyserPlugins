@@ -201,6 +201,47 @@ public final class VoidTab extends JavaPlugin implements Listener, CommandExecut
             saveConfig();
         }
 
+        // 1.16.8: РЕСУРСПАК УБРАН (он вызывал лаги). Чистим всё, что рисовало глифы:
+        // иконки-коды, {icon:...} в строках и сами символы приватной области.
+        if (!getConfig().getBoolean("resourcepack-removed-1-16-8", false)) {
+            org.bukkit.configuration.ConfigurationSection icons = getConfig().getConfigurationSection("icons");
+            java.util.List<String> glyphKeys = new java.util.ArrayList<>();
+            if (icons != null) {
+                for (String key : icons.getKeys(false)) {
+                    String value = icons.getString(key, "");
+                    if (value != null && GLYPH_CODE.matcher(value.trim()).matches()) {
+                        glyphKeys.add(key);
+                    }
+                }
+            }
+            for (String key : glyphKeys) {
+                getConfig().set("icons." + key, null);
+            }
+            java.util.List<String> fresh = new java.util.ArrayList<>();
+            for (String line : getConfig().getStringList("scoreboard.lines")) {
+                String cleanedLine = stripGlyphs(line)
+                        .replace("{group_icon} ", "")
+                        .replace(" {group_icon}", "")
+                        .replace("{group_icon}", "")
+                        .replaceAll("\\s*\\{icon:[^}]+\\}", "")
+                        .replaceAll("\\s{2,}$", "");
+                fresh.add(cleanedLine);
+            }
+            getConfig().set("scoreboard.lines", fresh);
+            String title = stripGlyphs(getConfig().getString("scoreboard.title", ""));
+            if (title.isBlank()) {
+                title = "<gradient:#55C8FF:#1B6FFF>VoidPE</gradient>";
+            }
+            getConfig().set("scoreboard.title", title);
+            getConfig().set("scoreboard.title-logo.enabled", false);
+            getConfig().set("scoreboard.title-logo.start-code", null);
+            getConfig().set("scoreboard.title-logo.glyphs", null);
+            getConfig().set("resourcepack-removed-1-16-8", true);
+            saveConfig();
+            getLogger().info("Миграция 1.16.8: ресурспак убран — иконки и глифы удалены из конфига"
+                    + (glyphKeys.isEmpty() ? "" : " (ключей icons: " + glyphKeys.size() + ")") + ".");
+        }
+
         // Заголовок скорборда: пиксельная полоса -> обычный читаемый текст VoidPE (один раз).
         if (!getConfig().getBoolean("scoreboard.title-text-migrated", false)) {
             getConfig().set("scoreboard.title-logo.enabled", false);
@@ -208,6 +249,27 @@ public final class VoidTab extends JavaPlugin implements Listener, CommandExecut
             saveConfig();
             getLogger().info("Миграция: заголовок скорборда — текстовый VoidPE (полоса-картинка выключена).");
         }
+    }
+
+    /** Код глифа вида E101 (из убранного ресурспака). */
+    private static final java.util.regex.Pattern GLYPH_CODE =
+            java.util.regex.Pattern.compile("^[Ee][0-9A-Fa-f]{3}$");
+
+    /** Убрать символы приватной области Unicode (глифы убранного ресурспака). */
+    private static String stripGlyphs(String text) {
+        if (text == null) {
+            return "";
+        }
+        StringBuilder sb = new StringBuilder(text.length());
+        for (int i = 0; i < text.length(); i++) {
+            int cp = text.codePointAt(i);
+            if (cp >= 0xE000 && cp <= 0xF8FF) {
+                i += Character.charCount(cp) - 1;
+                continue;
+            }
+            sb.appendCodePoint(cp);
+        }
+        return sb.toString();
     }
 
     public Hooks hooks() {

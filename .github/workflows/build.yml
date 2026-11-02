@@ -247,9 +247,6 @@ jobs:
             exit "$code"
           fi
 
-      - name: Собрать Bedrock ресурспак (.mcpack)
-        run: python3 tools/build_mcpack.py
-
       - name: Артефакты (плагин + пак)
         uses: actions/upload-artifact@v4
         with:
@@ -271,4 +268,3 @@ jobs:
             VoidShulker/target/VoidShulker-*.jar
             VoidAnvilExtension/build/libs/VoidAnvilExtension-*.jar
             VoidVersionsExtension/build/libs/VoidVersionsExtension-*.jar
-            VoidResourcePack.mcpack
