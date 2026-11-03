@@ -70,8 +70,8 @@ scoreboard:
       title: '&b&lVoidPE'
       lines:
         - '&fИмя: &#FFA63D%player%'
-        - '&fДонат: %luckperms-prefix%'
-        - '&fТитул: %luckperms-suffix%'
+        - '&fДонат: %condition:voidpe_rank%'
+        - '&fТитул: %condition:voidpe_title%'
         - '&fМонеты: &#FFD93D%vault_eco_balance_fixed%'
         - '&fОсколки: &#54C8FF%playerpoints_points%'
         - ''
@@ -110,7 +110,18 @@ placeholders:
   locale: en-US
 
 placeholder-output-replacements: {}
-conditions: {}
+# Запасной текст только для скорборда: имена над головой не меняются.
+conditions:
+  voidpe_rank:
+    conditions:
+      - '%luckperms-prefix%='
+    true: '&7Нету'
+    false: '%luckperms-prefix%'
+  voidpe_title:
+    conditions:
+      - '%luckperms-suffix%='
+    true: '&7Нету'
+    false: '%luckperms-suffix%'
 
 # Интервалы в миллисекундах. Медленно меняющиеся данные обновляются реже.
 placeholder-refresh-intervals:
