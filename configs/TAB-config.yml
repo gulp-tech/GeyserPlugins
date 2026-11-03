@@ -1,0 +1,180 @@
+# TAB для VoidPE: Purpurbedrock, только Bedrock. Ресурспак не нужен.
+# Не запускайте одновременно с VoidTab: оба управляют скорбордом и никами.
+# Плейсхолдеры %purpurbedrock_*% предоставляются ядром; часть остальных
+# требует PlaceholderAPI и соответствующих расширений.
+
+header-footer:
+  enabled: true
+  designs:
+    default:
+      header:
+        - '&b&lVoidPE'
+        - '&fДобро пожаловать, &#FFA63D%player%&f!'
+        - '&7Онлайн: &f%online%'
+        - ''
+      footer:
+        - ''
+        - '&7Пинг: &#7CFC00%purpurbedrock_ping% &7мс'
+
+tablist-name-formatting:
+  enabled: true
+
+# Настройки префикса — в groups.yml. Префикс берётся из LuckPerms.
+scoreboard-teams:
+  enabled: true
+  enable-collision: true
+  invisible-nametags: false
+  sorting-types:
+    - 'GROUPS:owner,sozdatel,kurator,moderator,helper,stazher,youtuber,tiktoker,imperator,knyaz,lord,baron,rycar,geroy,strannik,default'
+    - 'PLACEHOLDER_A_TO_Z:%player%'
+  case-sensitive-sorting: false
+  can-see-friendly-invisibles: false
+
+playerlist-objective:
+  enabled: true
+  value: '%ping%'
+  fancy-value: '&7Пинг: %ping%'
+  title: 'Пинг'
+  render-type: INTEGER
+
+belowname-objective:
+  enabled: true
+  value: '%health%'
+  fancy-value: '&c%health%'
+  fancy-value-default: 'NPC'
+  title: '&c❤'
+  view-distance: 10
+
+prevent-spectator-effect:
+  enabled: false
+
+bossbar:
+  enabled: false
+  toggle-command: /bossbar
+  remember-toggle-choice: false
+  hidden-by-default: false
+  bars: {}
+
+scoreboard:
+  enabled: true
+  toggle-command: /sb
+  remember-toggle-choice: true
+  hidden-by-default: false
+  delay-on-join-milliseconds: 1000
+  scoreboards:
+    voidpe:
+      title: '&b&lVoidPE'
+      lines:
+        - '&fИмя: &#FFA63D%player%'
+        - '&fДонат: %luckperms-prefix%'
+        - '&fТитул: %luckperms-suffix%'
+        - '&fМонеты: &#FFD93D%vault_eco_balance_fixed%'
+        - '&fОсколки: &#54C8FF%playerpoints_points%'
+        - ''
+        - '&fПинг: &#7CFC00%purpurbedrock_ping%&f мс'
+        - '&fВерсия: &#FFA63D%purpurbedrock_version%'
+        - '&fУ/С: &#C86BFF%statistic_player_kills%&f/&#FF6B6B%statistic_deaths%'
+        - '&fВ игре: &#FFD93D%statistic_hours_played%ч'
+
+layout:
+  enabled: false
+  direction: COLUMNS
+  default-skin: mineskin:37e93c8e12cd426cb28fce31969e0674
+  enable-remaining-players-text: true
+  remaining-players-text: '... and %s more'
+  empty-slot-ping-value: 1000
+  layouts: {}
+
+ping-spoof:
+  enabled: false
+  value: 0
+
+global-playerlist:
+  enabled: false
+  display-others-as-spectators: false
+  display-vanished-players-as-spectators: true
+  isolate-unlisted-servers: false
+  update-latency: false
+  spy-servers: []
+  server-groups: {}
+
+placeholders:
+  date-format: 'dd.MM.yyyy'
+  time-format: '[HH:mm:ss / h:mm a]'
+  time-offset: 0
+  register-tab-expansion: false
+  locale: en-US
+
+placeholder-output-replacements: {}
+conditions: {}
+
+# Интервалы в миллисекундах. Медленно меняющиеся данные обновляются реже.
+placeholder-refresh-intervals:
+  default-refresh-interval: 2000
+  '%health%': 200
+  '%ping%': 2000
+  '%luckperms-prefix%': 5000
+  '%luckperms-suffix%': 5000
+  '%vault_eco_balance_fixed%': 5000
+  '%playerpoints_points%': 5000
+  '%purpurbedrock_ping%': 2000
+  '%purpurbedrock_version%': 30000
+  '%statistic_player_kills%': 5000
+  '%statistic_deaths%': 5000
+  '%statistic_hours_played%': 30000
+
+assign-groups-by-permissions: false
+primary-group-finding-list:
+  - owner
+  - sozdatel
+  - kurator
+  - moderator
+  - helper
+  - stazher
+  - youtuber
+  - tiktoker
+  - imperator
+  - knyaz
+  - lord
+  - baron
+  - rycar
+  - geroy
+  - strannik
+  - default
+permission-refresh-interval: 1000
+debug: false
+
+mysql:
+  enabled: false
+  host: 127.0.0.1
+  port: 3306
+  database: tab
+  username: user
+  password: password
+  useSSL: true
+
+proxy-support:
+  enabled: false
+  channel-name-suffix: 'custom'
+  type: PLUGIN
+  plugin:
+    name: RedisBungee
+  redis:
+    url: 'redis://:password@localhost:6379/0'
+  rabbitmq:
+    exchange: 'plugin'
+    url: 'amqp://guest:guest@localhost:5672/%2F'
+
+components:
+  minimessage-support: true
+  disable-shadow-for-heads: true
+config-version: 7
+
+per-world-playerlist:
+  enabled: false
+  allow-bypass-permission: false
+  ignore-effect-in-worlds: []
+  shared-playerlist-world-groups: {}
+compensate-for-packetevents-bug: false
+use-bukkit-permissions-manager: false
+use-online-uuid-in-tablist: true
