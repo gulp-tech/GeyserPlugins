@@ -18,6 +18,7 @@ header-footer:
 
 tablist-name-formatting:
   enabled: true
+  disable-condition: '%world%=disabledworld'
 
 # Настройки префикса — в groups.yml. Префикс берётся из LuckPerms.
 scoreboard-teams:
@@ -29,6 +30,7 @@ scoreboard-teams:
     - 'PLACEHOLDER_A_TO_Z:%player%'
   case-sensitive-sorting: false
   can-see-friendly-invisibles: false
+  disable-condition: '%world%=disabledworld'
 
 playerlist-objective:
   enabled: true
@@ -36,6 +38,7 @@ playerlist-objective:
   fancy-value: '&7Пинг: %ping%'
   title: 'Пинг'
   render-type: INTEGER
+  disable-condition: '%world%=disabledworld'
 
 belowname-objective:
   enabled: true
@@ -44,6 +47,7 @@ belowname-objective:
   fancy-value-default: 'NPC'
   title: '&c❤'
   view-distance: 10
+  disable-condition: '%world%=disabledworld'
 
 prevent-spectator-effect:
   enabled: false
@@ -112,12 +116,10 @@ conditions: {}
 placeholder-refresh-intervals:
   default-refresh-interval: 2000
   '%health%': 200
-  '%ping%': 2000
   '%luckperms-prefix%': 5000
   '%luckperms-suffix%': 5000
   '%vault_eco_balance_fixed%': 5000
   '%playerpoints_points%': 5000
-  '%purpurbedrock_ping%': 2000
   '%purpurbedrock_version%': 30000
   '%statistic_player_kills%': 5000
   '%statistic_deaths%': 5000
