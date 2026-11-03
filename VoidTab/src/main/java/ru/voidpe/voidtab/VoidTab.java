@@ -563,7 +563,7 @@ public final class VoidTab extends JavaPlugin implements Listener, CommandExecut
             sender.sendMessage(prefix + "Скорборд: &b" + tSidebar + " мс &7| ник: &b" + tNametag
                     + " мс &7| появление (все сразу): &b" + tBurst + " мс");
             sender.sendMessage(prefix + "Режим ника: " + (teamsOn ? "&aкоманды вкл" : "&cкоманды выкл")
-                    + " &7| команд на борд: &b" + (online == 0 ? 0 : teams / boards));
+                    + " &7| команд всего: &b" + teams + " &7(на борд: &b" + (online == 0 ? 0 : teams / boards) + "&7)");
             return true;
         }
         if (args.length >= 1 && args[0].equalsIgnoreCase("reload")) {

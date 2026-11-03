@@ -18,46 +18,52 @@ import java.util.UUID;
 import java.util.WeakHashMap;
 
 /**
- * Оформление НИКА над головой (не скорборд!):
- *  - перед ником значок устройства из Floodgate (Windows / Android / iPhone / другое);
- *  - под ником здоровье (красное сердечко + число от самой игры).
+ * Оформление ника над головой:
+ *  - перед ником префикс привилегии из LuckPerms;
+ *  - под ником здоровье (objective below-name).
  *
- * Почему команды дублируются на все борды: у каждого игрока свой скорборд
- * сайдбара, и viewer видит неймтеги по СВОЕМУ борду — команд главного борда
- * он бы просто не увидел. Плюс для Bedrock через Geyser дополнительно
- * выставляются display-name и player-list-name игрока.
- * В невидимости ник и здоровье прячет сама игра.
+ * КАК ЭТО СДЕЛАНО И ПОЧЕМУ ТАК.
+ * У каждого игрока свой борд сайдбара, поэтому «команды» (Scoreboard Team) ника
+ * приходится создавать на борде КАЖДОГО зрителя. Раньше команда была одна на
+ * игрока: 40 игроков = 40 команд на каждом из 40 бордов = 1600 команд, и при
+ * появлении игрока летела пачка пакетов (создать команду, добавить запись,
+ * выставить префикс) каждому зрителю — клиенты Bedrock в этот момент
+ * перерисовывали все неймтеги, отсюда фриз «подхожу к игроку — лагает».
+ *
+ * Теперь команда ОБЩАЯ для всех игроков с одинаковым префиксом: у игроков одного
+ * ранга префикс одинаковый, значит команд на борде не 40, а столько, сколько
+ * разных привилегий. Появление игрока = одна запись в уже существующую команду
+ * (один маленький пакет) либо ничего, если префикс и команда уже есть.
  */
 public final class NametagManager {
 
     private static final String HEALTH_OBJECTIVE = "faral_hp";
+    /** Длина имени команды в 1.13+: до 16 символов. */
+    private static final int MAX_TEAM_NAME = 16;
 
     private final VoidTab plugin;
+    // "префикс|титул" на игрока — чтобы понимать, изменилось ли что-то.
     private final Map<UUID, String> appliedPrefix = new HashMap<>();
+    // Игрок -> имя его команды (общей по префиксу). Нужно, чтобы при смене
+    // привилегии убрать запись из старой команды и при выходе тоже.
+    private final Map<UUID, String> teamOfPlayer = new HashMap<>();
+    // Префикс -> имя общей команды.
+    private final Map<String, String> teamByPrefix = new HashMap<>();
     // Какой префикс уже стоит в команде на конкретном борде: если тот же —
-    // team.prefix() НЕ зовём (это пакет всем зрителям борда и перерисовка
-    // неймтега на Bedrock). WeakHashMap: борд вышедшего игрока не утекает.
+    // team.prefix() НЕ зовём (это пакет и перерисовка неймтега у клиента).
     private final Map<Scoreboard, Map<String, String>> boardPrefixCache =
             Collections.synchronizedMap(new WeakHashMap<>());
-    // Борды, где объектив здоровья уже создан (иначе getObjective звался всегда).
+    // Борды, где объектив здоровья уже создан.
     private final Set<Scoreboard> boardsWithHealth =
             Collections.synchronizedSet(Collections.newSetFromMap(new WeakHashMap<>()));
-    // Когда последний раз принудительно пересылали display/list name (троттлинг).
+    // Троттлинг принудительной пересылки display/list name.
     private final Map<UUID, Long> lastForceResend = new HashMap<>();
+    private int teamCounter;
 
     public NametagManager(VoidTab plugin) {
         this.plugin = plugin;
     }
 
-    /**
-     * Команды неймтегов включены? На Bedrock неймтег над головой берётся из
-     * display-name игрока, а команды нужны только как страховка. Каждая команда
-     * живёт на борде КАЖДОГО игрока (у всех свой сайдбар-борд), то есть их N x N —
-     * это самая дорогая часть плагина. Стоимость снижена: команды создаются
-     * только для игроков своего мира, новый борд наполняется до назначения
-     * (один пакет), принудительная пересылка имён выключена. Полное выключение
-     * (настройка false) убирает оформление над головой — это не рекомендуется.
-     */
     private boolean teamsEnabled() {
         return plugin.getConfig().getBoolean("nametag.use-teams", true);
     }
@@ -67,7 +73,7 @@ public final class NametagManager {
             return;
         }
         if (boardsWithHealth.contains(board)) {
-            return; // уже создан — не зовём getObjective при каждом обновлении
+            return;
         }
         Objective objective = board.getObjective(HEALTH_OBJECTIVE);
         if (objective == null) {
@@ -79,10 +85,23 @@ public final class NametagManager {
     }
 
     /**
-     * Заполнить НОВЫЙ борд командами неймтегов всех онлайн-игроков ДО того, как
-     * борд назначен игроку (см. SidebarManager.update). Клиент получает борд
-     * целиком одним пакетом, а не «пустой борд + N команд по одной».
+     * Имя команды для префикса. Одинаковый префикс — одна команда на всех
+     * игроков, поэтому число команд ограничено числом привилегий, а не онлайном.
      */
+    private String teamIdFor(String prefix) {
+        String existing = teamByPrefix.get(prefix);
+        if (existing != null) {
+            return existing;
+        }
+        String id = "vp" + Integer.toString(++teamCounter, 36);
+        if (id.length() > MAX_TEAM_NAME) {
+            id = id.substring(0, MAX_TEAM_NAME);
+        }
+        teamByPrefix.put(prefix, id);
+        return id;
+    }
+
+    /** Заполнить НОВЫЙ борд оформлением всех онлайн-игроков ДО его назначения. */
     public void prefill(Scoreboard board) {
         if (board == null || !teamsEnabled()) {
             return;
@@ -90,7 +109,12 @@ public final class NametagManager {
         ensureHealthObjective(board);
         Map<String, String> boardCache = boardPrefixCache.computeIfAbsent(board, b -> new HashMap<>());
         for (Player target : Bukkit.getOnlinePlayers()) {
-            String teamId = teamName(target);
+            String applied = appliedPrefix.get(target.getUniqueId());
+            if (applied == null) {
+                continue;
+            }
+            String nickPrefix = nickPrefix(applied);
+            String teamId = teamIdFor(nickPrefix);
             Team team = board.getTeam(teamId);
             if (team == null) {
                 team = board.registerNewTeam(teamId);
@@ -98,15 +122,11 @@ public final class NametagManager {
             if (!team.hasEntry(target.getName())) {
                 team.addEntry(target.getName());
             }
-            String prefix = appliedPrefix.get(target.getUniqueId());
-            if (prefix == null) {
-                continue;
+            if (!nickPrefix.equals(boardCache.get(teamId))) {
+                team.prefix(component(TextUtil.color(
+                        plugin.getConfig().getString("nametag.prefix-color", "&f")) + nickPrefix));
+                boardCache.put(teamId, nickPrefix);
             }
-            int sep = prefix.indexOf('|');
-            String nickPrefix = sep >= 0 ? prefix.substring(0, sep) : prefix;
-            team.prefix(component(TextUtil.color(
-                    plugin.getConfig().getString("nametag.prefix-color", "&f")) + nickPrefix));
-            boardCache.put(teamId, nickPrefix);
         }
     }
 
@@ -114,20 +134,20 @@ public final class NametagManager {
         return appliedPrefix.getOrDefault(uuid, "<нет>");
     }
 
-    private String teamName(Player player) {
-        return "ft" + player.getUniqueId().toString().replace("-", "").substring(0, 14);
+    private static String nickPrefix(String applied) {
+        int sep = applied.indexOf('|');
+        return sep >= 0 ? applied.substring(0, sep) : applied;
     }
 
     public void apply(Player player) {
         apply(player, false);
     }
 
-    /** Поставить/обновить значок устройства в нике игрока на всех бордах. */
+    /** Поставить/обновить оформление ника игрока на бордах всех зрителей. */
     public void apply(Player player, boolean forceNames) {
         if (!plugin.getConfig().getBoolean("nametag.enabled", true)) {
             return;
         }
-        // Порядок над головой: [устройство] [привилегия] Ник
         String prefix = "";
         if (plugin.getConfig().getBoolean("nametag.device-icon", true)) {
             String icon = plugin.sidebar().deviceIconChar(player);
@@ -135,9 +155,6 @@ public final class NametagManager {
                 prefix += icon + " ";
             }
         }
-        // Лёгкий режим (performance.light-nametags): над головой только значок
-        // устройства, без иконки ранга и названия — клиенту Bedrock заметно
-        // легче рендерить короткие неймтеги в толпе (слабые телефоны).
         boolean light = plugin.getConfig().getBoolean("performance.light-nametags", false);
         if (!light && plugin.getConfig().getBoolean("nametag.rank-icon", true)) {
             String rankIcon = plugin.sidebar().rankIconChar(player);
@@ -148,7 +165,6 @@ public final class NametagManager {
         if (!light && plugin.getConfig().getBoolean("nametag.rank-name", true)) {
             prefix += TextUtil.color(plugin.sidebar().rankDisplayName(player)) + " ";
         }
-        // Титул (суффикс LP) в TAB после ника; учитываем в "changed", чтобы таб обновлялся при получении титула
         String titleSuffix = "";
         if (plugin.getConfig().getBoolean("nametag.title-in-tab", true) && plugin.hooks().hasLuckPerms()) {
             String suffix = plugin.hooks().luckPermsSuffix(player.getUniqueId());
@@ -159,69 +175,12 @@ public final class NametagManager {
         boolean changed = !(prefix + "|" + titleSuffix).equals(appliedPrefix.get(player.getUniqueId()));
         appliedPrefix.put(player.getUniqueId(), prefix + "|" + titleSuffix);
 
-        // Компонент собираем лениво: если префикс везде уже стоит, парсинга не будет вообще.
-        Component prefixComponent = null;
-        String teamId = teamName(player);
         boolean teams = teamsEnabled();
-        for (Player viewer : Bukkit.getOnlinePlayers()) {
-            Scoreboard board = viewer.getScoreboard();
-            // Игрок из другого мира этого ника не видит — команду ему не создаём.
-            if (teams && !viewer.getWorld().equals(player.getWorld())) {
-                continue;
-            }
-            ensureHealthObjective(board);
-            if (!teams) {
-                continue; // режим «без команд»: неймтег берётся из display-name
-            }
-            Team team = board.getTeam(teamId);
-            if (team == null) {
-                team = board.registerNewTeam(teamId);
-            }
-            if (!team.hasEntry(player.getName())) {
-                team.addEntry(player.getName());
-            }
-            // Ставим префикс, только если на ЭТОМ борде он ещё не такой:
-            // team.prefix() = пакет всем зрителям и перерисовка неймтега,
-            // а раньше он слался каждые 2 секунды по всем бордам (лаги/вылеты).
-            Map<String, String> boardCache =
-                    boardPrefixCache.computeIfAbsent(board, b -> new HashMap<>());
-            if (!prefix.equals(boardCache.get(teamId))) {
-                if (prefixComponent == null) {
-                    prefixComponent = component(TextUtil.color(
-                            plugin.getConfig().getString("nametag.prefix-color", "&f")) + prefix);
-                }
-                team.prefix(prefixComponent);
-                boardCache.put(teamId, prefix);
-            }
-        }
         if (teams) {
-            // Главный борд: команды на нём нужны, пока им пользуется хоть кто-то.
-            Scoreboard mainBoard = Bukkit.getScoreboardManager().getMainScoreboard();
-            ensureHealthObjective(mainBoard);
-            Team mainTeam = mainBoard.getTeam(teamId);
-            if (mainTeam == null) {
-                mainTeam = mainBoard.registerNewTeam(teamId);
-            }
-            if (!mainTeam.hasEntry(player.getName())) {
-                mainTeam.addEntry(player.getName());
-            }
-            Map<String, String> mainCache =
-                    boardPrefixCache.computeIfAbsent(mainBoard, b -> new HashMap<>());
-            if (!prefix.equals(mainCache.get(teamId))) {
-                if (prefixComponent == null) {
-                    prefixComponent = component(TextUtil.color(
-                            plugin.getConfig().getString("nametag.prefix-color", "&f")) + prefix);
-                }
-                mainTeam.prefix(prefixComponent);
-                mainCache.put(teamId, prefix);
-            }
+            applyTeams(player, prefix);
         }
 
-        // Bedrock (Geyser): неймтег над головой берётся из display/list имени — дублируем туда.
-        // Пересылаем при реальном изменении префикса/титула. Принудительная пересылка
-        // (forceNames, страховка от кэша Geyser) — не чаще, чем раз в
-        // luckperms.force-name-resend-interval-seconds: раньше она уходила всем
-        // каждые 2 секунды и клиент перерисовывал все неймтеги (фризы/вылеты).
+        // Bedrock: неймтег берётся из display-name — дублируем при изменениях.
         long now = System.currentTimeMillis();
         long forceIntervalMs = Math.max(0L,
                 plugin.getConfig().getLong("luckperms.force-name-resend-interval-seconds", 0L)) * 1000L;
@@ -243,33 +202,103 @@ public final class NametagManager {
         }
     }
 
-    /** Игрок вышел — убрать его неймтег-команды со всех бордов. */
+    /** Запись игрока в ОБЩУЮ команду его префикса на бордах всех зрителей того же мира. */
+    private void applyTeams(Player player, String prefix) {
+        String teamId = teamIdFor(prefix);
+        String previous = teamOfPlayer.put(player.getUniqueId(), teamId);
+        if (previous != null && !previous.equals(teamId)) {
+            // Привилегию сменили — убираем запись из старой команды.
+            dropEntry(player, previous);
+        }
+        Component prefixComponent = null;
+        for (Player viewer : Bukkit.getOnlinePlayers()) {
+            Scoreboard board = viewer.getScoreboard();
+            if (!viewer.getWorld().equals(player.getWorld())) {
+                continue; // из другого мира ник не видно — пакет не нужен
+            }
+            ensureHealthObjective(board);
+            Team team = board.getTeam(teamId);
+            if (team == null) {
+                team = board.registerNewTeam(teamId);
+            }
+            if (!team.hasEntry(player.getName())) {
+                team.addEntry(player.getName());
+            }
+            Map<String, String> boardCache =
+                    boardPrefixCache.computeIfAbsent(board, b -> new HashMap<>());
+            if (!prefix.equals(boardCache.get(teamId))) {
+                if (prefixComponent == null) {
+                    prefixComponent = component(TextUtil.color(
+                            plugin.getConfig().getString("nametag.prefix-color", "&f")) + prefix);
+                }
+                team.prefix(prefixComponent);
+                boardCache.put(teamId, prefix);
+            }
+        }
+        // Главный борд: там оформление нужно, пока им пользуется хоть кто-то.
+        Scoreboard mainBoard = Bukkit.getScoreboardManager().getMainScoreboard();
+        ensureHealthObjective(mainBoard);
+        Team mainTeam = mainBoard.getTeam(teamId);
+        if (mainTeam == null) {
+            mainTeam = mainBoard.registerNewTeam(teamId);
+        }
+        if (!mainTeam.hasEntry(player.getName())) {
+            mainTeam.addEntry(player.getName());
+        }
+        Map<String, String> mainCache = boardPrefixCache.computeIfAbsent(mainBoard, b -> new HashMap<>());
+        if (!prefix.equals(mainCache.get(teamId))) {
+            if (prefixComponent == null) {
+                prefixComponent = component(TextUtil.color(
+                        plugin.getConfig().getString("nametag.prefix-color", "&f")) + prefix);
+            }
+            mainTeam.prefix(prefixComponent);
+            mainCache.put(teamId, prefix);
+        }
+    }
+
+    /** Убрать запись игрока из одной команды на всех бордах; пустую команду удалить. */
+    private void dropEntry(Player player, String teamId) {
+        String name = player.getName();
+        for (Player viewer : Bukkit.getOnlinePlayers()) {
+            Scoreboard board = viewer.getScoreboard();
+            Team team = board.getTeam(teamId);
+            if (team == null) {
+                continue;
+            }
+            if (team.hasEntry(name)) {
+                team.removeEntry(name);
+            }
+            if (team.getEntries().isEmpty()) {
+                team.unregister();
+                Map<String, String> cache = boardPrefixCache.get(board);
+                if (cache != null) {
+                    cache.remove(teamId);
+                }
+            }
+        }
+        Scoreboard mainBoard = Bukkit.getScoreboardManager().getMainScoreboard();
+        Team mainTeam = mainBoard.getTeam(teamId);
+        if (mainTeam != null) {
+            if (mainTeam.hasEntry(name)) {
+                mainTeam.removeEntry(name);
+            }
+            if (mainTeam.getEntries().isEmpty()) {
+                mainTeam.unregister();
+                Map<String, String> cache = boardPrefixCache.get(mainBoard);
+                if (cache != null) {
+                    cache.remove(teamId);
+                }
+            }
+        }
+    }
+
+    /** Игрок вышел — убрать его запись из общей команды (сама команда остаётся). */
     public void remove(Player player) {
         appliedPrefix.remove(player.getUniqueId());
         lastForceResend.remove(player.getUniqueId());
-        String name = teamName(player);
-        Team own = player.getScoreboard().getTeam(name);
-        if (own != null) {
-            own.unregister();
-        }
-        for (Player viewer : Bukkit.getOnlinePlayers()) {
-            Scoreboard board = viewer.getScoreboard();
-            Map<String, String> boardCache = boardPrefixCache.get(board);
-            if (boardCache != null) {
-                boardCache.remove(name);
-            }
-            Team team = board.getTeam(name);
-            if (team != null) {
-                team.unregister();
-            }
-        }
-        Map<String, String> mainCache = boardPrefixCache.get(Bukkit.getScoreboardManager().getMainScoreboard());
-        if (mainCache != null) {
-            mainCache.remove(name);
-        }
-        Team mainTeam = Bukkit.getScoreboardManager().getMainScoreboard().getTeam(name);
-        if (mainTeam != null) {
-            mainTeam.unregister();
+        String teamId = teamOfPlayer.remove(player.getUniqueId());
+        if (teamId != null) {
+            dropEntry(player, teamId);
         }
     }
 
