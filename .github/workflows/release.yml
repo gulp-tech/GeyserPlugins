@@ -290,14 +290,5 @@ jobs:
           echo "Файлы релиза: $JAR + $TAL + $ITM (ресурспак убран: он вызывал лаги)"
           gh release create "${{ inputs.tag || github.ref_name }}" "$PVP" "$JAR" "$TAL" "$ITM" "$ENC" "$CAS" "$CLN" "$DRP" "$CMB" "$VAC" "$AUS" "$WCT" "$RTZ" "$NV" "$SHU" "$ANV" "$VVE" VoidSpheres.mcpack \
             --target "$GITHUB_SHA" \
-            --title "VoidPE ${{ inputs.tag || github.ref_name }} — FaralTab + ресурспак" \
-            --notes "Bedrock-only сервер VoidPE (Purpur 26.2 + Geyser + Floodgate).
-
-          **FaralTab-1.1.0.jar** — плагин скорборда в \`plugins/\` (нужны Vault, PlayerPoints, LuckPerms, Geyser, Floodgate).
-          **VoidAuthSpawn-1.2.0.jar** — дополнение к AuthMe в `plugins/` рядом с AuthMe: незарегистрированных телепортирует в точку регистрации (`/authspawn set`).
-          **VoidWardenCity-1.2.0.jar** — Город Вардена в `plugins/`: `/wcity setcenter` и `/wcity setspawn` в древнем городе, дальше плагин сам наполняет сундуки и спавнит варденов.
-          **VoidRtpZone-1.0.0.jar** — зоны RTP в `plugins/`: `/rtpzone wand` выделяет зону (ЛКМ/ПКМ), `/rtpzone save <имя>` сохраняет; игрок заходит в зону — плагин сам пишет ему /rtp.
-          **VoidSpheres.mcpack** — пак только для вида сфер (не иконки скорборда).
-          Общий ресурспак сервера УБРАН: он вызывал сильные лаги при появлении игроков.
-
-          Java-игроки кикаются плагином (bedrock-only), Java-заглушек нет."
+            --title "VoidPE ${{ inputs.tag || github.ref_name }}" \
+            --notes "VoidPvP 1.0.8: исправлена проверка базового ATTACK_SPEED без изменения баланса боя. VoidSpheres.mcpack — только для сфер."
