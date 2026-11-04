@@ -41,12 +41,13 @@ jobs:
         working-directory: VoidPvP
         run: |
           mkdir -p /tmp/voidpvp-test
-          javac -d /tmp/voidpvp-test src/main/java/ru/voidpe/pvp/AttackSpeedCheck.java src/test/java/ru/voidpe/pvp/AttackSpeedCheckTest.java
-          java -ea -cp /tmp/voidpvp-test ru.voidpe.pvp.AttackSpeedCheckTest
+          javac -d /tmp/voidpvp-test src/main/java/ru/voidpe/pvp/AttackSpeedCheck.java src/test/java/ru/voidpe/pvp/AttackSpeedCheckTest.java || { echo "::error::VoidPvP regression test compilation failed"; exit 1; }
+          java -ea -cp /tmp/voidpvp-test ru.voidpe.pvp.AttackSpeedCheckTest || { echo "::error::VoidPvP regression test failed"; exit 1; }
           build() { mvn -B -DskipTests "$@" package > mvn.log 2>&1; }
           if ! build -Dpurpur.version="$PURPUR_VERSION"; then
             grep -E "\[ERROR\]|BUILD FAILURE|Could not resolve|Failed to read" mvn.log | head -20 || true
             if ! build -Dapi.groupId=io.papermc.paper -Dapi.artifactId=paper-api -Dpurpur.version=26.2-R0.1-SNAPSHOT; then
+              grep -E "\[ERROR\]|BUILD FAILURE|Could not resolve|Failed to read" mvn.log | head -25 | sed 's/%/%25/g; s/^/::error::/' || true
               cat mvn.log
               exit 1
             fi
