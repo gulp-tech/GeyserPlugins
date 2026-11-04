@@ -37,6 +37,21 @@ jobs:
           PY
           echo "Purpur API: $PURPUR_VERSION"
 
+      - name: Проверить и собрать VoidPvP
+        working-directory: VoidPvP
+        run: |
+          mkdir -p /tmp/voidpvp-test
+          javac -d /tmp/voidpvp-test src/main/java/ru/voidpe/pvp/AttackSpeedCheck.java src/test/java/ru/voidpe/pvp/AttackSpeedCheckTest.java
+          java -ea -cp /tmp/voidpvp-test ru.voidpe.pvp.AttackSpeedCheckTest
+          build() { mvn -B -DskipTests "$@" package > mvn.log 2>&1; }
+          if ! build -Dpurpur.version="$PURPUR_VERSION"; then
+            grep -E "\[ERROR\]|BUILD FAILURE|Could not resolve|Failed to read" mvn.log | head -20 || true
+            if ! build -Dapi.groupId=io.papermc.paper -Dapi.artifactId=paper-api -Dpurpur.version=26.2-R0.1-SNAPSHOT; then
+              cat mvn.log
+              exit 1
+            fi
+          fi
+
       - name: Собрать плагин VoidTab
         working-directory: VoidTab
         run: |
@@ -252,6 +267,7 @@ jobs:
         with:
           name: VoidPE-release
           path: |
+            VoidPvP/target/VoidPvP-*.jar
             VoidTab/target/VoidTab-*.jar
             VoidItems/target/VoidItems-*.jar
             VoidEnchants/target/VoidEnchants-*.jar
