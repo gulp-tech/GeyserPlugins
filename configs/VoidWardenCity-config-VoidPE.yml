@@ -99,6 +99,22 @@ chests:
     - {material: COMPASS, chance: 15, min: 1, max: 1}
     - {material: MUSIC_DISC_13, chance: 10, min: 1, max: 1}
     - {material: MUSIC_DISC_CAT, chance: 10, min: 1, max: 1}
+    - {material: DIAMOND, chance: 9, min: 1, max: 2}
+    - {material: EMERALD, chance: 15, min: 1, max: 4}
+    - {material: GOLD_INGOT, chance: 18, min: 1, max: 4}
+    - {material: IRON_INGOT, chance: 22, min: 2, max: 6}
+    - {material: GOLDEN_APPLE, chance: 10, min: 1, max: 2}
+    - {material: NETHERITE_SCRAP, chance: 3, min: 1, max: 1}
+    - {material: NAME_TAG, chance: 12, min: 1, max: 1}
+    - {material: SADDLE, chance: 10, min: 1, max: 1}
+    - {material: ENDER_PEARL, chance: 12, min: 1, max: 3}
+    - {material: LAPIS_LAZULI, chance: 25, min: 3, max: 12}
+    - {material: REDSTONE, chance: 25, min: 3, max: 12}
+    - {material: STRING, chance: 25, min: 3, max: 10}
+    - {material: ARROW, chance: 20, min: 4, max: 12}
+    - {material: SPYGLASS, chance: 8, min: 1, max: 1}
+    - {material: ENCHANTED_BOOK, chance: 5, min: 1, max: 1, enchantments: {mending: 1}}
+    - {material: ENCHANTED_BOOK, chance: 8, min: 1, max: 1, enchantments: {unbreaking: 3}}
 
 # Предметы из GUI (/wcity loot): дополнение ПОВЕРХ ванильного лута.
 custom-loot:
