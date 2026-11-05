@@ -291,4 +291,4 @@ jobs:
           gh release create "${{ inputs.tag || github.ref_name }}" "$PVP" "$JAR" "$TAL" "$ITM" "$ENC" "$CAS" "$CLN" "$DRP" "$CMB" "$VAC" "$AUS" "$WCT" "$RTZ" "$NV" "$SHU" "$ANV" "$VVE" VoidSpheres.mcpack \
             --target "$GITHUB_SHA" \
             --title "VoidPE ${{ inputs.tag || github.ref_name }}" \
-            --notes "VoidPvP 1.0.8: исправлена проверка базового ATTACK_SPEED без изменения баланса боя. VoidSpheres.mcpack — только для сфер."
+            --notes "VoidShulker 1.0.1: предмет временно изымается при открытии. Проверьте на тестовом сервере до установки на основной. VoidSpheres.mcpack — только для сфер."

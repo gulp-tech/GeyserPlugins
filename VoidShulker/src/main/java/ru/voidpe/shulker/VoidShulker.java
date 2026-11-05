@@ -15,6 +15,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryAction;
@@ -38,22 +39,8 @@ import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/**
- * VoidShulker — шалкер открывается прямо из руки: ПКМ по воздуху или по блоку.
- * Shift+ПКМ ставит шалкер на землю как обычно.
- *
- * <p>Без дюпов и потерь:</p>
- * <ul>
- *   <li>открывается только стак из ОДНОГО шалкера;</li>
- *   <li>пока окно открыто, слот с этим шалкером («якорь») полностью заблокирован:
- *       его нельзя переложить, выбросить, свапнуть в другую руку или собрать
- *       двойным кликом — содержимое GUI всегда пишется обратно в тот же предмет;</li>
- *   <li>шалкер нельзя положить внутрь открытого шалкера (как в ванилле);</li>
- *   <li>если якорный предмет всё же пропал (чит/лаг) — содержимое GUI не
- *       удаляется, а возвращается игроку в инвентарь/на землю;</li>
- *   <li>сохранение идёт при закрытии окна, выходе, смерти и выключении плагина.</li>
- * </ul>
- */
+/** Открытие шалкера из руки. На время сессии предмет находится в памяти плагина,
+ * а не в инвентаре игрока, поэтому его нельзя одновременно открыть и поставить. */
 public final class VoidShulker extends JavaPlugin implements Listener, CommandExecutor {
 
     private static final Pattern HEX = Pattern.compile("&#([0-9A-Fa-f]{6})");
@@ -63,12 +50,14 @@ public final class VoidShulker extends JavaPlugin implements Listener, CommandEx
         private final UUID owner;
         private final EquipmentSlot hand;
         private final int anchorSlot; // 0-8 главная рука, 40 — вторая
+        private final ItemStack escrow;
         private Inventory inventory;
 
-        private ShulkerHolder(UUID owner, EquipmentSlot hand, int anchorSlot) {
+        private ShulkerHolder(UUID owner, EquipmentSlot hand, int anchorSlot, ItemStack escrow) {
             this.owner = owner;
             this.hand = hand;
             this.anchorSlot = anchorSlot;
+            this.escrow = escrow;
         }
 
         @Override
@@ -97,6 +86,12 @@ public final class VoidShulker extends JavaPlugin implements Listener, CommandEx
             Player p = Bukkit.getPlayer(uuid);
             if (p != null) {
                 p.closeInventory();
+                ShulkerHolder remaining = sessions.get(uuid);
+                if (remaining != null) {
+                    save(p, remaining);
+                }
+            } else {
+                getLogger().severe("Не удалось вернуть открытый шалкер отключившемуся игроку " + uuid);
             }
         }
         sessions.clear();
@@ -110,7 +105,12 @@ public final class VoidShulker extends JavaPlugin implements Listener, CommandEx
             return;
         }
         Player player = event.getPlayer();
-        if (player.getGameMode() == GameMode.SPECTATOR || sessions.containsKey(player.getUniqueId())) {
+        if (sessions.containsKey(player.getUniqueId())) {
+            // Никакая рука и никакой shift не должны поставить предмет, пока открыто окно.
+            event.setCancelled(true);
+            return;
+        }
+        if (player.getGameMode() == GameMode.SPECTATOR) {
             return;
         }
         if (player.isSneaking()) {
@@ -161,7 +161,7 @@ public final class VoidShulker extends JavaPlugin implements Listener, CommandEx
         }
         int anchorSlot = hand == EquipmentSlot.HAND
                 ? player.getInventory().getHeldItemSlot() : 40;
-        ShulkerHolder holder = new ShulkerHolder(player.getUniqueId(), hand, anchorSlot);
+        ShulkerHolder holder = new ShulkerHolder(player.getUniqueId(), hand, anchorSlot, item.clone());
         Inventory inv = Bukkit.createInventory(holder, 27,
                 component(getConfig().getString("title", "&#B388FFШалкер")));
         holder.inventory = inv;
@@ -172,8 +172,19 @@ public final class VoidShulker extends JavaPlugin implements Listener, CommandEx
                 inv.setItem(i, contents[i].clone());
             }
         }
+        // Изъять оригинал ДО открытия GUI: его нельзя поставить или переместить,
+        // пока содержимое редактируется в копии инвентаря.
+        player.getInventory().setItem(anchorSlot, null);
         sessions.put(player.getUniqueId(), holder);
-        player.openInventory(inv);
+        try {
+            if (player.openInventory(inv) == null) {
+                save(player, holder); // другой плагин отменил открытие
+                return;
+            }
+        } catch (RuntimeException ex) {
+            save(player, holder);
+            throw ex;
+        }
         String sound = getConfig().getString("sound-open", "");
         if (sound != null && !sound.isBlank()) {
             player.playSound(player.getLocation(), sound, 0.6f, 1.0f);
@@ -185,7 +196,8 @@ public final class VoidShulker extends JavaPlugin implements Listener, CommandEx
     @EventHandler(priority = EventPriority.MONITOR)
     public void onClose(InventoryCloseEvent event) {
         if (event.getInventory().getHolder() instanceof ShulkerHolder holder
-                && event.getPlayer() instanceof Player player) {
+                && event.getPlayer() instanceof Player player
+                && holder.owner.equals(player.getUniqueId())) {
             save(player, holder);
             String sound = getConfig().getString("sound-close", "");
             if (sound != null && !sound.isBlank()) {
@@ -203,62 +215,69 @@ public final class VoidShulker extends JavaPlugin implements Listener, CommandEx
         lastOpen.remove(event.getPlayer().getUniqueId());
     }
 
-    @EventHandler(priority = EventPriority.LOWEST)
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onDeath(PlayerDeathEvent event) {
-        ShulkerHolder holder = sessions.get(event.getEntity().getUniqueId());
-        if (holder != null) {
-            save(event.getEntity(), holder); // закрыть окно смерть тоже заставит, но страхуемся
+        Player player = event.getEntity();
+        ShulkerHolder holder = sessions.get(player.getUniqueId());
+        if (holder == null) {
+            return;
+        }
+        ItemStack result = finish(holder);
+        if (result == null) {
+            return;
+        }
+        if (event.getKeepInventory()) {
+            returnItem(player, holder.anchorSlot, result);
+        } else {
+            // Список дропа уже сформирован, поэтому добавление в инвентарь здесь небезопасно.
+            event.getDrops().add(result);
         }
     }
 
-    /**
-     * Записать содержимое GUI обратно в предмет-якорь. Идемпотентно.
-     * Если якорь пропал/заменился — предметы НЕ удаляются: возвращаются
-     * игроку в инвентарь, остатки падают на землю.
-     */
-    private void save(Player player, ShulkerHolder holder) {
-        if (sessions.remove(holder.owner) == null) {
-            return; // уже сохранено (закрытие+выход могут сработать парой)
+    /** Завершить именно эту сессию один раз и записать GUI в изъятый предмет. */
+    private ItemStack finish(ShulkerHolder holder) {
+        if (!sessions.remove(holder.owner, holder)) {
+            return null;
         }
-        ItemStack[] contents = holder.inventory.getContents();
-        ItemStack anchor = holder.hand == EquipmentSlot.HAND
-                ? player.getInventory().getItemInMainHand()
-                : player.getInventory().getItemInOffHand();
-        // Якорь проверяем по физическому слоту: getItemInMainHand смотрит на
-        // ВЫБРАННЫЙ слот, а игрок мог прокрутить хотбар при открытом окне.
-        ItemStack slotItem = player.getInventory().getItem(holder.anchorSlot);
-        if (slotItem != null && isShulker(slotItem) && slotItem.getAmount() == 1) {
-            anchor = slotItem;
-        } else {
-            anchor = null;
+        ItemStack result = holder.escrow.clone();
+        if (!(result.getItemMeta() instanceof BlockStateMeta meta)
+                || !(meta.getBlockState() instanceof ShulkerBox box)) {
+            getLogger().severe("Не удалось сохранить шалкер игрока " + holder.owner);
+            return result;
         }
+        Inventory boxInv = box.getSnapshotInventory();
+        boxInv.setContents(holder.inventory.getContents());
+        meta.setBlockState(box);
+        result.setItemMeta(meta);
+        return result;
+    }
 
-        if (anchor != null && anchor.getItemMeta() instanceof BlockStateMeta meta
-                && meta.getBlockState() instanceof ShulkerBox box) {
-            org.bukkit.inventory.Inventory boxInv = box.getSnapshotInventory();
-            boxInv.clear();
-            for (int i = 0; i < contents.length; i++) {
-                if (contents[i] != null) {
-                    boxInv.setItem(i, contents[i].clone());
-                }
-            }
-            meta.setBlockState(box);
-            anchor.setItemMeta(meta);
-            player.getInventory().setItem(holder.anchorSlot, anchor);
+    private void save(Player player, ShulkerHolder holder) {
+        ItemStack result = finish(holder);
+        if (result != null) {
+            returnItem(player, holder.anchorSlot, result);
+        }
+    }
+
+    /** Не перезаписывать чужой предмет, если слот был занят извне. */
+    private void returnItem(Player player, int slot, ItemStack item) {
+        ItemStack existing = player.getInventory().getItem(slot);
+        if (existing == null || existing.getType().isAir()) {
+            player.getInventory().setItem(slot, item);
             return;
         }
-        // Аварийный путь: якоря нет — вернуть всё игроку, ничего не терять.
-        for (ItemStack stack : contents) {
-            if (stack == null || stack.getType() == Material.AIR) {
-                continue;
-            }
-            Map<Integer, ItemStack> rest = player.getInventory().addItem(stack.clone());
-            for (ItemStack drop : rest.values()) {
-                player.getWorld().dropItemNaturally(player.getLocation(), drop);
-            }
+        Map<Integer, ItemStack> rest = player.getInventory().addItem(item);
+        for (ItemStack drop : rest.values()) {
+            player.getWorld().dropItemNaturally(player.getLocation(), drop);
         }
-        getLogger().warning("VoidShulker: якорный шалкер игрока " + player.getName()
-                + " не найден при закрытии — содержимое возвращено в инвентарь.");
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onPlace(BlockPlaceEvent event) {
+        if (sessions.containsKey(event.getPlayer().getUniqueId())
+                && Tag.SHULKER_BOXES.isTagged(event.getBlockPlaced().getType())) {
+            event.setCancelled(true);
+        }
     }
 
     // ------------------------------------------------------------- антидюп
@@ -319,9 +338,10 @@ public final class VoidShulker extends JavaPlugin implements Listener, CommandEx
             return;
         }
         int topSize = event.getView().getTopInventory().getSize();
-        int anchorRaw = topSize + holder.anchorSlot;
         for (int raw : event.getRawSlots()) {
-            if (raw == anchorRaw) {
+            if (event.getView().getInventory(raw) != null
+                    && event.getView().getInventory(raw).equals(event.getWhoClicked().getInventory())
+                    && event.getView().convertSlot(raw) == holder.anchorSlot) {
                 event.setCancelled(true);
                 return;
             }

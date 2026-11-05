@@ -3,7 +3,7 @@ version: '${project.version}'
 main: ru.voidpe.shulker.VoidShulker
 api-version: '26.2'
 author: VoidPE
-description: 'Шалкер в руке открывается ПКМ по воздуху или блоку. Shift+ПКМ — поставить на землю как обычно. Защита от дюпов.'
+description: 'Шалкер в руке открывается ПКМ по воздуху или блоку. Shift+ПКМ — поставить на землю как обычно.'
 commands:
   voidshulker:
     description: 'VoidShulker: reload конфига'
