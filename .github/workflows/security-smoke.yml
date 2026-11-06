@@ -78,4 +78,5 @@ jobs:
             grep -E 'SECURITY_SMOKE_FAILED|Exception|Error|ERROR|Caused by:' server.log | tail -20 | sed 's/%/%25/g; s/^/::error::/' || true
             exit 1
           fi
+          grep -E 'FINDING' server.log | sed 's/%/%25/g; s/^/::notice title=Smoke finding::/' || true
           echo 'Isolated server tests passed.'
