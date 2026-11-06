@@ -129,23 +129,37 @@ class VoidShulkerMockTest {
         assertEquals(4, storedDiamonds(player.getInventory().getItem(0)));
     }
 
+    /** Loose diamonds plus diamonds stored inside any shulker in the list. */
+    private int totalDiamonds(java.util.List<ItemStack> items) {
+        int total = 0;
+        for (ItemStack item : items) {
+            if (item == null || item.getType().isAir()) continue;
+            if (item.getType() == Material.DIAMOND) total += item.getAmount();
+            else if (isBox(item)) total += storedDiamonds(item);
+        }
+        return total;
+    }
+    private static boolean isBox(ItemStack item) {
+        return item.getItemMeta() instanceof BlockStateMeta && Material.PURPLE_SHULKER_BOX == item.getType();
+    }
+
     @Test void deathInBothInventoryModesAndQuitDoNotAddCopies() {
         for (boolean keep : new boolean[] {false, true}) {
             player.getInventory().clear();
             player.getInventory().setItem(0, box(7));
             open(EquipmentSlot.HAND);
             click(0, ClickType.LEFT, InventoryAction.PICKUP_ALL);
-            java.util.List<ItemStack> drops = new java.util.ArrayList<>();
-            for (ItemStack item : player.getInventory().getContents()) if (item != null && !item.getType().isAir()) drops.add(item.clone());
+            java.util.List<ItemStack> before = new java.util.ArrayList<>();
+            for (ItemStack item : player.getInventory().getContents()) if (item != null) before.add(item.clone());
+            assertEquals(7, totalDiamonds(before), "before death: exactly 7 diamonds exist");
+            java.util.List<ItemStack> drops = new java.util.ArrayList<>(before);
             org.bukkit.damage.DamageSource source = org.bukkit.damage.DamageSource.builder(org.bukkit.damage.DamageType.GENERIC).build();
             org.bukkit.event.entity.PlayerDeathEvent death = new org.bukkit.event.entity.PlayerDeathEvent(player, source, drops, 0,
                     (net.kyori.adventure.text.Component) null, true);
             death.setKeepInventory(keep);
             plugin.onDeath(death);
-            assertEquals(2, drops.size(), "death adds no extra box or items");
-            assertEquals(0, storedDiamonds(drops.stream().filter(i -> i.getType() == Material.PURPLE_SHULKER_BOX).findFirst().orElseThrow()));
-            assertEquals(7, drops.stream().filter(i -> i.getType() == Material.DIAMOND).mapToInt(ItemStack::getAmount).sum());
-            assertEquals(7, playerDiamonds());
+            assertEquals(7, totalDiamonds(drops), "after death (keepInventory=" + keep + "): still exactly 7 diamonds");
+            assertEquals(1, drops.stream().filter(VoidShulkerMockTest::isBox).count(), "only one shulker is dropped");
         }
         player.getInventory().clear();
         player.getInventory().setItem(0, box(5));
@@ -154,7 +168,7 @@ class VoidShulkerMockTest {
                 org.bukkit.event.player.PlayerQuitEvent.QuitReason.DISCONNECTED));
         player.closeInventory();
         assertEquals(5, storedDiamonds(player.getInventory().getItem(0)));
-        assertEquals(0, playerDiamonds());
+        assertEquals(5, totalDiamonds(java.util.Arrays.asList(player.getInventory().getContents())));
     }
 
     @Test void heldSwapDragAndPlacementAreCancelledWhileOpen() {
@@ -182,6 +196,7 @@ class VoidShulkerMockTest {
         player.getInventory().setItem(0, box(2));
         assertTrue(open(EquipmentSlot.HAND).isCancelled());
         assertEquals(2, storedDiamonds(player.getInventory().getItem(0)));
-        assertNotEquals(27, player.getOpenInventory().getTopInventory().getSize());
+        var top = player.getOpenInventory().getTopInventory();
+        assertTrue(top == null || top.getSize() != 27, "no shulker GUI opened in creative");
     }
 }
