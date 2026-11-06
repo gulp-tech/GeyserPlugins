@@ -1,6 +1,7 @@
 package ru.voidpe.shulker;
 
 import org.bukkit.GameMode;
+import org.bukkit.NamespacedKey;
 import org.bukkit.Material;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.ShulkerBox;
@@ -11,6 +12,8 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
@@ -198,5 +201,62 @@ class VoidShulkerMockTest {
         assertEquals(2, storedDiamonds(player.getInventory().getItem(0)));
         var top = player.getOpenInventory().getTopInventory();
         assertTrue(top == null || top.getSize() != 27, "no shulker GUI opened in creative");
+    }
+
+    /**
+     * Simulates a crash: only the serialized items that were on disk at that moment survive.
+     * Shutdown hooks of the old server are deliberately not relied on; a fresh server then joins the player.
+     */
+    private void crashAndRestart() {
+        ItemStack[] onDisk = player.getInventory().getContents();
+        byte[][] saved = new byte[onDisk.length][];
+        for (int i = 0; i < onDisk.length; i++) if (onDisk[i] != null) saved[i] = onDisk[i].serializeAsBytes();
+        MockBukkit.unmock();
+        server = MockBukkit.mock();
+        plugin = MockBukkit.load(VoidShulker.class);
+        player = server.addPlayer();
+        player.addAttachment(plugin, "voidshulker.use", true);
+        for (int i = 0; i < saved.length; i++) {
+            if (saved[i] != null) player.getInventory().setItem(i, ItemStack.deserializeBytes(saved[i]));
+        }
+        plugin.onJoin(new PlayerJoinEvent(player, (net.kyori.adventure.text.Component) null));
+    }
+
+    private boolean hasSessionMarker(ItemStack item) {
+        if (item == null || !item.hasItemMeta()) return false;
+        NamespacedKey key = new NamespacedKey(plugin, "open_session");
+        return item.getItemMeta().getPersistentDataContainer().has(key, PersistentDataType.STRING);
+    }
+
+    private void assertNoSessionMarkers() {
+        for (ItemStack item : player.getInventory().getContents()) {
+            assertFalse(hasSessionMarker(item), "temporary open_session marker must not survive a crash");
+        }
+    }
+
+    @Test void crashWhileDiamondsStayInsideKeepsOneShulkerAndEveryDiamond() {
+        player.getInventory().setItem(0, box(8));
+        open(EquipmentSlot.HAND);
+        assertTrue(hasSessionMarker(player.getInventory().getItem(0)), "session is open before the crash");
+        crashAndRestart();
+        assertNoSessionMarkers();
+        assertEquals(1, java.util.Arrays.stream(player.getInventory().getContents())
+                .filter(i -> i != null && i.getType() == Material.PURPLE_SHULKER_BOX).count(), "exactly one shulker");
+        assertEquals(8, storedDiamonds(player.getInventory().getItem(0)));
+        assertEquals(0, playerDiamonds());
+        assertEquals(8, totalDiamonds(java.util.Arrays.asList(player.getInventory().getContents())));
+    }
+
+    @Test void crashAfterWithdrawalKeepsEveryDiamondExactlyOnce() {
+        player.getInventory().setItem(0, box(8));
+        open(EquipmentSlot.HAND);
+        click(0, ClickType.LEFT, InventoryAction.PICKUP_ALL); // all 8 leave the shulker
+        assertEquals(8, playerDiamonds());
+        assertTrue(hasSessionMarker(player.getInventory().getItem(0)), "session is still open at the crash");
+        crashAndRestart();
+        assertNoSessionMarkers();
+        assertEquals(0, storedDiamonds(player.getInventory().getItem(0)));
+        assertEquals(8, playerDiamonds(), "withdrawn diamonds are not duplicated by a restart");
+        assertEquals(8, totalDiamonds(java.util.Arrays.asList(player.getInventory().getContents())));
     }
 }

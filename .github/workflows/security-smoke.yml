@@ -65,18 +65,25 @@ jobs:
           hologram:
             enabled: false
           YAML
-      - name: Run isolated server assertions
+      - name: Run isolated server assertions (two starts on the same world)
         run: |
           cd "$RUNNER_TEMP/smoke"
-          set +e
-          timeout 300s java -Xms512M -Xmx1500M -Dvoidpe.smoke.marker="$RUNNER_TEMP/smoke-passed" -jar server.jar nogui > server.log 2>&1
-          status=$?
-          set -e
-          tail -160 server.log
-          if [ "$status" -ne 0 ] || [ ! -f "$RUNNER_TEMP/smoke-passed" ]; then
-            echo "::error::Isolated server test failed (exit $status); inspect the server log in this step."
-            grep -E 'SECURITY_SMOKE_FAILED|Exception|Error|ERROR|Caused by:' server.log | tail -20 | sed 's/%/%25/g; s/^/::error::/' || true
-            exit 1
-          fi
-          grep -E 'FINDING' server.log | sed 's/%/%25/g; s/^/::notice title=Smoke finding::/' || true
-          echo 'Isolated server tests passed.'
+          # Phase 1 builds state and stops; phase 2 is a new JVM on the same world directory.
+          run_phase() {
+            local phase="$1" marker="$RUNNER_TEMP/$2" log="server-phase$1.log" status=0
+            if timeout 300s java -Xms512M -Xmx1500M -Dvoidpe.smoke.phase="$phase" -Dvoidpe.smoke.marker="$marker" -jar server.jar nogui > "$log" 2>&1; then
+              status=0
+            else
+              status=$?
+            fi
+            tail -160 "$log"
+            if [ "$status" -ne 0 ] || [ ! -f "$marker" ]; then
+              echo "::error::Isolated server phase $phase failed (exit $status); inspect $log in this step."
+              grep -E 'SECURITY_SMOKE_FAILED|Exception|Error|ERROR|Caused by:' "$log" | tail -20 | sed 's/%/%25/g; s/^/::error::/' || true
+              return 1
+            fi
+            grep -E 'FINDING' "$log" | sed 's/%/%25/g; s/^/::notice title=Smoke finding::/' || true
+          }
+          run_phase 1 smoke-phase1-passed || exit 1
+          run_phase 2 smoke-restart-passed || exit 1
+          echo 'Isolated server tests passed (including restart).'

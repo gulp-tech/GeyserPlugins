@@ -16,42 +16,95 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.block.BlockState;
 import org.bukkit.block.Chest;
 import org.bukkit.block.ShulkerBox;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.TNTPrimed;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockExplodeEvent;
+import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.ExplosionPrimeEvent;
 import org.bukkit.event.entity.ItemSpawnEvent;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.BlockStateMeta;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.plugin.RegisteredListener;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.persistence.PersistentDataType;
 
 import java.io.File;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
-/** CI-only: runs on a throwaway local Purpur world, never included in a release. */
+/**
+ * CI-only: runs on a throwaway local Purpur world, never included in a release.
+ * Phase 1 builds state and stops the server; phase 2 is a second JVM on the same world
+ * directory and checks what survived the restart.
+ */
 public final class SecuritySmoke extends JavaPlugin implements Listener {
+    /** Restart probe: one custom TNT block placed in phase 1, plus a second one placed after restart. */
+    private static final int PROBE_X = 470, PROBE_Z = 470;
     private final List<ItemStack> spawned = new ArrayList<>();
+
     @Override public void onEnable() {
         getServer().getPluginManager().registerEvents(this, this);
-        Bukkit.getScheduler().runTaskLater(this, this::runTests, 80L);
+        boolean restart = "2".equals(System.getProperty("voidpe.smoke.phase", "1"));
+        Runnable scenario;
+        if (restart) scenario = this::runRestartChecks;
+        else scenario = this::runTests;
+        Bukkit.getScheduler().runTaskLater(this, scenario, 80L);
     }
+
     @EventHandler public void onSpawn(ItemSpawnEvent event) { spawned.add(event.getEntity().getItemStack().clone()); }
+
     private static void check(boolean b, String message) { if (!b) throw new AssertionError(message); }
+
     private static Object call(Object target, String method, Class<?>[] types, Object... args) throws Exception {
         return target.getClass().getMethod(method, types).invoke(target, args);
     }
+
+    /** Same as {@link #call} but also reaches non-public methods; used only for HyperTNT internals. */
+    private static Object reflect(Object target, String method, Class<?>[] types, Object... args) throws Exception {
+        Method m = target.getClass().getDeclaredMethod(method, types);
+        m.setAccessible(true);
+        return m.invoke(target, args);
+    }
+
+    private static Object findListener(Plugin plugin, String simpleName) {
+        for (RegisteredListener registered : HandlerList.getRegisteredListeners(plugin)) {
+            Object listener = registered.getListener();
+            if (listener.getClass().getName().equals("mk.hypertnt." + simpleName)) return listener;
+        }
+        throw new AssertionError("HyperTNT listener is not registered: " + simpleName);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<Location, String> placedMap(Object listener) throws Exception {
+        Field field = listener.getClass().getDeclaredField("placed");
+        field.setAccessible(true);
+        return (Map<Location, String>) field.get(listener);
+    }
+
+    /** Places a custom TNT through HyperTNT's own onPlace handler, the same path a player's placement takes. */
+    private static void placeCustomTnt(Plugin tnt, Object tntManager, Block block) throws Exception {
+        BlockState replaced = block.getState();
+        ItemStack item = (ItemStack) reflect(tntManager, "createItem", new Class<?>[]{String.class, int.class}, "tnt", 1);
+        block.setType(Material.TNT, false);
+        BlockPlaceEvent place = new BlockPlaceEvent(block, replaced, block.getRelative(BlockFace.DOWN), item, null, true, EquipmentSlot.HAND);
+        reflect(findListener(tnt, "TntListener"), "onPlace", new Class<?>[]{BlockPlaceEvent.class}, place);
+    }
+
     private void runTests() {
         try {
             World world = Bukkit.getWorld("world");
@@ -196,7 +249,84 @@ public final class SecuritySmoke extends JavaPlugin implements Listener {
             }
             getLogger().info("FINDING shulker-breakBlock: loose diamonds=" + loose + ", inside box diamonds=" + insideDrop
                     + (loose == 7 && insideDrop == 7 ? " -> DUPLICATION" : " -> no duplication"));
-            getLogger().info("SECURITY_SMOKE_PASS: WG region, boundary TNT, double chest and 17 shulker-colour configs verified; see FINDING lines");
+
+            // Restart probe: phase 2 checks that this block is still in the world and whether HyperTNT still knows its type.
+            Block probe = world.getBlockAt(PROBE_X, 80, PROBE_Z);
+            probe.setType(Material.AIR, false);
+            placeCustomTnt(tnt, managerTnt, probe);
+            check("tnt".equals(placedMap(findListener(tnt, "TntListener")).get(probe.getLocation())),
+                    "HyperTNT records the placed type in memory before restart");
+            // Entities still in the world would otherwise be saved with the chunk and re-tick after the restart.
+            for (TNTPrimed leftover : world.getEntitiesByClass(TNTPrimed.class)) leftover.remove();
+
+            getLogger().info("SECURITY_SMOKE_PASS (phase 1): WG region, boundary TNT, double chest, 17 shulker-colour configs; restart probe written");
+            Files.writeString(Path.of(System.getProperty("voidpe.smoke.marker")), "passed\n");
+        } catch (Throwable e) {
+            getLogger().severe("SECURITY_SMOKE_FAILED: " + e);
+            e.printStackTrace();
+        } finally {
+            Bukkit.shutdown();
+        }
+    }
+
+    /** Phase 2: a fresh JVM on the same world directory, after the phase-1 server stopped. */
+    private void runRestartChecks() {
+        try {
+            World world = Bukkit.getWorld("world");
+            Plugin city = Bukkit.getPluginManager().getPlugin("VoidWardenCity");
+            Plugin tnt = Bukkit.getPluginManager().getPlugin("HyperTNT");
+            check(world != null && city != null && city.isEnabled() && tnt != null && tnt.isEnabled(), "plugins and world loaded after restart");
+            RegionManager manager = WorldGuard.getInstance().getPlatform().getRegionContainer().get(BukkitAdapter.adapt(world));
+            check(manager != null, "WorldGuard region manager after restart");
+
+            File stateFile = new File(city.getDataFolder(), "worldguard-region.yml");
+            String id = YamlConfiguration.loadConfiguration(stateFile).getString("region-id");
+            check(id != null && id.startsWith("voidwardencity_"), "region ownership survives restart");
+            ProtectedRegion managed = manager.getRegion(id);
+            check(managed != null, "managed region still exists after restart");
+            long managedCount = manager.getRegions().keySet().stream().filter(k -> k.startsWith("voidwardencity_")).count();
+            check(managedCount == 1, "no duplicate managed city region after restart (found " + managedCount + ")");
+            check(managed.contains(BlockVector3.at(0, 80, 0)) && !managed.contains(BlockVector3.at(9, 80, 0)),
+                    "managed region bounds after restart");
+            check(managed.getFlag(Flags.TNT) == State.DENY
+                    && managed.getFlag(Flags.CREEPER_EXPLOSION) == State.DENY
+                    && managed.getFlag(Flags.OTHER_EXPLOSION) == State.DENY
+                    && managed.getFlag(Flags.PASSTHROUGH) == State.ALLOW
+                    && managed.getFlag(Flags.EXP_DROPS) == State.ALLOW, "region flags after restart");
+
+            ProtectedRegion other = manager.getRegion("smoke_existing");
+            check(other != null && other.getPriority() == 6 && other.getFlag(Flags.BLOCK_BREAK) == State.DENY,
+                    "pre-existing region untouched across restart");
+
+            NamespacedKey entityKey = (NamespacedKey) call(call(tnt, "getTntManager", new Class<?>[0]), "getEntityKey", new Class<?>[0]);
+            Block borderEdge = world.getBlockAt(8, 80, 0);
+            Block borderOrigin = world.getBlockAt(10, 80, 0);
+            borderEdge.setType(Material.STONE);
+            borderOrigin.setType(Material.STONE);
+            TNTPrimed borderTnt = world.spawn(new Location(world, 10.5, 80.5, 0.5), TNTPrimed.class);
+            borderTnt.getPersistentDataContainer().set(entityKey, PersistentDataType.STRING, "tnt");
+            ExplosionPrimeEvent borderPrime = new ExplosionPrimeEvent(borderTnt, 6, false);
+            Bukkit.getPluginManager().callEvent(borderPrime);
+            check(borderPrime.isCancelled(), "TNT near city is still cancelled after restart");
+            check(borderOrigin.getType() == Material.STONE && borderEdge.getType() == Material.STONE,
+                    "no blast damage to city edge after restart");
+
+            // Restart probe. The custom TNT block must still be in the world; HyperTNT's type map is memory only.
+            Block probe = world.getBlockAt(PROBE_X, 80, PROBE_Z);
+            check(probe.getType() == Material.TNT, "placed custom TNT block survives the restart in the world");
+            Object listener = findListener(tnt, "TntListener");
+            Map<Location, String> placed = placedMap(listener);
+            boolean typeKept = placed.containsKey(probe.getLocation());
+            getLogger().info("FINDING restart-placed-hypertnt: world block=TNT, in-memory placed map has type=" + typeKept
+                    + (typeKept ? " -> type kept" : " -> type lost; break/redstone/flint paths ignore this block and treat it as vanilla TNT"));
+
+            // A placement after restart must be recorded again, so HyperTNT works for new blocks.
+            Block fresh = world.getBlockAt(PROBE_X + 1, 80, PROBE_Z);
+            fresh.setType(Material.AIR, false);
+            placeCustomTnt(tnt, call(tnt, "getTntManager", new Class<?>[0]), fresh);
+            check("tnt".equals(placedMap(listener).get(fresh.getLocation())), "new custom TNT placement recorded after restart");
+
+            getLogger().info("SECURITY_SMOKE_PASS (phase 2): region, flags, boundary TNT and world blocks survived the restart; see FINDING lines");
             Files.writeString(Path.of(System.getProperty("voidpe.smoke.marker")), "passed\n");
         } catch (Throwable e) {
             getLogger().severe("SECURITY_SMOKE_FAILED: " + e);
