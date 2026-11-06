@@ -1,0 +1,5 @@
+name: VoidSecuritySmoke
+version: '1.0'
+main: ru.voidpe.smoke.SecuritySmoke
+api-version: '26.2'
+depend: [WorldGuard, VoidWardenCity, HyperTNT, VoidShulker]

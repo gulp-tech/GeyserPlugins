@@ -1,0 +1,81 @@
+name: Security smoke test (isolated Purpur)
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/security-smoke.yml'
+      - 'tests/security-smoke/**'
+      - 'VoidWardenCity/**'
+      - 'VoidShulker/**'
+      - 'HyperTNT/**'
+      - 'HyperTNT.jar'
+permissions:
+  contents: read
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+      - name: Build test plugins
+        run: |
+          for module in VoidShulker VoidWardenCity tests/security-smoke; do
+            mvn -B -f "$module/pom.xml" -DskipTests package > "$RUNNER_TEMP/$(basename "$module").log" 2>&1 || { tail -100 "$RUNNER_TEMP/$(basename "$module").log"; exit 1; }
+          done
+      - name: Prepare isolated server and pinned dependencies
+        run: |
+          mkdir -p "$RUNNER_TEMP/smoke/plugins/VoidWardenCity" "$RUNNER_TEMP/smoke/plugins/HyperTNT/tnts"
+          cd "$RUNNER_TEMP/smoke"
+          curl -fLsS --retry 3 https://api.purpurmc.org/v2/purpur/26.2/2633/download -o server.jar
+          echo '3f3c933f2d518af98571c7461fa42278  server.jar' | md5sum -c -
+          curl -fLsS --retry 3 https://cdn.modrinth.com/data/DKY9btbd/versions/pI4UHLJL/worldguard-bukkit-7.0.17.jar -o plugins/WorldGuard.jar
+          echo '73ea8824209672a0b3a20964dabde3eb245ae10b  plugins/WorldGuard.jar' | sha1sum -c -
+          curl -fLsS --retry 3 https://cdn.modrinth.com/data/1u6JkXh5/versions/F5ea2ov3/worldedit-bukkit-7.4.5.jar -o plugins/WorldEdit.jar
+          echo '457add12f5c7eb0dfcb9945e6860e1c9dd8d9a48  plugins/WorldEdit.jar' | sha1sum -c -
+          cp "$GITHUB_WORKSPACE"/VoidShulker/target/VoidShulker-*.jar plugins/
+          cp "$GITHUB_WORKSPACE"/VoidWardenCity/target/VoidWardenCity-*.jar plugins/
+          cp "$GITHUB_WORKSPACE"/tests/security-smoke/target/SecuritySmoke-*.jar plugins/
+          cp "$GITHUB_WORKSPACE/HyperTNT.jar" plugins/
+          cp "$GITHUB_WORKSPACE/HyperTNT/config.yml" "$GITHUB_WORKSPACE/HyperTNT/messages.yml" plugins/HyperTNT/
+          cp "$GITHUB_WORKSPACE"/HyperTNT/tnts/*.yml plugins/HyperTNT/tnts/
+          printf 'eula=true\n' > eula.txt
+          printf 'online-mode=false\nlevel-type=minecraft:flat\ngenerate-structures=false\nview-distance=3\nsimulation-distance=3\nspawn-protection=0\nmax-tick-time=-1\n' > server.properties
+          cat > plugins/VoidWardenCity/config.yml <<'YAML'
+          city:
+            world: world
+            x: 0
+            y: 80
+            z: 0
+            radius: 8
+            y-below: 5
+            y-above: 5
+          protection:
+            prevent-break: false
+            prevent-place: false
+            prevent-explosions: true
+            worldguard:
+              auto-region: true
+          warden:
+            spawn-enabled: false
+          hologram:
+            enabled: false
+          YAML
+      - name: Run isolated server assertions
+        run: |
+          cd "$RUNNER_TEMP/smoke"
+          set +e
+          timeout 300s java -Xms512M -Xmx1500M -Dvoidpe.smoke.marker="$RUNNER_TEMP/smoke-passed" -jar server.jar nogui > server.log 2>&1
+          status=$?
+          set -e
+          tail -160 server.log
+          if [ "$status" -ne 0 ] || [ ! -f "$RUNNER_TEMP/smoke-passed" ]; then
+            echo "::error::Isolated server test failed (exit $status); inspect the server log in this step."
+            grep -E 'SECURITY_SMOKE_FAILED|Exception|Error|ERROR|Caused by:' server.log | tail -20 | sed 's/%/%25/g; s/^/::error::/' || true
+            exit 1
+          fi
+          echo 'Isolated server tests passed.'
