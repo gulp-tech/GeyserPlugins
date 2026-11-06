@@ -145,11 +145,11 @@ public final class SecuritySmoke extends JavaPlugin implements Listener {
             borderTnt.getPersistentDataContainer().set(entityKey, PersistentDataType.STRING, "tnt");
             ExplosionPrimeEvent borderPrime = new ExplosionPrimeEvent(borderTnt, 6, false);
             Bukkit.getPluginManager().callEvent(borderPrime);
-            check(borderPrime.isCancelled() && !borderTnt.isValid(), "boundary custom TNT listener ran");
-            check(unprotectedOrigin.getType().isAir(), "TNT ran outside region at boundary");
-            check(protectedEdge.getType() == Material.STONE, "custom TNT cannot destroy region block across boundary");
+            check(borderPrime.isCancelled(), "TNT within margin of city is cancelled");
+            check(unprotectedOrigin.getType() == Material.STONE, "TNT near city does not blast outside stone");
+            check(protectedEdge.getType() == Material.STONE, "TNT near city does not blast protected edge");
 
-            // Probe: does a double chest straddling the region boundary leak its protected half?
+            // Double chest straddling the region boundary: a blast from outside must not empty it.
             Block insideHalf = world.getBlockAt(8, 80, 3);
             Block outsideHalf = world.getBlockAt(9, 80, 3);
             insideHalf.setType(Material.CHEST, false);
@@ -166,16 +166,13 @@ public final class SecuritySmoke extends JavaPlugin implements Listener {
             }
             check(joined, "test double chest joins across region boundary");
             ((Chest) insideHalf.getState()).getBlockInventory().setItem(0, new ItemStack(Material.DIAMOND, 5));
-            ((Chest) outsideHalf.getState()).getBlockInventory().setItem(0, new ItemStack(Material.EMERALD, 3));
-            check(!(boolean) canExplode.invoke(bridge, outsideHalf.getLocation(), insideHalf.getLocation()), "inside chest is protected");
-            check((boolean) canExplode.invoke(bridge, outsideHalf.getLocation(), outsideHalf.getLocation()), "outside chest is unprotected");
             spawned.clear();
             TNTPrimed chestTnt = world.spawn(new Location(world, 10.5, 80.5, 3.5), TNTPrimed.class);
             chestTnt.getPersistentDataContainer().set(entityKey, PersistentDataType.STRING, "tnt");
             Bukkit.getPluginManager().callEvent(new ExplosionPrimeEvent(chestTnt, 6, false));
-                        int leaked = spawned.stream().filter(i -> i.getType() == Material.DIAMOND).mapToInt(ItemStack::getAmount).sum();
-            getLogger().info("FINDING double-chest: protected half " + (insideHalf.getType() == Material.CHEST ? "kept" : "gone")
-                    + ", leaked diamonds=" + leaked + " (expected 0 if fixed)");
+            int leaked = spawned.stream().filter(i -> i.getType() == Material.DIAMOND).mapToInt(ItemStack::getAmount).sum();
+            check(leaked == 0 && ((Chest) insideHalf.getState()).getBlockInventory().contains(Material.DIAMOND, 5),
+                    "double chest across boundary keeps its protected contents");
 
             // Reproduce the original JAR's breakBlock bug on a throwaway box.
             Block boxBlock = world.getBlockAt(420, 80, 420);
@@ -199,7 +196,7 @@ public final class SecuritySmoke extends JavaPlugin implements Listener {
             }
             getLogger().info("FINDING shulker-breakBlock: loose diamonds=" + loose + ", inside box diamonds=" + insideDrop
                     + (loose == 7 && insideDrop == 7 ? " -> DUPLICATION" : " -> no duplication"));
-            getLogger().info("SECURITY_SMOKE_PASS: WG region, boundary TNT and 17 shulker-colour configs verified; see FINDING lines");
+            getLogger().info("SECURITY_SMOKE_PASS: WG region, boundary TNT, double chest and 17 shulker-colour configs verified; see FINDING lines");
             Files.writeString(Path.of(System.getProperty("voidpe.smoke.marker")), "passed\n");
         } catch (Throwable e) {
             getLogger().severe("SECURITY_SMOKE_FAILED: " + e);

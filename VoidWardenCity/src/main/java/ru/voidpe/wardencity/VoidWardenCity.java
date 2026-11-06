@@ -29,6 +29,7 @@ import org.bukkit.event.block.BlockExplodeEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
+import org.bukkit.event.entity.ExplosionPrimeEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
@@ -1234,6 +1235,39 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onExplodeBlocks(BlockExplodeEvent event) {
         protectExplosionBlocks(event.blockList());
+    }
+
+    /**
+     * Custom TNT (HyperTNT) removes blocks itself and does not fire block events, so
+     * the block-list filter above never sees it. Cancelling the prime event stops
+     * the blast before any block is touched. Only blasts that can reach the city's
+     * square WorldGuard region (within protection.explosion-margin) are cancelled.
+     */
+    @EventHandler(priority = EventPriority.LOWEST)
+    public void onExplosionPrime(ExplosionPrimeEvent event) {
+        if (!getConfig().getBoolean("protection.prevent-explosions", true)) {
+            return;
+        }
+        if (nearCity(event.getEntity().getLocation(), getConfig().getDouble("protection.explosion-margin", 16))) {
+            event.setCancelled(true);
+        }
+    }
+
+    /** Distance from the location to the city's square/cuboid bounds, in blocks. */
+    private boolean nearCity(Location loc, double margin) {
+        Location center = cityCenter();
+        if (center == null || center.getWorld() == null || loc.getWorld() == null
+                || !center.getWorld().equals(loc.getWorld())) {
+            return false;
+        }
+        double radius = getConfig().getDouble("city.radius", 120);
+        double dx = Math.max(0, Math.abs(loc.getX() - center.getX()) - radius);
+        double dz = Math.max(0, Math.abs(loc.getZ() - center.getZ()) - radius);
+        if (Math.hypot(dx, dz) > margin) {
+            return false;
+        }
+        double height = Math.max(getConfig().getDouble("city.y-below", 45), getConfig().getDouble("city.y-above", 45));
+        return Math.abs(loc.getY() - center.getY()) - height <= margin;
     }
 
     private void protectExplosionBlocks(List<Block> blocks) {
