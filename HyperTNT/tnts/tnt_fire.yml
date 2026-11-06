@@ -145,9 +145,42 @@ tnt_fire:
         BARREL:
           mode: BREAK
           drop-chance: 1.0
+        # Временно не взрываем шалкеры: HyperTNT 2.0.0 может дублировать их содержимое.
         SHULKER_BOX:
-          mode: BREAK
+          mode: IGNORE
           drop-chance: 1.0
+        BLACK_SHULKER_BOX:
+          mode: IGNORE
+        RED_SHULKER_BOX:
+          mode: IGNORE
+        GREEN_SHULKER_BOX:
+          mode: IGNORE
+        BROWN_SHULKER_BOX:
+          mode: IGNORE
+        BLUE_SHULKER_BOX:
+          mode: IGNORE
+        PURPLE_SHULKER_BOX:
+          mode: IGNORE
+        CYAN_SHULKER_BOX:
+          mode: IGNORE
+        LIGHT_GRAY_SHULKER_BOX:
+          mode: IGNORE
+        GRAY_SHULKER_BOX:
+          mode: IGNORE
+        PINK_SHULKER_BOX:
+          mode: IGNORE
+        LIME_SHULKER_BOX:
+          mode: IGNORE
+        YELLOW_SHULKER_BOX:
+          mode: IGNORE
+        LIGHT_BLUE_SHULKER_BOX:
+          mode: IGNORE
+        MAGENTA_SHULKER_BOX:
+          mode: IGNORE
+        ORANGE_SHULKER_BOX:
+          mode: IGNORE
+        WHITE_SHULKER_BOX:
+          mode: IGNORE
     post:
       set-fire: true
       fire-chance: 0.85

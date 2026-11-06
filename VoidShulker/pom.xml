@@ -6,10 +6,10 @@
 
     <groupId>ru.voidpe</groupId>
     <artifactId>VoidShulker</artifactId>
-    <version>1.0.1</version>
+    <version>1.0.2</version>
     <packaging>jar</packaging>
     <name>VoidShulker</name>
-    <description>Мини-плагин VoidPE: шалкер в руке открывается правым кликом по воздуху или блоку (без установки на землю). Шалкер временно изымается из инвентаря во время редактирования.</description>
+    <description>Мини-плагин VoidPE: шалкер в руке открывается правым кликом по воздуху или блоку (без установки на землю). Шалкер остаётся в инвентаре; безопасный перенос сохраняется сразу.</description>
 
     <properties>
         <java.version>25</java.version>

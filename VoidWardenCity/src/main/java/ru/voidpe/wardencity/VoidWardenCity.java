@@ -73,6 +73,8 @@ import java.util.UUID;
 public final class VoidWardenCity extends JavaPlugin implements Listener, CommandExecutor, TabCompleter {
 
     private final Random random = new Random();
+    private WorldGuardCityRegion worldGuardRegion;
+    private String regionStatus = "регион ещё не проверен";
     /** Время последнего наполнения сундука: "world;x;y;z" -> millis. */
     private final Map<String, Long> chestRefills = new HashMap<>();
     /** Кулдауны телепорта игроков. */
@@ -153,6 +155,7 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
         loadCustomLoot();
         loadChanceOverrides();
         getServer().getPluginManager().registerEvents(this, this);
+        syncWorldGuardRegion();
         if (getCommand("wcity") != null) {
             getCommand("wcity").setExecutor(this);
             getCommand("wcity").setTabCompleter(this);
@@ -182,6 +185,38 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
     }
 
     // ------------------------------------------------------------- регион
+
+    private boolean syncWorldGuardRegion() {
+        if (!getConfig().getBoolean("protection.worldguard.auto-region", true)) {
+            regionStatus = "Автосоздание региона выключено; старый регион не удаляется.";
+            getLogger().warning(regionStatus + " HyperTNT изменяет блоки напрямую и требует отдельной проверки!");
+            return false;
+        }
+        org.bukkit.plugin.Plugin wg = Bukkit.getPluginManager().getPlugin("WorldGuard");
+        if (wg == null || !wg.isEnabled()) {
+            regionStatus = "WorldGuard не включён: автоматический регион не создан.";
+            getLogger().severe(regionStatus + " Не включайте HyperTNT до исправления.");
+            return false;
+        }
+        try {
+            if (worldGuardRegion == null) worldGuardRegion = new WorldGuardCityRegion(this);
+            boolean ok = worldGuardRegion.sync(cityCenter());
+            regionStatus = worldGuardRegion.status();
+            return ok;
+        } catch (RuntimeException | LinkageError e) {
+            regionStatus = "Ошибка подключения WorldGuard: " + e;
+            getLogger().severe(regionStatus + ". Не включайте HyperTNT до исправления.");
+            return false;
+        }
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onWorldLoad(org.bukkit.event.world.WorldLoadEvent event) {
+        if (points != null && event.getWorld().getName().equals(points.getString("center.world", ""))) {
+            // WorldGuard and world-loading plugins may still be processing the load event.
+            Bukkit.getScheduler().runTask(this, this::syncWorldGuardRegion);
+        }
+    }
 
     // ------------------------------------------------------------- точки города
 
@@ -1189,18 +1224,24 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
         }
     }
 
-    /** При включённой защите взрывы не разносят сундуки города. */
-    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    /** Backup for normal Bukkit explosions crossing the region boundary. HyperTNT
+     * modifies blocks directly, so it must also see the WorldGuard region. */
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onExplodeBlocks(EntityExplodeEvent event) {
-        if (getConfig().getBoolean("protection.prevent-break", false)) {
-            event.blockList().removeIf(b -> b.getType() == Material.CHEST && inCity(b.getLocation()));
-        }
+        protectExplosionBlocks(event.blockList());
     }
 
-    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onExplodeBlocks(BlockExplodeEvent event) {
-        if (getConfig().getBoolean("protection.prevent-break", false)) {
-            event.blockList().removeIf(b -> b.getType() == Material.CHEST && inCity(b.getLocation()));
+        protectExplosionBlocks(event.blockList());
+    }
+
+    private void protectExplosionBlocks(List<Block> blocks) {
+        if (getConfig().getBoolean("protection.prevent-explosions", true)) {
+            blocks.removeIf(b -> inCity(b.getLocation()));
+        } else if (getConfig().getBoolean("protection.prevent-break", false)) {
+            // Backwards compatibility for the previous chest-only protection.
+            blocks.removeIf(b -> b.getType() == Material.CHEST && inCity(b.getLocation()));
         }
     }
 
@@ -1245,6 +1286,7 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
                 send(sender, msg("center-set").replace("{x}", String.valueOf(loc.getBlockX()))
                         .replace("{y}", String.valueOf(loc.getBlockY()))
                         .replace("{z}", String.valueOf(loc.getBlockZ())));
+                if (!syncWorldGuardRegion()) send(sender, "&c" + regionStatus);
                 return true;
             }
             case "setspawn" -> {
@@ -1347,6 +1389,15 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
                 loadPoints();
                 loadChanceOverrides();
                 send(sender, msg("reloaded"));
+                if (!syncWorldGuardRegion()) send(sender, "&c" + regionStatus);
+                return true;
+            }
+            case "region" -> {
+                if (!admin(sender)) {
+                    send(sender, msg("admin-only"));
+                    return true;
+                }
+                send(sender, "&e" + regionStatus);
                 return true;
             }
             case "info" -> {
@@ -1463,7 +1514,7 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
             List<String> base = admin(sender)
-                    ? List.of("tp", "setcenter", "setspawn", "chest", "loot", "chances", "refill", "info", "reload")
+                    ? List.of("tp", "setcenter", "setspawn", "chest", "loot", "chances", "refill", "info", "region", "reload")
                     : List.of("tp", "info");
             List<String> out = new ArrayList<>();
             for (String b : base) {

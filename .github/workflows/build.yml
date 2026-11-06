@@ -211,9 +211,18 @@ jobs:
             fi
           fi
 
+      - name: Проверить защитные конфиги HyperTNT
+        run: |
+          python3 -m venv "$RUNNER_TEMP/tnt-venv"
+          "$RUNNER_TEMP/tnt-venv/bin/pip" install PyYAML
+          "$RUNNER_TEMP/tnt-venv/bin/python" tools/test_hypertnt_configs.py
+
       - name: Собрать плагин VoidShulker
         working-directory: VoidShulker
         run: |
+          mkdir -p "$RUNNER_TEMP/voidshulker-tests"
+          javac -d "$RUNNER_TEMP/voidshulker-tests" src/main/java/ru/voidpe/shulker/StackTransfer.java src/test/java/ru/voidpe/shulker/StackTransferTest.java
+          java -ea -cp "$RUNNER_TEMP/voidshulker-tests" ru.voidpe.shulker.StackTransferTest
           build() { mvn -B -DskipTests "$@" package > mvn.log 2>&1; }
           if ! build -Dpurpur.version="$PURPUR_VERSION"; then
             grep -E "\[ERROR\]|BUILD FAILURE|Could not resolve|Failed to read" mvn.log | head -20 | sed 's/%/%25/g; s/^/::error::/'
@@ -227,6 +236,9 @@ jobs:
       - name: Собрать плагин VoidWardenCity
         working-directory: VoidWardenCity
         run: |
+          mkdir -p "$RUNNER_TEMP/voidwardencity-tests"
+          javac -d "$RUNNER_TEMP/voidwardencity-tests" src/main/java/ru/voidpe/wardencity/CityBounds.java src/test/java/ru/voidpe/wardencity/CityBoundsTest.java
+          java -ea -cp "$RUNNER_TEMP/voidwardencity-tests" ru.voidpe.wardencity.CityBoundsTest
           build() { mvn -B -DskipTests "$@" package > mvn.log 2>&1; }
           if ! build -Dpurpur.version="$PURPUR_VERSION"; then
             grep -E "\[ERROR\]|BUILD FAILURE|Could not resolve|Failed to read" mvn.log | head -20 | sed 's/%/%25/g; s/^/::error::/'

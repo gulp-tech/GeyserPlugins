@@ -214,9 +214,18 @@ jobs:
             fi
           fi
 
+      - name: Проверить защитные конфиги HyperTNT
+        run: |
+          python3 -m venv "$RUNNER_TEMP/tnt-venv"
+          "$RUNNER_TEMP/tnt-venv/bin/pip" install PyYAML
+          "$RUNNER_TEMP/tnt-venv/bin/python" tools/test_hypertnt_configs.py
+
       - name: Собрать плагин VoidShulker
         working-directory: VoidShulker
         run: |
+          mkdir -p "$RUNNER_TEMP/voidshulker-tests"
+          javac -d "$RUNNER_TEMP/voidshulker-tests" src/main/java/ru/voidpe/shulker/StackTransfer.java src/test/java/ru/voidpe/shulker/StackTransferTest.java
+          java -ea -cp "$RUNNER_TEMP/voidshulker-tests" ru.voidpe.shulker.StackTransferTest
           build() { mvn -B -DskipTests "$@" package > mvn.log 2>&1; }
           if ! build -Dpurpur.version="$PURPUR_VERSION"; then
             grep -E "\[ERROR\]|BUILD FAILURE|Could not resolve|Failed to read" mvn.log | head -20 | sed 's/%/%25/g; s/^/::error::/'
@@ -230,6 +239,9 @@ jobs:
       - name: Собрать плагин VoidWardenCity
         working-directory: VoidWardenCity
         run: |
+          mkdir -p "$RUNNER_TEMP/voidwardencity-tests"
+          javac -d "$RUNNER_TEMP/voidwardencity-tests" src/main/java/ru/voidpe/wardencity/CityBounds.java src/test/java/ru/voidpe/wardencity/CityBoundsTest.java
+          java -ea -cp "$RUNNER_TEMP/voidwardencity-tests" ru.voidpe.wardencity.CityBoundsTest
           build() { mvn -B -DskipTests "$@" package > mvn.log 2>&1; }
           if ! build -Dpurpur.version="$PURPUR_VERSION"; then
             grep -E "\[ERROR\]|BUILD FAILURE|Could not resolve|Failed to read" mvn.log | head -20 | sed 's/%/%25/g; s/^/::error::/'
@@ -287,8 +299,9 @@ jobs:
           SHU=$(ls VoidShulker/target/VoidShulker-*.jar | head -1)
           ANV=$(ls VoidAnvilExtension/build/libs/VoidAnvilExtension-*.jar | head -1)
           VVE=$(ls VoidVersionsExtension/build/libs/VoidVersionsExtension-*.jar | head -1)
+          python3 tools/package_hypertnt_configs.py "$RUNNER_TEMP/VoidPE-HyperTNT-safe-configs.zip"
           echo "Файлы релиза: $JAR + $TAL + $ITM (ресурспак убран: он вызывал лаги)"
-          gh release create "${{ inputs.tag || github.ref_name }}" "$PVP" "$JAR" "$TAL" "$ITM" "$ENC" "$CAS" "$CLN" "$DRP" "$CMB" "$VAC" "$AUS" "$WCT" "$RTZ" "$NV" "$SHU" "$ANV" "$VVE" VoidSpheres.mcpack \
+          gh release create "${{ inputs.tag || github.ref_name }}" "$PVP" "$JAR" "$TAL" "$ITM" "$ENC" "$CAS" "$CLN" "$DRP" "$CMB" "$VAC" "$AUS" "$WCT" "$RTZ" "$NV" "$SHU" "$ANV" "$VVE" VoidSpheres.mcpack "$RUNNER_TEMP/VoidPE-HyperTNT-safe-configs.zip" \
             --target "$GITHUB_SHA" \
             --title "VoidPE ${{ inputs.tag || github.ref_name }}" \
-            --notes "VoidShulker 1.0.1: предмет временно изымается при открытии. Проверьте на тестовом сервере до установки на основной. VoidSpheres.mcpack — только для сфер."
+            --notes "Тестовые VoidShulker 1.0.2 и VoidWardenCity 1.4.2. Конфиги HyperTNT временно запрещают взрывать шалкеры. Проверьте всё на копии сервера до установки. VoidSpheres.mcpack — только для сфер."
