@@ -129,6 +129,54 @@ class VoidShulkerMockTest {
         assertEquals(4, storedDiamonds(player.getInventory().getItem(0)));
     }
 
+    @Test void deathInBothInventoryModesAndQuitDoNotAddCopies() {
+        for (boolean keep : new boolean[] {false, true}) {
+            player.getInventory().clear();
+            player.getInventory().setItem(0, box(7));
+            open(EquipmentSlot.HAND);
+            click(0, ClickType.LEFT, InventoryAction.PICKUP_ALL);
+            java.util.List<ItemStack> drops = new java.util.ArrayList<>();
+            for (ItemStack item : player.getInventory().getContents()) if (item != null && !item.getType().isAir()) drops.add(item.clone());
+            org.bukkit.damage.DamageSource source = org.bukkit.damage.DamageSource.builder(org.bukkit.damage.DamageType.GENERIC).build();
+            org.bukkit.event.entity.PlayerDeathEvent death = new org.bukkit.event.entity.PlayerDeathEvent(player, source, drops, 0,
+                    (net.kyori.adventure.text.Component) null, true);
+            death.setKeepInventory(keep);
+            plugin.onDeath(death);
+            assertEquals(2, drops.size(), "death adds no extra box or items");
+            assertEquals(0, storedDiamonds(drops.stream().filter(i -> i.getType() == Material.PURPLE_SHULKER_BOX).findFirst().orElseThrow()));
+            assertEquals(7, drops.stream().filter(i -> i.getType() == Material.DIAMOND).mapToInt(ItemStack::getAmount).sum());
+            assertEquals(7, playerDiamonds());
+        }
+        player.getInventory().clear();
+        player.getInventory().setItem(0, box(5));
+        open(EquipmentSlot.HAND);
+        plugin.onQuit(new org.bukkit.event.player.PlayerQuitEvent(player, (net.kyori.adventure.text.Component) null,
+                org.bukkit.event.player.PlayerQuitEvent.QuitReason.DISCONNECTED));
+        player.closeInventory();
+        assertEquals(5, storedDiamonds(player.getInventory().getItem(0)));
+        assertEquals(0, playerDiamonds());
+    }
+
+    @Test void heldSwapDragAndPlacementAreCancelledWhileOpen() {
+        player.getInventory().setItem(0, box(3));
+        open(EquipmentSlot.HAND);
+        var swap = new org.bukkit.event.player.PlayerSwapHandItemsEvent(player, player.getInventory().getItemInMainHand(), player.getInventory().getItemInOffHand());
+        plugin.onSwapHands(swap);
+        assertTrue(swap.isCancelled());
+        var drag = new org.bukkit.event.inventory.InventoryDragEvent(player.getOpenInventory(), null,
+                new ItemStack(Material.DIAMOND), false, java.util.Map.of(0, new ItemStack(Material.DIAMOND)));
+        plugin.onDrag(drag);
+        assertTrue(drag.isCancelled());
+        var block = player.getLocation().getBlock();
+        block.setType(Material.PURPLE_SHULKER_BOX);
+        var place = new org.bukkit.event.block.BlockPlaceEvent(block, block.getState(), block,
+                player.getInventory().getItemInMainHand(), player, true, EquipmentSlot.HAND);
+        plugin.onPlace(place);
+        assertTrue(place.isCancelled());
+        assertEquals(3, storedDiamonds(player.getInventory().getItem(0)));
+        assertEquals(0, playerDiamonds());
+    }
+
     @Test void creativeCannotOpen() {
         player.setGameMode(GameMode.CREATIVE);
         player.getInventory().setItem(0, box(2));

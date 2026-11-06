@@ -53,7 +53,7 @@ import java.util.regex.Pattern;
  * the updated shulker and player slots written before the event returns. The GUI
  * is only a view. Cursor/drag/number-key operations are deliberately disabled.
  */
-public final class VoidShulker extends JavaPlugin implements Listener, CommandExecutor {
+public class VoidShulker extends JavaPlugin implements Listener, CommandExecutor {
     private static final Pattern HEX = Pattern.compile("&#([0-9A-Fa-f]{6})");
     private static final int OFFHAND_SLOT = 40;
     private static final StackTransfer.Stacks<ItemStack> STACKS = new StackTransfer.Stacks<>() {
