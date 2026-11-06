@@ -1,0 +1,35 @@
+# ═══════════════════════════════════════════════════════
+#   HyperTNT — messages.yml
+# ═══════════════════════════════════════════════════════
+
+prefix: '&8▐ &c&lВзрывчатка &8▌ &r'
+
+errors:
+  no-permission: '{prefix}&cУ вас недостаточно прав для этого.'
+  player-not-found: '{prefix}&cИгрок &f{player} &cне найден.'
+  type-not-found: '{prefix}&cТип &f{type} &cне существует.'
+  invalid-number: '{prefix}&cУкажите корректное число.'
+
+commands:
+  help:
+  - ''
+  - ' &c&lВзрывчатка &8— &7Команды'
+  - ''
+  - ' &8▸ &f/hypertnt give &7<игрок> <тип> [кол-во]'
+  - ' &8▸ &f/hypertnt reload'
+  - ' &8▸ &f/hypertnt types'
+  - ''
+  reloaded: '{prefix}&aКонфигурация перезагружена.'
+  given: '{prefix}&fВыдано &c{amount} шт. &8(&f{type}&8) &7игроку &f{player}'
+  types:
+  - ''
+  - ' &c&lВзрывчатка &8— &7Доступные типы'
+  - ''
+  - ' &8▸ &f/hypertnt give <ник> &ftnt &8— &fДинамитная шашка &7(Радиус: &a6&7)'
+  - ' &8▸ &f/hypertnt give <ник> &etnt_fire &8— &fЗажигательный заряд &7(Радиус: &a10&7)'
+  - ' &8▸ &f/hypertnt give <ник> &btnt_obs &8— &fОбсидиановая бомба &7(Радиус: &a5&7)'
+  - ' &8▸ &f/hypertnt give <ник> &c&ltnt_heavy &8— &fТяжёлый фугас &7(Радиус: &a10&7)'
+  - ' &8▸ &f/hypertnt give <ник> &4tnt_explosive &8— &fВзрывной динамит &7(Радиус:
+    &a15&7)'
+  - ' &8▸ &f/hypertnt give <ник> &9tnt_poseidon &8— &fПосейдон &7(Разрушитель баз)'
+  - ''

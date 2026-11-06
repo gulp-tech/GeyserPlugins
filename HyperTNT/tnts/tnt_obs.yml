@@ -1,0 +1,161 @@
+# ═══════════════════════════════════════════════════════
+#   Обсидиановая бомба — Разрушитель баз
+#   Радиус: 5 | Таймер: 2.5s | Ломает обсидиан
+# ═══════════════════════════════════════════════════════
+
+tnt_obs:
+  enabled: true
+
+  item:
+    material: TNT
+    custom_model_data: 0
+    enchanted: false
+    name: '&bОбсидиановая бомба'
+    lore:
+      - '&8Разрушитель баз'
+      - ''
+      - ' &8▸ &fХарактеристики:'
+      - '   &8▸ &fРадиус взрыва: &a5 блоков'
+      - '   &8▸ &fСпец. эффект: &bРазрушает обсидиан'
+
+  ignite:
+    fuse-seconds: 2.5
+    auto-ignite-on-place: false
+    velocity:
+      gravity: true
+      upward: 0.0
+    throw:
+      enabled: false
+      hand: any
+      velocity-xz: 0.9
+      velocity-y: 0.2
+      auto-ignite: false
+    allow:
+      flint-and-steel: true
+      fire-charge: true
+      redstone: true
+      fire: true
+      explosion: true
+
+  craft:
+    enabled: true
+    disable_vanilla_craft: false
+    shape:
+      - ' G '
+      - GEG
+      - ' G '
+    ingredients:
+      G: GUNPOWDER
+      E: END_CRYSTAL
+
+  conditions: []
+
+  visual:
+    sounds:
+      ignite:
+        enabled: true
+        sound: ENTITY_TNT_PRIMED
+        volume: 1.0
+        pitch: 1.2
+      explosion:
+        enabled: true
+        sound: ENTITY_GENERIC_EXPLODE
+        volume: 4.0
+        pitch: 0.7
+    particles:
+      enabled: true
+      type: END_ROD
+      count: 25
+      offset:
+        x: 0.4
+        y: 0.4
+        z: 0.4
+      extra: 0.02
+    hologram:
+      enabled: true
+      type: armorstand
+      line-spacing: 0.25
+      lines:
+        - '&bОбсидиановая бомба'
+        - '&7Взрыв через: &e{time}s'
+        - '&3💎 Пробивает обсидиан'
+      height: 2.0
+      update-period-ticks: 4
+      displaytext:
+        shadowed: true
+        see-through: false
+        default-background: false
+        background-color: '#00000000'
+        line-width: 200
+        text-opacity: 255
+        billboard: FIXED
+        alignment: CENTER
+        scale: 1.0
+        glowing: false
+        glow-color: '#FFFFFFFF'
+    glow:
+      enabled: true
+      color: AQUA
+      animation:
+        enabled: true
+        colors:
+          - AQUA
+          - DARK_AQUA
+          - BLUE
+          - DARK_AQUA
+        period-ticks: 10
+
+  explosion:
+    radius: 5.0
+    damage:
+      enabled: true
+      max-damage: 15.0
+      min-damage: 2.0
+      exposure: 1.0
+    raycast:
+      rays: 32
+      strength-multiplier: 3.0
+      resistance-multiplier: 0.1
+    blocks:
+      in-liquid: false
+      max-blocks: 0
+      default:
+        mode: BREAK
+        drop-chance: 1.0
+      per-material:
+        OBSIDIAN:
+          mode: BREAK
+          drop-chance: 0.8
+        CRYING_OBSIDIAN:
+          mode: BREAK
+          drop-chance: 0.8
+        ANCIENT_DEBRIS:
+          mode: IGNORE
+        BEDROCK:
+          mode: IGNORE
+        BARRIER:
+          mode: IGNORE
+        ENDER_CHEST:
+          mode: IGNORE
+        CHEST:
+          mode: BREAK
+          drop-chance: 1.0
+        TRAPPED_CHEST:
+          mode: BREAK
+          drop-chance: 1.0
+        BARREL:
+          mode: BREAK
+          drop-chance: 1.0
+        SHULKER_BOX:
+          mode: BREAK
+          drop-chance: 1.0
+    post:
+      set-fire: false
+      fire-chance: 0.0
+      commands: []
+    knockback:
+      enabled: true
+      living-multiplier: 0.8
+      tnt-enabled: false
+      tnt-multiplier: 1.0
+      max-velocity: 2.0
