@@ -15,6 +15,8 @@ import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
+import org.bukkit.block.Chest;
 import org.bukkit.block.ShulkerBox;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Entity;
@@ -147,6 +149,36 @@ public final class SecuritySmoke extends JavaPlugin implements Listener {
             check(unprotectedOrigin.getType().isAir(), "TNT ran outside region at boundary");
             check(protectedEdge.getType() == Material.STONE, "custom TNT cannot destroy region block across boundary");
 
+            // Verify whether a double chest crossing a region boundary leaks its protected half.
+            Block insideHalf = world.getBlockAt(8, 72, 0);
+            Block outsideHalf = world.getBlockAt(9, 72, 0);
+            insideHalf.setType(Material.CHEST, false);
+            outsideHalf.setType(Material.CHEST, false);
+            boolean joined = false;
+            for (boolean reverse : new boolean[] {false, true}) {
+                org.bukkit.block.data.type.Chest a = (org.bukkit.block.data.type.Chest) insideHalf.getBlockData();
+                org.bukkit.block.data.type.Chest b = (org.bukkit.block.data.type.Chest) outsideHalf.getBlockData();
+                a.setFacing(BlockFace.NORTH); b.setFacing(BlockFace.NORTH);
+                a.setType(reverse ? org.bukkit.block.data.type.Chest.Type.RIGHT : org.bukkit.block.data.type.Chest.Type.LEFT);
+                b.setType(reverse ? org.bukkit.block.data.type.Chest.Type.LEFT : org.bukkit.block.data.type.Chest.Type.RIGHT);
+                insideHalf.setBlockData(a, false); outsideHalf.setBlockData(b, false);
+                if (((Chest) outsideHalf.getState()).getInventory().getSize() == 54) { joined = true; break; }
+            }
+            check(joined, "test double chest joins across region boundary");
+            ((Chest) insideHalf.getState()).getBlockInventory().setItem(0, new ItemStack(Material.DIAMOND, 5));
+            ((Chest) outsideHalf.getState()).getBlockInventory().setItem(0, new ItemStack(Material.EMERALD, 3));
+            check(!(boolean) canExplode.invoke(bridge, outsideHalf.getLocation(), insideHalf.getLocation()), "inside chest is protected");
+            check((boolean) canExplode.invoke(bridge, outsideHalf.getLocation(), outsideHalf.getLocation()), "outside chest is unprotected");
+            captured.clear(); capture = true;
+            TNTPrimed chestTnt = world.spawn(new Location(world, 10.5, 72.5, 0.5), TNTPrimed.class);
+            chestTnt.getPersistentDataContainer().set(entityKey, PersistentDataType.STRING, "tnt");
+            Bukkit.getPluginManager().callEvent(new ExplosionPrimeEvent(chestTnt, 6, false));
+            capture = false;
+            int leaked = captured.stream().filter(i -> i.getType() == Material.DIAMOND).mapToInt(ItemStack::getAmount).sum();
+            check(insideHalf.getType() == Material.CHEST && outsideHalf.getType().isAir()
+                    && ((Chest) insideHalf.getState()).getBlockInventory().isEmpty() && leaked == 5,
+                    "original HyperTNT leaks protected half of double chest across boundary");
+
             // Reproduce the original JAR's breakBlock bug on a throwaway box.
             Block boxBlock = world.getBlockAt(420, 80, 420);
             boxBlock.setType(Material.PURPLE_SHULKER_BOX);
@@ -168,7 +200,7 @@ public final class SecuritySmoke extends JavaPlugin implements Listener {
                 }
             }
             check(loose == 7 && insideDrop == 7, "reproduce original HyperTNT shulker duplication");
-            getLogger().info("SECURITY_SMOKE_PASS: WG region, boundary TNT, 102 config modes, and original TNT dupe reproduced");
+            getLogger().info("SECURITY_SMOKE_PASS: WG region, boundary TNT, shulker dupe and double-chest leak reproduced");
             Files.writeString(Path.of(System.getProperty("voidpe.smoke.marker")), "passed\n");
         } catch (Throwable e) {
             getLogger().severe("SECURITY_SMOKE_FAILED: " + e);
