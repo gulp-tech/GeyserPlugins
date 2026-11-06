@@ -226,6 +226,7 @@ jobs:
           mkdir -p "$RUNNER_TEMP/voidshulker-tests"
           javac -d "$RUNNER_TEMP/voidshulker-tests" src/main/java/ru/voidpe/shulker/StackTransfer.java src/test/java/ru/voidpe/shulker/StackTransferTest.java
           java -ea -cp "$RUNNER_TEMP/voidshulker-tests" ru.voidpe.shulker.StackTransferTest
+          mvn -B -Dpurpur.version="$PURPUR_VERSION" test > "$RUNNER_TEMP/shulker-mock-tests.log" 2>&1 || { grep -E 'ERROR|FAILURE|Tests run:' "$RUNNER_TEMP/shulker-mock-tests.log" | head -40 | sed 's/%/%25/g; s/^/::error::/' || true; cat "$RUNNER_TEMP/shulker-mock-tests.log"; exit 1; }
           build() { mvn -B -DskipTests "$@" package > mvn.log 2>&1; }
           if ! build -Dpurpur.version="$PURPUR_VERSION"; then
             grep -E "\[ERROR\]|BUILD FAILURE|Could not resolve|Failed to read" mvn.log | head -20 | sed 's/%/%25/g; s/^/::error::/'

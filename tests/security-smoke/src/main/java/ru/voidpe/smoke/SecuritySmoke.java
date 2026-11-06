@@ -12,6 +12,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.ExplosionResult;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.ShulkerBox;
@@ -22,11 +23,13 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockExplodeEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
+import org.bukkit.event.entity.ExplosionPrimeEvent;
 import org.bukkit.event.entity.ItemSpawnEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.BlockStateMeta;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.persistence.PersistentDataType;
 
 import java.io.File;
 import java.lang.reflect.Method;
@@ -106,7 +109,7 @@ public final class SecuritySmoke extends JavaPlugin implements Listener {
             Object managerTnt = call(tnt, "getTntManager", new Class<?>[0]);
             List<Material> shulkers = java.util.Arrays.stream(Material.values())
                     .filter(m -> m.name().equals("SHULKER_BOX") || m.name().endsWith("_SHULKER_BOX"))
-                    .filter(Material::isBlock).toList();
+                    .filter(m -> !m.isLegacy()).filter(Material::isBlock).toList();
             check(shulkers.size() == 17, "17 shulker variants");
             for (String typeName : List.of("tnt", "tnt_fire", "tnt_obs", "tnt_heavy", "tnt_explosive", "tnt_poseidon")) {
                 Object type = call(managerTnt, "getType", new Class<?>[]{String.class}, typeName);
@@ -114,6 +117,35 @@ public final class SecuritySmoke extends JavaPlugin implements Listener {
                 Method mode = type.getClass().getMethod("blockMode", Material.class);
                 for (Material box : shulkers) check("IGNORE".equals(mode.invoke(type, box)), typeName + " " + box + " ignore");
             }
+
+            // Invoke the same listener path as an actual primed HyperTNT entity.
+            NamespacedKey entityKey = (NamespacedKey) call(managerTnt, "getEntityKey", new Class<?>[0]);
+            Block blastBox = world.getBlockAt(440, 80, 440);
+            blastBox.setType(Material.PURPLE_SHULKER_BOX);
+            ((ShulkerBox) blastBox.getState()).getInventory().setItem(0, new ItemStack(Material.DIAMOND, 7));
+            Block nearbyStone = world.getBlockAt(441, 80, 440);
+            nearbyStone.setType(Material.STONE);
+            TNTPrimed primed = world.spawn(new Location(world, 440.5, 80.5, 440.5), TNTPrimed.class);
+            primed.getPersistentDataContainer().set(entityKey, PersistentDataType.STRING, "tnt");
+            ExplosionPrimeEvent prime = new ExplosionPrimeEvent(primed, 6, false);
+            Bukkit.getPluginManager().callEvent(prime);
+            check(prime.isCancelled() && !primed.isValid(), "custom TNT listener ran");
+            check(blastBox.getType() == Material.PURPLE_SHULKER_BOX
+                    && ((ShulkerBox) blastBox.getState()).getInventory().getItem(0).getAmount() == 7,
+                    "safe config preserves filled shulker in actual explosion");
+            check(nearbyStone.getType().isAir(), "ordinary block destroyed outside region");
+
+            Block protectedEdge = world.getBlockAt(8, 80, 0);
+            Block unprotectedOrigin = world.getBlockAt(10, 80, 0);
+            protectedEdge.setType(Material.STONE);
+            unprotectedOrigin.setType(Material.STONE);
+            TNTPrimed borderTnt = world.spawn(new Location(world, 10.5, 80.5, 0.5), TNTPrimed.class);
+            borderTnt.getPersistentDataContainer().set(entityKey, PersistentDataType.STRING, "tnt");
+            ExplosionPrimeEvent borderPrime = new ExplosionPrimeEvent(borderTnt, 6, false);
+            Bukkit.getPluginManager().callEvent(borderPrime);
+            check(borderPrime.isCancelled() && !borderTnt.isValid(), "boundary custom TNT listener ran");
+            check(unprotectedOrigin.getType().isAir(), "TNT ran outside region at boundary");
+            check(protectedEdge.getType() == Material.STONE, "custom TNT cannot destroy region block across boundary");
 
             // Reproduce the original JAR's breakBlock bug on a throwaway box.
             Block boxBlock = world.getBlockAt(420, 80, 420);
@@ -136,7 +168,7 @@ public final class SecuritySmoke extends JavaPlugin implements Listener {
                 }
             }
             check(loose == 7 && insideDrop == 7, "reproduce original HyperTNT shulker duplication");
-            getLogger().info("SECURITY_SMOKE_PASS: WG region, explosions, all TNT configs, and original TNT dupe reproduced");
+            getLogger().info("SECURITY_SMOKE_PASS: WG region, boundary TNT, 102 config modes, and original TNT dupe reproduced");
             Files.writeString(Path.of(System.getProperty("voidpe.smoke.marker")), "passed\n");
         } catch (Throwable e) {
             getLogger().severe("SECURITY_SMOKE_FAILED: " + e);
