@@ -63,6 +63,41 @@ public final class StackTransferTest {
             check(total(to, "b") == beforeB && java.util.Objects.equals(to[blocked], beforeBlocked), "isolation");
             for (Stack s : to) if (s != null) check(s.amount() <= s.max(), "stack max");
         }
+        Stack[] clickSlots = { new Stack("a", 5, 64), null, new Stack("b", 4, 64), new Stack("a", 63, 64) };
+        Stack[] cursor = { null };
+        check(StackTransfer.click(clickSlots, 0, cursor, true, 64, OPS), "right pickup half");
+        check(clickSlots[0].amount() == 2 && cursor[0].amount() == 3, "half is rounded up on cursor");
+        check(StackTransfer.click(clickSlots, 1, cursor, false, 64, OPS), "left place all into empty slot");
+        check(clickSlots[1].amount() == 3 && cursor[0] == null, "place all empties cursor");
+        cursor[0] = new Stack("a", 8, 64);
+        check(StackTransfer.click(clickSlots, 2, cursor, false, 64, OPS), "left swap different stacks");
+        check(clickSlots[2].type().equals("a") && clickSlots[2].amount() == 8
+                && cursor[0].type().equals("b") && cursor[0].amount() == 4, "swap conserves both stacks");
+        cursor[0] = new Stack("a", 8, 64);
+        check(StackTransfer.click(clickSlots, 3, cursor, true, 64, OPS), "right place one into matching stack");
+        check(clickSlots[3].amount() == 64 && cursor[0].amount() == 7, "matching stack capped at max");
+        check(!StackTransfer.click(clickSlots, 3, cursor, false, 64, OPS), "full matching stack rejects placement");
+        Random clickRandom = new Random(99173);
+        for (int iteration = 0; iteration < 10000; iteration++) {
+            Stack[] slots = new Stack[4];
+            for (int i = 0; i < slots.length; i++) {
+                int kind = clickRandom.nextInt(4);
+                if (kind == 1) slots[i] = new Stack("a", 1 + clickRandom.nextInt(64), 64);
+                if (kind == 2) slots[i] = new Stack("b", 1 + clickRandom.nextInt(16), 16);
+            }
+            Stack[] held = { null };
+            int heldKind = clickRandom.nextInt(3);
+            if (heldKind == 1) held[0] = new Stack("a", 1 + clickRandom.nextInt(64), 64);
+            if (heldKind == 2) held[0] = new Stack("b", 1 + clickRandom.nextInt(16), 16);
+            int beforeA = total(slots, "a") + total(held, "a");
+            int beforeB = total(slots, "b") + total(held, "b");
+            StackTransfer.click(slots, clickRandom.nextInt(slots.length), held,
+                    clickRandom.nextBoolean(), 64, OPS);
+            check(total(slots, "a") + total(held, "a") == beforeA, "click conservation a");
+            check(total(slots, "b") + total(held, "b") == beforeB, "click conservation b");
+            for (Stack s : slots) if (s != null) check(s.amount() > 0 && s.amount() <= s.max(), "click slot bounds");
+            if (held[0] != null) check(held[0].amount() > 0 && held[0].amount() <= held[0].max(), "click cursor bounds");
+        }
         System.out.println("StackTransfer: all tests passed");
     }
 }

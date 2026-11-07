@@ -18,6 +18,7 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.inventory.ClickType;
+import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
@@ -50,8 +51,9 @@ import java.util.regex.Pattern;
 /**
  * The item in the player's inventory is authoritative, never an in-memory escrow.
  * All supported transfers are cancelled and applied on the server thread, with
- * the updated shulker and player slots written before the event returns. The GUI
- * is only a view. Cursor/drag/number-key operations are deliberately disabled.
+ * the updated shulker, player slots and cursor written before the event returns. The GUI
+ * is only a view. Cursor/drag/number-key operations use the same transaction;
+ * drops, moving the open anchor and nested shulkers remain disabled.
  */
 public class VoidShulker extends JavaPlugin implements Listener, CommandExecutor {
     private static final Pattern HEX = Pattern.compile("&#([0-9A-Fa-f]{6})");
@@ -277,74 +279,178 @@ public class VoidShulker extends JavaPlugin implements Listener, CommandExecutor
                 && Tag.SHULKER_BOXES.isTagged(event.getBlockPlaced().getType())) event.setCancelled(true);
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST)
-    public void onClick(InventoryClickEvent event) {
-        if (!(event.getView().getTopInventory().getHolder() instanceof ShulkerHolder holder)) return;
-        boolean wasCancelled = event.isCancelled();
-        // Cancel every vanilla action; nothing in the GUI is independently owned.
-        event.setCancelled(true);
-        if (wasCancelled || !(event.getWhoClicked() instanceof Player player)
-                || !holder.owner.equals(player.getUniqueId()) || sessions.get(holder.owner) != holder) return;
-        ClickType click = event.getClick();
-        if (click != ClickType.LEFT && click != ClickType.RIGHT
-                && click != ClickType.SHIFT_LEFT && click != ClickType.SHIFT_RIGHT) return;
-        if (!isEmpty(event.getCursor()) || player.getGameMode() == GameMode.CREATIVE
-                || player.getGameMode() == GameMode.SPECTATOR) return;
+    /** Creates an all-or-nothing view of the real item, player inventory and cursor. */
+    private Transaction transaction(Player player, ShulkerHolder holder, ItemStack cursor) {
+        if (!Objects.equals(copyItem(player.getItemOnCursor()), copyItem(cursor))) {
+            invalidate(player, holder, "курсор изменился извне");
+            return null;
+        }
         ItemStack item = anchor(player, holder);
         if (item == null || !(item.getItemMeta() instanceof BlockStateMeta meta)
                 || !(meta.getBlockState() instanceof ShulkerBox box)) {
             invalidate(player, holder, "предмет-якорь исчез или изменился");
-            return;
+            return null;
         }
         ItemStack[] topBefore = copyContents(box.getSnapshotInventory().getContents());
         if (!Arrays.equals(topBefore, copyContents(holder.inventory.getContents()))) {
             invalidate(player, holder, "окно изменено извне");
-            return;
+            return null;
         }
-        ItemStack[] topAfter = copyContents(topBefore);
-        PlayerInventory playerInv = player.getInventory();
-        ItemStack[] bottomBefore = copyContents(playerInv.getContents());
-        ItemStack[] bottomAfter = copyContents(bottomBefore);
-        int slot = event.getSlot();
-        int limit = click == ClickType.RIGHT ? 1 : Integer.MAX_VALUE;
-        int moved;
-        if (event.getClickedInventory() != null && event.getClickedInventory().equals(holder.inventory)) {
-            moved = StackTransfer.move(topAfter, slot, bottomAfter,
-                    playerInv.getStorageContents().length, holder.anchorSlot, limit, playerInv.getMaxStackSize(), STACKS);
-        } else if (event.getClickedInventory() != null && event.getClickedInventory().equals(playerInv)) {
-            if (slot < 0 || slot >= playerInv.getStorageContents().length || slot == holder.anchorSlot
-                    || isShulker(bottomAfter[slot])) return;
-            moved = StackTransfer.move(bottomAfter, slot, topAfter,
-                    topAfter.length, -1, limit, holder.inventory.getMaxStackSize(), slot, STACKS);
-        } else return;
-        if (moved == 0) return;
-        try {
-            box.getSnapshotInventory().setContents(topAfter);
-            meta.setBlockState(box);
-            ItemStack updated = item.clone();
-            if (!updated.setItemMeta(meta) || holder.anchorSlot >= bottomAfter.length) {
-                invalidate(player, holder, "не удалось сохранить содержимое");
-                return;
+        return new Transaction(player, holder, item, meta, box, topBefore, cursor);
+    }
+
+    private final class Transaction {
+        final Player player;
+        final ShulkerHolder holder;
+        final PlayerInventory playerInv;
+        final ItemStack item;
+        final BlockStateMeta meta;
+        final ShulkerBox box;
+        final ItemStack[] topBefore;
+        final ItemStack[] topAfter;
+        final ItemStack[] bottomBefore;
+        final ItemStack[] bottomAfter;
+        final ItemStack[] cursorBefore = new ItemStack[1];
+        final ItemStack[] cursorAfter = new ItemStack[1];
+
+        Transaction(Player player, ShulkerHolder holder, ItemStack item, BlockStateMeta meta,
+                    ShulkerBox box, ItemStack[] topBefore, ItemStack cursor) {
+            this.player = player;
+            this.holder = holder;
+            this.playerInv = player.getInventory();
+            this.item = item;
+            this.meta = meta;
+            this.box = box;
+            this.topBefore = topBefore;
+            this.topAfter = copyContents(topBefore);
+            this.bottomBefore = copyContents(playerInv.getContents());
+            this.bottomAfter = copyContents(bottomBefore);
+            this.cursorBefore[0] = copyItem(cursor);
+            this.cursorAfter[0] = copyItem(cursor);
+        }
+
+        private boolean changed() {
+            return !Arrays.equals(topBefore, topAfter) || !Arrays.equals(bottomBefore, bottomAfter)
+                    || !Arrays.equals(cursorBefore, cursorAfter);
+        }
+
+        void commit() {
+            if (!changed()) return;
+            try {
+                box.getSnapshotInventory().setContents(topAfter);
+                meta.setBlockState(box);
+                ItemStack updated = item.clone();
+                if (holder.anchorSlot < 0 || holder.anchorSlot >= bottomAfter.length
+                        || !updated.setItemMeta(meta)) {
+                    throw new IllegalStateException("не удалось сохранить содержимое в предмете");
+                }
+                bottomAfter[holder.anchorSlot] = updated;
+                for (int i = 0; i < bottomAfter.length; i++) {
+                    if (!Objects.equals(bottomBefore[i], bottomAfter[i])) playerInv.setItem(i, bottomAfter[i]);
+                }
+                if (!Objects.equals(cursorBefore[0], cursorAfter[0])) {
+                    player.setItemOnCursor(copyItem(cursorAfter[0]));
+                }
+                holder.inventory.setContents(topAfter);
+                player.updateInventory();
+            } catch (RuntimeException failure) {
+                rollback();
+                getLogger().severe("ОШИБКА переноса в шалкере " + holder.owner + ": " + failure);
+                invalidate(player, holder, "ошибка переноса");
             }
-            bottomAfter[holder.anchorSlot] = updated;
-            // Only changed slots are sent, not all equipment on every mobile tap.
-            for (int i = 0; i < bottomAfter.length; i++) {
-                if (!Objects.equals(bottomBefore[i], bottomAfter[i])) playerInv.setItem(i, bottomAfter[i]);
-            }
-            holder.inventory.setContents(topAfter);
-            player.updateInventory();
-        } catch (RuntimeException failure) {
-            // No old escrow fallback. Restore the pre-click state if a setter failed.
+        }
+
+        private void rollback() {
             try {
                 for (int i = 0; i < bottomBefore.length; i++) {
                     if (!Objects.equals(playerInv.getItem(i), bottomBefore[i])) playerInv.setItem(i, bottomBefore[i]);
                 }
+                if (!Objects.equals(player.getItemOnCursor(), cursorBefore[0])) {
+                    player.setItemOnCursor(copyItem(cursorBefore[0]));
+                }
                 holder.inventory.setContents(topBefore);
-            } catch (RuntimeException rollback) {
-                getLogger().severe("ОШИБКА отката инвентаря " + holder.owner + ": " + rollback);
+            } catch (RuntimeException rollbackFailure) {
+                getLogger().severe("ОШИБКА отката инвентаря " + holder.owner + ": " + rollbackFailure);
             }
-            getLogger().severe("ОШИБКА переноса в шалкере " + holder.owner + ": " + failure);
-            invalidate(player, holder, "ошибка переноса");
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onClick(InventoryClickEvent event) {
+        if (!(event.getView().getTopInventory().getHolder() instanceof ShulkerHolder holder)) return;
+        boolean wasCancelled = event.isCancelled();
+        // Vanilla never owns a GUI copy: every accepted action is applied manually below.
+        event.setCancelled(true);
+        if (wasCancelled || !(event.getWhoClicked() instanceof Player player)
+                || !holder.owner.equals(player.getUniqueId()) || sessions.get(holder.owner) != holder
+                || player.getGameMode() == GameMode.CREATIVE || player.getGameMode() == GameMode.SPECTATOR) return;
+        boolean fromTop = event.getClickedInventory() != null && event.getClickedInventory().equals(holder.inventory);
+        boolean fromBottom = event.getClickedInventory() != null && event.getClickedInventory().equals(player.getInventory());
+        if (!fromTop && !fromBottom) return;
+        Transaction tx = transaction(player, holder, event.getCursor());
+        if (tx == null) return;
+        int slot = event.getSlot();
+        if (fromTop) {
+            if (slot < 0 || slot >= tx.topAfter.length) return;
+        } else if (slot < 0 || slot >= tx.playerInv.getStorageContents().length || slot == holder.anchorSlot) {
+            return; // equipment/offhand and the open anchor are never transferable
+        }
+
+        ClickType click = event.getClick();
+        InventoryAction action = event.getAction();
+        if (click == ClickType.DOUBLE_CLICK || action == InventoryAction.COLLECT_TO_CURSOR) {
+            if (isEmpty(tx.cursorAfter[0]) || isShulker(tx.cursorAfter[0])) return;
+            int moved = 0;
+            for (int i = 0; i < tx.topAfter.length; i++) {
+                moved += StackTransfer.move(tx.topAfter, i, tx.cursorAfter, 1, -1,
+                        Integer.MAX_VALUE, tx.playerInv.getMaxStackSize(), STACKS);
+            }
+            for (int i = 0; i < tx.playerInv.getStorageContents().length; i++) {
+                if (i == holder.anchorSlot) continue;
+                moved += StackTransfer.move(tx.bottomAfter, i, tx.cursorAfter, 1, -1,
+                        Integer.MAX_VALUE, tx.playerInv.getMaxStackSize(), STACKS);
+            }
+            if (moved > 0) tx.commit();
+            return;
+        }
+        if (click == ClickType.DROP || click == ClickType.CONTROL_DROP || click == ClickType.MIDDLE
+                || action == InventoryAction.DROP_ALL_CURSOR || action == InventoryAction.DROP_ONE_CURSOR
+                || action == InventoryAction.DROP_ALL_SLOT || action == InventoryAction.DROP_ONE_SLOT) return;
+        if (action == InventoryAction.HOTBAR_SWAP || action == InventoryAction.HOTBAR_MOVE_AND_READD) {
+            int button = event.getHotbarButton();
+            if (button < 0 || button >= 9 || button == holder.anchorSlot || !isEmpty(tx.cursorAfter[0])) return;
+            ItemStack hotbar = tx.bottomAfter[button];
+            if (fromTop && isShulker(hotbar)) return;
+            ItemStack[] slots = fromTop ? tx.topAfter : tx.bottomAfter;
+            if (Objects.equals(slots[slot], hotbar)) return;
+            ItemStack previous = slots[slot];
+            slots[slot] = copyItem(hotbar);
+            tx.bottomAfter[button] = copyItem(previous);
+            tx.commit();
+            return;
+        }
+        if (click == ClickType.SHIFT_LEFT || click == ClickType.SHIFT_RIGHT
+                || action == InventoryAction.MOVE_TO_OTHER_INVENTORY) {
+            if (!isEmpty(tx.cursorAfter[0])) return;
+            int moved;
+            if (fromTop) {
+                moved = StackTransfer.move(tx.topAfter, slot, tx.bottomAfter,
+                        tx.playerInv.getStorageContents().length, holder.anchorSlot,
+                        Integer.MAX_VALUE, tx.playerInv.getMaxStackSize(), STACKS);
+            } else {
+                if (isShulker(tx.bottomAfter[slot])) return;
+                moved = StackTransfer.move(tx.bottomAfter, slot, tx.topAfter,
+                        tx.topAfter.length, -1, Integer.MAX_VALUE, holder.inventory.getMaxStackSize(), STACKS);
+            }
+            if (moved > 0) tx.commit();
+            return;
+        }
+        if (click != ClickType.LEFT && click != ClickType.RIGHT) return;
+        if (fromTop && isShulker(tx.cursorAfter[0])) return;
+        ItemStack[] slots = fromTop ? tx.topAfter : tx.bottomAfter;
+        int inventoryMax = fromTop ? holder.inventory.getMaxStackSize() : tx.playerInv.getMaxStackSize();
+        if (StackTransfer.click(slots, slot, tx.cursorAfter, click == ClickType.RIGHT, inventoryMax, STACKS)) {
+            tx.commit();
         }
     }
 
@@ -362,7 +468,58 @@ public class VoidShulker extends JavaPlugin implements Listener, CommandExecutor
 
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onDrag(InventoryDragEvent event) {
-        if (event.getView().getTopInventory().getHolder() instanceof ShulkerHolder) event.setCancelled(true);
+        if (!(event.getView().getTopInventory().getHolder() instanceof ShulkerHolder holder)) return;
+        boolean wasCancelled = event.isCancelled();
+        event.setCancelled(true);
+        if (wasCancelled || !(event.getWhoClicked() instanceof Player player)
+                || !holder.owner.equals(player.getUniqueId()) || sessions.get(holder.owner) != holder
+                || player.getGameMode() == GameMode.CREATIVE || player.getGameMode() == GameMode.SPECTATOR) return;
+        Transaction tx = transaction(player, holder, event.getOldCursor());
+        if (tx == null) return;
+        ItemStack dragged = tx.cursorBefore[0];
+        if (isEmpty(dragged) || event.getNewItems().isEmpty()) return;
+        ItemStack resultCursor = copyItem(event.getCursor());
+        if (!isEmpty(resultCursor) && !resultCursor.isSimilar(dragged)) return;
+        if (amount(resultCursor) > tx.playerInv.getMaxStackSize()
+                || (!isEmpty(resultCursor) && resultCursor.getAmount() > resultCursor.getMaxStackSize())) return;
+
+        long before = amount(dragged);
+        long after = amount(resultCursor);
+        // Validate every slot before changing any array. Conservation includes the cursor.
+        for (Map.Entry<Integer, ItemStack> entry : event.getNewItems().entrySet()) {
+            int raw = entry.getKey();
+            if (raw < 0 || raw >= event.getView().countSlots()) return;
+            boolean targetTop = raw < tx.topAfter.length;
+            int slot = targetTop ? raw : event.getView().convertSlot(raw);
+            if (targetTop) {
+                if (slot < 0 || slot >= tx.topAfter.length || isShulker(dragged)) return;
+            } else if (slot < 0 || slot >= tx.playerInv.getStorageContents().length || slot == holder.anchorSlot) {
+                return;
+            }
+            ItemStack previous = targetTop ? tx.topAfter[slot] : tx.bottomAfter[slot];
+            ItemStack replacement = entry.getValue();
+            if (!isEmpty(previous) && !previous.isSimilar(dragged)) return;
+            if (!isEmpty(replacement) && !replacement.isSimilar(dragged)) return;
+            int inventoryMax = targetTop ? holder.inventory.getMaxStackSize() : tx.playerInv.getMaxStackSize();
+            if (amount(replacement) > inventoryMax
+                    || (!isEmpty(replacement) && replacement.getAmount() > replacement.getMaxStackSize())) return;
+            before += amount(previous);
+            after += amount(replacement);
+        }
+        if (before != after) {
+            getLogger().warning("Отклонён drag с изменением числа предметов у " + holder.owner
+                    + ": было " + before + ", стало " + after);
+            return;
+        }
+        for (Map.Entry<Integer, ItemStack> entry : event.getNewItems().entrySet()) {
+            int raw = entry.getKey();
+            boolean targetTop = raw < tx.topAfter.length;
+            int slot = targetTop ? raw : event.getView().convertSlot(raw);
+            if (targetTop) tx.topAfter[slot] = copyItem(entry.getValue());
+            else tx.bottomAfter[slot] = copyItem(entry.getValue());
+        }
+        tx.cursorAfter[0] = resultCursor;
+        tx.commit();
     }
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onSwapHands(PlayerSwapHandItemsEvent event) {
@@ -381,9 +538,11 @@ public class VoidShulker extends JavaPlugin implements Listener, CommandExecutor
 
     private static ItemStack[] copyContents(ItemStack[] contents) {
         ItemStack[] copy = new ItemStack[contents.length];
-        for (int i = 0; i < contents.length; i++) copy[i] = isEmpty(contents[i]) ? null : contents[i].clone();
+        for (int i = 0; i < contents.length; i++) copy[i] = copyItem(contents[i]);
         return copy;
     }
+    private static ItemStack copyItem(ItemStack item) { return isEmpty(item) ? null : item.clone(); }
+    private static int amount(ItemStack item) { return isEmpty(item) ? 0 : item.getAmount(); }
     private static boolean isEmpty(ItemStack item) { return item == null || item.getType().isAir() || item.getAmount() <= 0; }
     private static boolean isShulker(ItemStack item) { return !isEmpty(item) && Tag.SHULKER_BOXES.isTagged(item.getType()); }
     private void play(Player player, String configKey) {

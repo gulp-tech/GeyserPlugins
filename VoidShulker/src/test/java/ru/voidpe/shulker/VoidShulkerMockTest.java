@@ -90,7 +90,7 @@ class VoidShulkerMockTest {
         assertTrue(open(EquipmentSlot.HAND).isCancelled());
         assertEquals(Material.PURPLE_SHULKER_BOX, player.getInventory().getItem(0).getType());
         assertEquals(8, storedDiamonds(player.getInventory().getItem(0)));
-        click(0, ClickType.LEFT, InventoryAction.PICKUP_ALL);
+        click(0, ClickType.SHIFT_LEFT, InventoryAction.MOVE_TO_OTHER_INVENTORY);
         assertEquals(0, storedDiamonds(player.getInventory().getItem(0)));
         assertEquals(8, playerDiamonds());
         player.closeInventory();
@@ -98,47 +98,67 @@ class VoidShulkerMockTest {
         assertEquals(8, playerDiamonds());
     }
 
-    @Test void depositOneOffhandAndRejectNestedShulker() {
+    @Test void rightClickDepositsOneOffhandAndNestedShulkerIsRejected() {
         player.getInventory().setItemInOffHand(box(0));
         player.getInventory().setItem(9, new ItemStack(Material.DIAMOND, 5));
         player.getInventory().setItem(10, box(0));
         open(EquipmentSlot.OFF_HAND);
-        click(27, ClickType.RIGHT, InventoryAction.PICKUP_HALF); // bottom slot 9
-        assertEquals(1, storedDiamonds(player.getInventory().getItemInOffHand()));
+        click(27, ClickType.RIGHT, InventoryAction.PICKUP_HALF); // take 3 of 5 from bottom slot 9
+        assertEquals(3, player.getItemOnCursor().getAmount());
+        assertEquals(2, playerDiamonds());
+        click(5, ClickType.RIGHT, InventoryAction.PLACE_ONE); // arbitrary shulker slot
+        assertEquals(1, storedAt(player.getInventory().getItemInOffHand(), 5).getAmount());
+        assertEquals(2, player.getItemOnCursor().getAmount());
+        click(27, ClickType.LEFT, InventoryAction.PICKUP_ALL); // return the remaining 2 to the same stack
+        assertTrue(player.getItemOnCursor() == null || player.getItemOnCursor().getType().isAir());
         assertEquals(4, playerDiamonds());
-        click(28, ClickType.LEFT, InventoryAction.PICKUP_ALL); // bottom slot 10 is a shulker
+        click(28, ClickType.SHIFT_LEFT, InventoryAction.MOVE_TO_OTHER_INVENTORY); // nested shulker
         assertEquals(Material.PURPLE_SHULKER_BOX, player.getInventory().getItem(10).getType());
         assertEquals(1, storedDiamonds(player.getInventory().getItemInOffHand()));
+        player.setItemOnCursor(box(0));
+        click(6, ClickType.LEFT, InventoryAction.PLACE_ALL); // cursor may not bypass the nested-shulker ban
+        assertEquals(Material.PURPLE_SHULKER_BOX, player.getItemOnCursor().getType());
+        assertNull(storedAt(player.getInventory().getItemInOffHand(), 6));
+        player.setItemOnCursor(null);
         player.closeInventory();
         assertEquals(1, storedDiamonds(player.getInventory().getItemInOffHand()));
+        assertEquals(4, playerDiamonds());
     }
 
-    @Test void depositPrefersClickedDestinationSlot() {
-        ItemStack box = box(60); // an earlier matching stack must not win over slot 5
+    @Test void cursorAndRightClickPlaceIntoAnyChosenSlotWithoutDuplicates() {
+        ItemStack box = box(60); // an earlier matching stack must not capture the deposit
         player.getInventory().setItem(0, box);
         player.getInventory().setItem(5, new ItemStack(Material.DIAMOND, 8));
         open(EquipmentSlot.HAND);
-        click(59, ClickType.LEFT, InventoryAction.PICKUP_ALL); // bottom hotbar slot 5
-        ItemStack anchor = player.getInventory().getItem(0);
-        assertEquals(60, storedAt(anchor, 0).getAmount());
-        assertEquals(Material.DIAMOND, storedAt(anchor, 5).getType());
-        assertEquals(8, storedAt(anchor, 5).getAmount());
+        click(59, ClickType.LEFT, InventoryAction.PICKUP_ALL); // pick up hotbar slot 5
+        assertEquals(8, player.getItemOnCursor().getAmount());
         assertNull(player.getInventory().getItem(5));
+        click(5, ClickType.RIGHT, InventoryAction.PLACE_ONE);
+        ItemStack anchor = player.getInventory().getItem(0);
+        assertEquals(1, storedAt(anchor, 5).getAmount());
+        assertEquals(7, player.getItemOnCursor().getAmount());
+        click(5, ClickType.LEFT, InventoryAction.PLACE_ALL);
+        anchor = player.getInventory().getItem(0);
+        assertEquals(60, storedAt(anchor, 0).getAmount());
+        assertEquals(8, storedAt(anchor, 5).getAmount());
+        assertEquals(68, storedDiamonds(anchor));
+        assertTrue(player.getItemOnCursor() == null || player.getItemOnCursor().getType().isAir());
+        assertEquals(0, playerDiamonds());
     }
 
-    @Test void occupiedPreferredSlotUsesPreviousTransferOrder() {
+    @Test void shiftDepositUsesMatchingStacksThenFirstEmptyWithoutDuplicates() {
         ItemStack box = box(60);
         putStored(box, 5, new ItemStack(Material.DIRT, 1));
         player.getInventory().setItem(0, box);
         player.getInventory().setItem(5, new ItemStack(Material.DIAMOND, 8));
         open(EquipmentSlot.HAND);
-        click(59, ClickType.LEFT, InventoryAction.PICKUP_ALL); // bottom hotbar slot 5
+        click(59, ClickType.SHIFT_RIGHT, InventoryAction.MOVE_TO_OTHER_INVENTORY);
         ItemStack anchor = player.getInventory().getItem(0);
         assertEquals(64, storedAt(anchor, 0).getAmount(), "matching stack is filled first");
         assertEquals(Material.DIAMOND, storedAt(anchor, 1).getType());
         assertEquals(4, storedAt(anchor, 1).getAmount(), "remainder uses the first empty slot");
         assertEquals(Material.DIRT, storedAt(anchor, 5).getType());
-        assertEquals(1, storedAt(anchor, 5).getAmount());
+        assertEquals(68, storedDiamonds(anchor));
         assertNull(player.getInventory().getItem(5));
     }
 
@@ -191,7 +211,7 @@ class VoidShulkerMockTest {
             player.getInventory().clear();
             player.getInventory().setItem(0, box(7));
             open(EquipmentSlot.HAND);
-            click(0, ClickType.LEFT, InventoryAction.PICKUP_ALL);
+            click(0, ClickType.SHIFT_LEFT, InventoryAction.MOVE_TO_OTHER_INVENTORY);
             java.util.List<ItemStack> before = new java.util.ArrayList<>();
             for (ItemStack item : player.getInventory().getContents()) if (item != null) before.add(item.clone());
             assertEquals(7, totalDiamonds(before), "before death: exactly 7 diamonds exist");
@@ -231,6 +251,54 @@ class VoidShulkerMockTest {
         plugin.onPlace(place);
         assertTrue(place.isCancelled());
         assertEquals(3, storedDiamonds(player.getInventory().getItem(0)));
+        assertEquals(0, playerDiamonds());
+    }
+
+    @Test void dragDistributesIntoChosenSlotsAndConservesEveryItem() {
+        player.getInventory().setItem(0, box(0));
+        player.getInventory().setItem(5, new ItemStack(Material.DIAMOND, 16));
+        open(EquipmentSlot.HAND);
+        click(59, ClickType.LEFT, InventoryAction.PICKUP_ALL);
+        var drag = new org.bukkit.event.inventory.InventoryDragEvent(player.getOpenInventory(), null,
+                new ItemStack(Material.DIAMOND, 16), false, java.util.Map.of(
+                5, new ItemStack(Material.DIAMOND, 8), 9, new ItemStack(Material.DIAMOND, 8)));
+        plugin.onDrag(drag);
+        assertTrue(drag.isCancelled());
+        ItemStack anchor = player.getInventory().getItem(0);
+        assertEquals(8, storedAt(anchor, 5).getAmount());
+        assertEquals(8, storedAt(anchor, 9).getAmount());
+        assertEquals(16, storedDiamonds(anchor));
+        assertTrue(player.getItemOnCursor() == null || player.getItemOnCursor().getType().isAir());
+        assertEquals(0, playerDiamonds());
+    }
+
+    @Test void hotbarButtonSwapsChosenSlotWithoutCopying() {
+        ItemStack box = box(0);
+        putStored(box, 5, new ItemStack(Material.DIRT, 1));
+        player.getInventory().setItem(0, box);
+        player.getInventory().setItem(5, new ItemStack(Material.DIAMOND, 8));
+        open(EquipmentSlot.HAND);
+        InventoryClickEvent event = new InventoryClickEvent(player.getOpenInventory(), InventoryType.SlotType.CONTAINER,
+                5, ClickType.NUMBER_KEY, InventoryAction.HOTBAR_SWAP, 5);
+        plugin.onClick(event);
+        assertTrue(event.isCancelled());
+        assertEquals(Material.DIAMOND, storedAt(player.getInventory().getItem(0), 5).getType());
+        assertEquals(8, storedAt(player.getInventory().getItem(0), 5).getAmount());
+        assertEquals(Material.DIRT, player.getInventory().getItem(5).getType());
+        assertEquals(1, player.getInventory().getItem(5).getAmount());
+        assertEquals(8, storedDiamonds(player.getInventory().getItem(0)));
+    }
+
+    @Test void doubleClickCollectsToCursorWithoutDuplication() {
+        ItemStack box = box(10);
+        putStored(box, 1, new ItemStack(Material.DIAMOND, 10));
+        player.getInventory().setItem(0, box);
+        player.getInventory().setItem(5, new ItemStack(Material.DIAMOND, 6));
+        open(EquipmentSlot.HAND);
+        player.setItemOnCursor(new ItemStack(Material.DIAMOND, 1));
+        click(0, ClickType.DOUBLE_CLICK, InventoryAction.COLLECT_TO_CURSOR);
+        assertEquals(27, player.getItemOnCursor().getAmount());
+        assertEquals(0, storedDiamonds(player.getInventory().getItem(0)));
         assertEquals(0, playerDiamonds());
     }
 
@@ -290,7 +358,7 @@ class VoidShulkerMockTest {
     @Test void crashAfterWithdrawalKeepsEveryDiamondExactlyOnce() {
         player.getInventory().setItem(0, box(8));
         open(EquipmentSlot.HAND);
-        click(0, ClickType.LEFT, InventoryAction.PICKUP_ALL); // all 8 leave the shulker
+        click(0, ClickType.SHIFT_LEFT, InventoryAction.MOVE_TO_OTHER_INVENTORY); // all 8 leave the shulker
         assertEquals(8, playerDiamonds());
         assertTrue(hasSessionMarker(player.getInventory().getItem(0)), "session is still open at the crash");
         crashAndRestart();
