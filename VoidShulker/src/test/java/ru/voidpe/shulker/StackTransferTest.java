@@ -33,6 +33,16 @@ public final class StackTransferTest {
         check(StackTransfer.move(src, 0, dst, 3, -1, 1, 64, OPS) == 1, "one-item move");
         check(src[0].amount() == 5 && dst[2].amount() == 1, "single amount");
         check(StackTransfer.move(src, 0, src, 1, -1, 1, 64, OPS) == 0, "same array rejected");
+        src[0] = new Stack("a", 8, 64);
+        dst = new Stack[]{ new Stack("a", 60, 64), null, null, null, null, null };
+        check(StackTransfer.move(src, 0, dst, 6, -1, 8, 64, 5, OPS) == 8, "preferred slot move");
+        check(src[0] == null && dst[0].amount() == 60 && dst[5].amount() == 8,
+                "preferred empty slot wins over earlier matching stack");
+        src[0] = new Stack("a", 8, 64);
+        dst[5] = new Stack("b", 1, 64);
+        check(StackTransfer.move(src, 0, dst, 6, -1, 8, 64, 5, OPS) == 8, "preferred slot fallback move");
+        check(dst[0].amount() == 64 && dst[1].amount() == 4 && dst[5].type().equals("b"),
+                "occupied preferred slot falls back to matching stacks then empty slots");
         Random random = new Random(8478);
         for (int iteration = 0; iteration < 10000; iteration++) {
             int max = random.nextBoolean() ? 16 : 64;

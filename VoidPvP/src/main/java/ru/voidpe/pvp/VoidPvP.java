@@ -417,6 +417,8 @@ public final class VoidPvP extends JavaPlugin
         final double knockbackScale;
         /** Дополнительный множитель отдачи для повторных ударов. */
         final double repeatKnockbackScale;
+        /** Сколько единиц урона вычитается из прямого удара ванильной булавой. */
+        final double maceDamageReduction;
         final java.util.Set<String> disabledWorlds;
         final String require;
         final String bypassOff;
@@ -450,6 +452,7 @@ public final class VoidPvP extends JavaPlugin
             this.repeatDamageScale = clampScale(config.getDouble("tap-tap.repeat-damage-scale", 0.65));
             this.knockbackScale = clampScale(config.getDouble("tap-tap.knockback-scale", 0.5));
             this.repeatKnockbackScale = clampScale(config.getDouble("tap-tap.repeat-knockback-scale", 0.3));
+            this.maceDamageReduction = Math.max(0.0, config.getDouble("mace.damage-reduction", 5.0));
 
             java.util.Set<String> worlds = new java.util.LinkedHashSet<>();
             for (String name : config.getStringList("worlds.disabled")) {

@@ -3,6 +3,7 @@ package ru.voidpe.pvp;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.entity.Entity;
@@ -81,6 +82,12 @@ public final class FastCritsListener implements Listener {
         // и бой заканчивается за долю секунды.
         if (repeat && settings.repeatDamageScale < 1.0) {
             event.setDamage(event.getDamage() * settings.repeatDamageScale);
+        }
+        // Только прямой удар игрока ванильной булавой по живой сущности.
+        // Вычитаем после остальных модификаторов VoidPvP и не опускаем урон ниже 0.
+        if (victim instanceof LivingEntity
+                && attacker.getInventory().getItemInMainHand().getType() == Material.MACE) {
+            event.setDamage(MaceDamageCheck.reduce(event.getDamage(), settings.maceDamageReduction, 0.0));
         }
         if (settings.noInvulnerability) {
             clearInvulnerability(victim, settings);

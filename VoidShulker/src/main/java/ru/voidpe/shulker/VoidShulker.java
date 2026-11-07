@@ -315,7 +315,7 @@ public class VoidShulker extends JavaPlugin implements Listener, CommandExecutor
             if (slot < 0 || slot >= playerInv.getStorageContents().length || slot == holder.anchorSlot
                     || isShulker(bottomAfter[slot])) return;
             moved = StackTransfer.move(bottomAfter, slot, topAfter,
-                    topAfter.length, -1, limit, holder.inventory.getMaxStackSize(), STACKS);
+                    topAfter.length, -1, limit, holder.inventory.getMaxStackSize(), slot, STACKS);
         } else return;
         if (moved == 0) return;
         try {

@@ -50,6 +50,17 @@ class VoidShulkerMockTest {
         result.setItemMeta(meta);
         return result;
     }
+    private void putStored(ItemStack stack, int slot, ItemStack value) {
+        BlockStateMeta meta = (BlockStateMeta) stack.getItemMeta();
+        ShulkerBox box = (ShulkerBox) meta.getBlockState();
+        box.getSnapshotInventory().setItem(slot, value);
+        meta.setBlockState(box);
+        stack.setItemMeta(meta);
+    }
+    private ItemStack storedAt(ItemStack stack, int slot) {
+        ShulkerBox box = (ShulkerBox) ((BlockStateMeta) stack.getItemMeta()).getBlockState();
+        return box.getSnapshotInventory().getItem(slot);
+    }
     private int storedDiamonds(ItemStack stack) {
         ShulkerBox box = (ShulkerBox) ((BlockStateMeta) stack.getItemMeta()).getBlockState();
         return java.util.Arrays.stream(box.getSnapshotInventory().getContents())
@@ -100,6 +111,35 @@ class VoidShulkerMockTest {
         assertEquals(1, storedDiamonds(player.getInventory().getItemInOffHand()));
         player.closeInventory();
         assertEquals(1, storedDiamonds(player.getInventory().getItemInOffHand()));
+    }
+
+    @Test void depositPrefersClickedDestinationSlot() {
+        ItemStack box = box(60); // an earlier matching stack must not win over slot 5
+        player.getInventory().setItem(0, box);
+        player.getInventory().setItem(5, new ItemStack(Material.DIAMOND, 8));
+        open(EquipmentSlot.HAND);
+        click(59, ClickType.LEFT, InventoryAction.PICKUP_ALL); // bottom hotbar slot 5
+        ItemStack anchor = player.getInventory().getItem(0);
+        assertEquals(60, storedAt(anchor, 0).getAmount());
+        assertEquals(Material.DIAMOND, storedAt(anchor, 5).getType());
+        assertEquals(8, storedAt(anchor, 5).getAmount());
+        assertNull(player.getInventory().getItem(5));
+    }
+
+    @Test void occupiedPreferredSlotUsesPreviousTransferOrder() {
+        ItemStack box = box(60);
+        putStored(box, 5, new ItemStack(Material.DIRT, 1));
+        player.getInventory().setItem(0, box);
+        player.getInventory().setItem(5, new ItemStack(Material.DIAMOND, 8));
+        open(EquipmentSlot.HAND);
+        click(59, ClickType.LEFT, InventoryAction.PICKUP_ALL); // bottom hotbar slot 5
+        ItemStack anchor = player.getInventory().getItem(0);
+        assertEquals(64, storedAt(anchor, 0).getAmount(), "matching stack is filled first");
+        assertEquals(Material.DIAMOND, storedAt(anchor, 1).getType());
+        assertEquals(4, storedAt(anchor, 1).getAmount(), "remainder uses the first empty slot");
+        assertEquals(Material.DIRT, storedAt(anchor, 5).getType());
+        assertEquals(1, storedAt(anchor, 5).getAmount());
+        assertNull(player.getInventory().getItem(5));
     }
 
     @Test void blockedInputsAndMissingAnchorNeverCreateGuiCopies() {
