@@ -11,6 +11,8 @@
 
 Расширение предназначено именно для **Geyser-Spigot на одном JVM с Purpur**, поскольку вызывает `CommandMap.tabComplete` у локального игрока. На отдельном proxy без Bukkit API оно отключится с понятным сообщением и не помешает входу игроков.
 
+В `src/bukkitStubs` находятся только 15 сигнатур стабильного Bukkit API для независимой compile-only сборки. Они образуют отдельный source set и **не включаются в JAR**; на сервере всегда используются настоящие классы Purpur.
+
 ## Как это работает
 
 - Geyser преобразует Brigadier в `AvailableCommandsPacket`, но Java `ClientboundCommandSuggestionsPacket` для Bedrock не используется.
