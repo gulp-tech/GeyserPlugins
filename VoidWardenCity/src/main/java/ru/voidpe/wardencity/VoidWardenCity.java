@@ -1215,9 +1215,15 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
 
     // ------------------------------------------------------------- защита
 
-    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    /** Missing lock-building means an old config: fail closed and protect the city. */
+    private boolean buildingLocked(String legacyToggle) {
+        return getConfig().getBoolean("protection.lock-building", true)
+                || getConfig().getBoolean("protection." + legacyToggle, true);
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onBreak(BlockBreakEvent event) {
-        if (getConfig().getBoolean("protection.prevent-break", false)
+        if (buildingLocked("prevent-break")
                 && inCity(event.getBlock().getLocation())
                 && !event.getPlayer().hasPermission("voidwardencity.admin")) {
             event.setCancelled(true);
@@ -1279,9 +1285,9 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
         }
     }
 
-    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onPlace(BlockPlaceEvent event) {
-        if (getConfig().getBoolean("protection.prevent-place", false)
+        if (buildingLocked("prevent-place")
                 && inCity(event.getBlock().getLocation())
                 && !event.getPlayer().hasPermission("voidwardencity.admin")) {
             event.setCancelled(true);

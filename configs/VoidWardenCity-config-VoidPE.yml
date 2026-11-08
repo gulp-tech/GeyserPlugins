@@ -147,9 +147,12 @@ warden:
     # - "points give %player% 10"
 
 protection:
-  # Ломание и установка — как раньше, отдельно от защиты от взрывов.
-  prevent-break: false
-  prevent-place: false
+  # Город закрыт от строительства: сундуки нельзя застраивать или уносить.
+  # При обновлении старого конфига lock-building по умолчанию тоже включён.
+  # Для разрешения строительства выключи lock-building И оба prevent-*.
+  lock-building: true
+  prevent-break: true
+  prevent-place: true
   # Запретить обычным взрывам разрушать блоки города, включая сундуки.
   prevent-explosions: true
   # Взрывы (включая кастомный TNT HyperTNT), которые могут достать до региона

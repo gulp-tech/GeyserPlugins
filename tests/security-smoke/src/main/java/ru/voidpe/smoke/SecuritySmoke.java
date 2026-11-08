@@ -21,10 +21,12 @@ import org.bukkit.block.Chest;
 import org.bukkit.block.ShulkerBox;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.Player;
 import org.bukkit.entity.TNTPrimed;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockExplodeEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
@@ -41,11 +43,13 @@ import org.bukkit.persistence.PersistentDataType;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * CI-only: runs on a throwaway local Purpur world, never included in a release.
@@ -69,6 +73,28 @@ public final class SecuritySmoke extends JavaPlugin implements Listener {
     @EventHandler public void onSpawn(ItemSpawnEvent event) { spawned.add(event.getEntity().getItemStack().clone()); }
 
     private static void check(boolean b, String message) { if (!b) throw new AssertionError(message); }
+
+    /** Event-level player stub: no client is spawned on the disposable CI server. */
+    private static Player fakePlayer(boolean admin) {
+        UUID id = UUID.randomUUID();
+        return (Player) Proxy.newProxyInstance(SecuritySmoke.class.getClassLoader(), new Class<?>[]{Player.class},
+                (proxy, method, args) -> {
+                    if (method.getName().equals("hasPermission")) return admin;
+                    if (method.getName().equals("getUniqueId")) return id;
+                    if (method.getName().equals("getName")) return admin ? "SmokeAdmin" : "SmokePlayer";
+                    if (method.getName().equals("isOnline")) return true;
+                    Class<?> result = method.getReturnType();
+                    if (result == void.class || !result.isPrimitive()) return null;
+                    if (result == boolean.class) return false;
+                    if (result == char.class) return '\0';
+                    if (result == long.class) return 0L;
+                    if (result == double.class) return 0.0d;
+                    if (result == float.class) return 0.0f;
+                    if (result == short.class) return (short) 0;
+                    if (result == byte.class) return (byte) 0;
+                    return 0;
+                });
+    }
 
     private static Object call(Object target, String method, Class<?>[] types, Object... args) throws Exception {
         return target.getClass().getMethod(method, types).invoke(target, args);
@@ -148,8 +174,39 @@ public final class SecuritySmoke extends JavaPlugin implements Listener {
 
             Block insideBlock = inside.getBlock();
             Block outsideBlock = outside.getBlock();
-            insideBlock.setType(Material.STONE);
+            insideBlock.setType(Material.CHEST);
             outsideBlock.setType(Material.STONE);
+
+            // Legacy smoke config deliberately has prevent-break/place=false and no lock-building.
+            // The updated plugin must fail closed: no enclosing city chests or stealing blocks.
+            Player normal = fakePlayer(false);
+            Player admin = fakePlayer(true);
+            BlockBreakEvent cityBreak = new BlockBreakEvent(insideBlock, normal);
+            call(city, "onBreak", new Class<?>[]{BlockBreakEvent.class}, cityBreak);
+            check(cityBreak.isCancelled(), "legacy config still prevents breaking a city chest/block");
+            BlockBreakEvent outsideBreak = new BlockBreakEvent(outsideBlock, normal);
+            call(city, "onBreak", new Class<?>[]{BlockBreakEvent.class}, outsideBreak);
+            check(!outsideBreak.isCancelled(), "city protection does not leak outside the city");
+            BlockBreakEvent adminBreak = new BlockBreakEvent(insideBlock, admin);
+            call(city, "onBreak", new Class<?>[]{BlockBreakEvent.class}, adminBreak);
+            check(!adminBreak.isCancelled(), "admin bypass for city block breaking");
+
+            Block enclosure = world.getBlockAt(1, 80, 0);
+            enclosure.setType(Material.AIR, false);
+            BlockPlaceEvent cityPlace = new BlockPlaceEvent(enclosure, enclosure.getState(), insideBlock,
+                    new ItemStack(Material.STONE), normal, true, EquipmentSlot.HAND);
+            call(city, "onPlace", new Class<?>[]{BlockPlaceEvent.class}, cityPlace);
+            check(cityPlace.isCancelled(), "players cannot enclose city chests with blocks");
+            BlockPlaceEvent adminPlace = new BlockPlaceEvent(enclosure, enclosure.getState(), insideBlock,
+                    new ItemStack(Material.STONE), admin, true, EquipmentSlot.HAND);
+            call(city, "onPlace", new Class<?>[]{BlockPlaceEvent.class}, adminPlace);
+            check(!adminPlace.isCancelled(), "admin bypass for city block placement");
+            Block outsidePlacement = outsideBlock.getRelative(BlockFace.UP);
+            BlockPlaceEvent outsidePlace = new BlockPlaceEvent(outsidePlacement, outsidePlacement.getState(), outsideBlock,
+                    new ItemStack(Material.STONE), normal, true, EquipmentSlot.HAND);
+            call(city, "onPlace", new Class<?>[]{BlockPlaceEvent.class}, outsidePlace);
+            check(!outsidePlace.isCancelled(), "ordinary placement outside the city remains allowed");
+
             Entity entity = world.spawn(outside.clone().add(.5, 0, .5), TNTPrimed.class);
             List<Block> entityBlocks = new ArrayList<>(List.of(insideBlock, outsideBlock));
             EntityExplodeEvent entityEvent = new EntityExplodeEvent(entity, outside, entityBlocks, 1f, ExplosionResult.DESTROY);
@@ -259,7 +316,7 @@ public final class SecuritySmoke extends JavaPlugin implements Listener {
             // Entities still in the world would otherwise be saved with the chunk and re-tick after the restart.
             for (TNTPrimed leftover : world.getEntitiesByClass(TNTPrimed.class)) leftover.remove();
 
-            getLogger().info("SECURITY_SMOKE_PASS (phase 1): WG region, boundary TNT, double chest, 17 shulker-colour configs; restart probe written");
+            getLogger().info("SECURITY_SMOKE_PASS (phase 1): legacy-config city build lock, WG region, boundary TNT, double chest, 17 shulker-colour configs; restart probe written");
             Files.writeString(Path.of(System.getProperty("voidpe.smoke.marker")), "passed\n");
         } catch (Throwable e) {
             getLogger().severe("SECURITY_SMOKE_FAILED: " + e);
