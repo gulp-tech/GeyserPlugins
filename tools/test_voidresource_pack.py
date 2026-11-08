@@ -17,16 +17,24 @@ def main() -> None:
     manifest = json.loads((SOURCE / "manifest.json").read_text(encoding="utf-8"))
     assert manifest["format_version"] == 2
     assert manifest["header"]["uuid"] == EXPECTED_HEADER_UUID
-    assert manifest["header"]["version"] == [1, 18, 0]
+    assert manifest["header"]["version"] == [1, 18, 1]
     assert manifest["modules"][0]["uuid"] == EXPECTED_MODULE_UUID
-    assert manifest["modules"][0]["version"] == [1, 18, 0]
+    assert manifest["modules"][0]["version"] == [1, 18, 1]
     assert manifest["header"]["min_engine_version"] == [1, 20, 0]
 
     scoreboards = json.loads((SOURCE / "ui/scoreboards.json").read_text(encoding="utf-8"))
     assert scoreboards == {
         "namespace": "scoreboard",
         "scoreboard_sidebar/main/lists/scores": {"ignored": True},
+        "scoreboard_sidebar_score": {
+            "ignored": True,
+            "size": [0, 0],
+            "alpha": 0.0,
+        },
     }
+    # The players collection must remain untouched: TAB uses scores for ordering.
+    assert "scoreboard_sidebar_player" not in scoreboards
+    assert "scoreboard_sidebar/main/lists/players" not in scoreboards
 
     if "--require-output" in sys.argv or OUTPUT.exists():
         source_files = {

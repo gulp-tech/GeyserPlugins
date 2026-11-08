@@ -7,7 +7,7 @@
 1. Оставьте в `plugins/Geyser-Spigot/config.yml` `command-suggestions: true`.
 2. Положите `VoidCommandsExtension-1.0.0.jar` в `plugins/Geyser-Spigot/extensions/`.
 3. Полностью перезапустите Purpur. TAB заменять не требуется.
-4. Для скрытия красных чисел скорборда также замените `VoidResourcePack.mcpack` в `plugins/Geyser-Spigot/packs/` на версию 1.18.0 из этого репозитория и снова перезапустите сервер.
+4. Для скрытия красных чисел скорборда также замените `VoidResourcePack.mcpack` в `plugins/Geyser-Spigot/packs/` на версию 1.18.1 из этого репозитория и снова перезапустите сервер.
 
 Расширение предназначено именно для **Geyser-Spigot на одном JVM с Purpur**, поскольку вызывает `CommandMap.tabComplete` у локального игрока. На отдельном proxy без Bukkit API оно отключится с понятным сообщением и не помешает входу игроков.
 

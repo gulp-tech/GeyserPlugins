@@ -3,5 +3,11 @@
 
   "scoreboard_sidebar/main/lists/scores": {
     "ignored": true
+  },
+
+  "scoreboard_sidebar_score": {
+    "ignored": true,
+    "size": [ 0, 0 ],
+    "alpha": 0.0
   }
 }
