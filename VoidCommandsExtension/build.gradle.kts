@@ -10,6 +10,7 @@ val geyserApiVersion = "2.11.0"
 val protocolVersion = "3.0.0.Beta15-20261026.210753-2"
 val purpurVersion = providers.environmentVariable("PURPUR_VERSION")
     .orElse("26.2.build.2632-stable")
+    .get()
 
 repositories {
     maven("https://repo.opencollab.dev/main/")
