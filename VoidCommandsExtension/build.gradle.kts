@@ -14,17 +14,21 @@ repositories {
     mavenCentral()
 }
 
-sourceSets {
+val bukkitStubs = sourceSets.create("bukkitStubs") {
     // Только сигнатуры для компиляции. Jar собирается из main, поэтому
     // org/bukkit/** остаётся на стороне Purpur и не попадает в артефакт.
-    create("bukkitStubs")
+}
+
+val selfTest = sourceSets.create("selfTest") {
+    compileClasspath += sourceSets.main.get().output
+    runtimeClasspath += sourceSets.main.get().output
 }
 
 dependencies {
     // Всё compileOnly: классы предоставляются Geyser-Spigot и Purpur.
     compileOnly("org.geysermc.geyser:api:$geyserApiVersion-SNAPSHOT")
     compileOnly("org.cloudburstmc.protocol:bedrock-codec:$protocolVersion")
-    compileOnly(files(sourceSets["bukkitStubs"].output))
+    compileOnly(files(bukkitStubs.output))
 }
 
 java {
@@ -32,7 +36,19 @@ java {
     targetCompatibility = JavaVersion.VERSION_21
 }
 
+tasks.register<JavaExec>("selfTest") {
+    group = "verification"
+    description = "Runs dependency-free suggestion regression tests with assertions enabled."
+    dependsOn(selfTest.classesTaskName)
+    classpath = selfTest.runtimeClasspath
+    mainClass.set("ru.voidpe.geyser.commands.SuggestionTextTest")
+    enableAssertions = true
+}
+
 tasks {
+    check {
+        dependsOn("selfTest")
+    }
     processResources {
         filesMatching("extension.yml") {
             expand(

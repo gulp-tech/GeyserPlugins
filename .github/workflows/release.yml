@@ -284,7 +284,7 @@ jobs:
         working-directory: VoidCommandsExtension
         run: |
           mkdir -p "$RUNNER_TEMP/voidcommands-tests"
-          javac -d "$RUNNER_TEMP/voidcommands-tests" src/main/java/ru/voidpe/geyser/commands/SuggestionText.java src/test/java/ru/voidpe/geyser/commands/SuggestionTextTest.java
+          javac -d "$RUNNER_TEMP/voidcommands-tests" src/main/java/ru/voidpe/geyser/commands/SuggestionText.java src/selfTest/java/ru/voidpe/geyser/commands/SuggestionTextTest.java
           java -ea -cp "$RUNNER_TEMP/voidcommands-tests" ru.voidpe.geyser.commands.SuggestionTextTest
           set +e
           ./gradlew --no-daemon clean build > gradle.log 2>&1
