@@ -120,7 +120,7 @@ public final class VoidCommandsExtension implements Extension {
                 sendUpstreamPacket = method;
             }
             UpdateSoftEnumPacket packet = new UpdateSoftEnumPacket();
-            packet.setType(SoftEnumUpdateType.SET);
+            packet.setType(SoftEnumUpdateType.REPLACE);
             packet.setSoftEnum(new org.cloudburstmc.protocol.bedrock.data.command.CommandEnumData(
                     enumName, CommandGraph.enumValues(values), true));
             method.invoke(connection, packet);
