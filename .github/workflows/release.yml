@@ -280,6 +280,19 @@ jobs:
             exit "$code"
           fi
 
+      - name: Проверить и собрать Geyser extension VoidCommands
+        working-directory: VoidCommandsExtension
+        run: |
+          mkdir -p "$RUNNER_TEMP/voidcommands-tests"
+          javac -d "$RUNNER_TEMP/voidcommands-tests" src/main/java/ru/voidpe/geyser/commands/SuggestionText.java src/test/java/ru/voidpe/geyser/commands/SuggestionTextTest.java
+          java -ea -cp "$RUNNER_TEMP/voidcommands-tests" ru.voidpe.geyser.commands.SuggestionTextTest
+          ./gradlew --no-daemon clean build
+
+      - name: Проверить и собрать Bedrock resource pack
+        run: |
+          python3 tools/test_voidresource_pack.py
+          python3 tools/build_voidresource_pack.py
+
       - name: Опубликовать релиз с отдельными файлами
         env:
           GH_TOKEN: ${{ github.token }}
@@ -301,9 +314,10 @@ jobs:
           SHU=$(ls VoidShulker/target/VoidShulker-*.jar | head -1)
           ANV=$(ls VoidAnvilExtension/build/libs/VoidAnvilExtension-*.jar | head -1)
           VVE=$(ls VoidVersionsExtension/build/libs/VoidVersionsExtension-*.jar | head -1)
+          VCE=$(ls VoidCommandsExtension/build/libs/VoidCommandsExtension-*.jar | head -1)
           python3 tools/package_hypertnt_configs.py "$RUNNER_TEMP/VoidPE-HyperTNT-safe-configs.zip"
           echo "Файлы релиза: $JAR + $TAL + $ITM (ресурспак убран: он вызывал лаги)"
-          gh release create "${{ inputs.tag || github.ref_name }}" "$PVP" "$JAR" "$TAL" "$ITM" "$ENC" "$CAS" "$CLN" "$DRP" "$CMB" "$VAC" "$AUS" "$WCT" "$RTZ" "$NV" "$SHU" "$ANV" "$VVE" VoidSpheres.mcpack "$RUNNER_TEMP/VoidPE-HyperTNT-safe-configs.zip" \
+          gh release create "${{ inputs.tag || github.ref_name }}" "$PVP" "$JAR" "$TAL" "$ITM" "$ENC" "$CAS" "$CLN" "$DRP" "$CMB" "$VAC" "$AUS" "$WCT" "$RTZ" "$NV" "$SHU" "$ANV" "$VVE" "$VCE" VoidResourcePack.mcpack VoidSpheres.mcpack "$RUNNER_TEMP/VoidPE-HyperTNT-safe-configs.zip" \
             --target "$GITHUB_SHA" \
             --title "VoidPE ${{ inputs.tag || github.ref_name }}" \
-            --notes "VoidWardenCity 1.4.3: городские сундуки больше нельзя застраивать, ломать или уносить; lock-building=true по умолчанию защищает весь город даже со старым config.yml. Админский обход и обычное открытие сундуков сохранены. VoidShulker 1.0.4: свободное размещение в любом слоте через курсор, ПКМ, Shift-click, drag и цифровые клавиши. VoidPvP 1.0.9: ослабление прямого удара MACE на 5, минимум 0. Проверьте всё на копии сервера до установки. VoidSpheres.mcpack — только для сфер."
+            --notes "VoidCommandsExtension 1.0.0: настоящие per-player Bukkit tab-completion для аргументов Bedrock-команд, включая имена домов /home; списки обновляются после команд и без перезахода. VoidResourcePack 1.18.0: скрывает только красные числа sidebar TAB, сохраняя строки и их порядок. Для этой задачи установите расширение в plugins/Geyser-Spigot/extensions и замените пак в plugins/Geyser-Spigot/packs, затем перезапустите сервер; TAB 6.2.1 можно оставить. VoidWardenCity 1.4.3: защита городских сундуков от застройки и разрушения. VoidShulker 1.0.4: свободное размещение в любом слоте. VoidSpheres.mcpack — только для сфер."

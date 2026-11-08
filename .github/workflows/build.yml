@@ -277,6 +277,19 @@ jobs:
             exit "$code"
           fi
 
+      - name: Проверить и собрать Geyser extension VoidCommands
+        working-directory: VoidCommandsExtension
+        run: |
+          mkdir -p "$RUNNER_TEMP/voidcommands-tests"
+          javac -d "$RUNNER_TEMP/voidcommands-tests" src/main/java/ru/voidpe/geyser/commands/SuggestionText.java src/test/java/ru/voidpe/geyser/commands/SuggestionTextTest.java
+          java -ea -cp "$RUNNER_TEMP/voidcommands-tests" ru.voidpe.geyser.commands.SuggestionTextTest
+          ./gradlew --no-daemon clean build
+
+      - name: Проверить и собрать Bedrock resource pack
+        run: |
+          python3 tools/test_voidresource_pack.py
+          python3 tools/build_voidresource_pack.py
+
       - name: Артефакты (плагин + пак)
         uses: actions/upload-artifact@v4
         with:
@@ -299,3 +312,5 @@ jobs:
             VoidShulker/target/VoidShulker-*.jar
             VoidAnvilExtension/build/libs/VoidAnvilExtension-*.jar
             VoidVersionsExtension/build/libs/VoidVersionsExtension-*.jar
+            VoidCommandsExtension/build/libs/VoidCommandsExtension-*.jar
+            VoidResourcePack.mcpack

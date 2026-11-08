@@ -1,0 +1,7 @@
+id: ${id}
+name: ${name}
+main: ru.voidpe.geyser.commands.VoidCommandsExtension
+version: ${version}
+api: ${api}
+authors: [${author}]
+description: Java/Bukkit tab-completion для аргументов команд Bedrock через per-player soft enums.
