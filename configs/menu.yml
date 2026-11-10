@@ -44,6 +44,8 @@ items:
   'Пустышки':
     priority: -1
     slots:
+    - 19
+    - 25
     - 29
     - 31
     - 33
@@ -106,11 +108,11 @@ items:
 
   # ---------- Экономика и торговля ----------
 
-  'Кейсы /cases':
+  'Кейсы /warp case':
     slots:
     - 10
     material: CHEST
-    display_name: '&x&1&C&A&7&6&9К&x&2&5&A&B&6&5е&x&2&F&B&0&6&1й&x&3&9&B&5&5&Dс&x&4&3&B&A&5&Aы &7/cases'
+    display_name: '&x&1&C&A&7&6&9К&x&2&5&A&B&6&5е&x&2&F&B&0&6&1й&x&3&9&B&5&5&Dс&x&4&3&B&A&5&Aы &7/warp case'
     lore:
       - '&f Открывайте кейсы и выбивайте'
       - '&f титулы, предметы и ресурсы!'
@@ -118,7 +120,7 @@ items:
       - '&#1CA769➥ &fНажмите, чтобы открыть кейсы.'
     click_commands:
       - '[sound] ITEM_BOOK_PAGE_TURN'
-      - '[player] cases'
+      - '[player] warp case'
       - '[close]'
 
   'Магазин ключей /keys':
@@ -199,11 +201,11 @@ items:
 
   # ---------- Игровое ----------
 
-  'Наборы /kit':
+  'Наборы /kits':
     slots:
-    - 19
+    - 20
     material: DIAMOND_CHESTPLATE
-    display_name: '&x&1&C&A&7&6&9Н&x&2&3&A&A&6&6а&x&2&B&A&E&6&3б&x&3&3&B&2&6&0о&x&3&B&B&6&5&Dр&x&4&3&B&A&5&Aы &7/kit'
+    display_name: '&x&1&C&A&7&6&9Н&x&2&3&A&A&6&6а&x&2&B&A&E&6&3б&x&3&3&B&2&6&0о&x&3&B&B&6&5&Dр&x&4&3&B&A&5&Aы &7/kits'
     lore:
       - '&f Бесплатные и привилегированные'
       - '&f наборы предметов.'
@@ -212,21 +214,6 @@ items:
     click_commands:
       - '[sound] ITEM_BOOK_PAGE_TURN'
       - '[player] kits_menu'
-      - '[close]'
-
-  'Талисманы /talisman':
-    slots:
-    - 20
-    material: TOTEM_OF_UNDYING
-    display_name: '&x&1&C&A&7&6&9Т&x&2&0&A&9&6&7а&x&2&5&A&B&6&5л&x&2&A&A&E&6&3и&x&2&F&B&0&6&1с&x&3&4&B&2&5&Fм&x&3&9&B&5&5&Dа&x&3&E&B&7&5&Bн&x&4&3&B&A&5&Aы &7/talisman'
-    lore:
-      - '&f Талисманы и сферы с бонусами'
-      - '&f к характеристикам.'
-      - ''
-      - '&#1CA769➥ &fНажмите, чтобы открыть талисманы.'
-    click_commands:
-      - '[sound] ITEM_BOOK_PAGE_TURN'
-      - '[player] talisman'
       - '[close]'
 
   'Кланы /clan':
@@ -251,11 +238,11 @@ items:
     display_name: '&x&1&C&A&7&6&9О&x&2&0&A&9&6&7 &x&2&5&A&B&6&5с&x&2&A&A&E&6&3е&x&2&F&B&0&6&1р&x&3&4&B&2&5&Fв&x&3&9&B&5&5&Dе&x&3&E&B&7&5&Bр&x&4&3&B&A&5&Aе'
     lore:
       - ''
-      - '&b&lVoidPE &f— Bedrock-сервер выживания.'
+      - '&b&lVoidPE &f— Bedrock-сервер Анархии.'
       - ''
       - '&fПолезные команды:'
       - '&7• &f/menu &7— это меню'
-      - '&7• &f/kit &7— наборы привилегий'
+      - '&7• &f/kits &7— наборы привилегий'
       - '&7• &f/keys &7— магазин ключей'
       - '&7• &f/ah &7— аукцион игроков'
       - '&7• &f/buyer &7— скупщик'
@@ -263,26 +250,11 @@ items:
       - ''
       - '&fПриятной игры!'
 
-  'Ночное зрение /nv':
-    slots:
-    - 23
-    material: GLOWSTONE_DUST
-    display_name: '&x&1&C&A&7&6&9Н&x&1&F&A&8&6&7о&x&2&2&A&A&6&6ч&x&2&5&A&B&6&5н&x&2&9&A&D&6&4о&x&2&C&A&E&6&2е&x&2&F&B&0&6&1 &x&3&2&B&2&6&0з&x&3&6&B&3&5&Fр&x&3&9&B&5&5&Dе&x&3&C&B&6&5&Cн&x&3&F&B&8&5&Bи&x&4&3&B&A&5&Aе &7/nv'
-    lore:
-      - '&f Включает ночное зрение'
-      - '&f до смерти или повторного ввода.'
-      - ''
-      - '&#1CA769➥ &fНажмите, чтобы включить.'
-    click_commands:
-      - '[sound] ITEM_BOOK_PAGE_TURN'
-      - '[player] nv'
-      - '[close]'
-
   'Город Вардена /wcity':
     slots:
-    - 24
+    - 23
     material: SCULK_SHRIEKER
-    display_name: '&x&1&C&A&7&6&9Г&x&1&F&A&8&6&7о&x&2&2&A&A&6&6р&x&2&5&A&B&6&5о&x&2&9&A&D&6&4д&x&2&C&A&E&6&2 &x&2&F&B&0&6&1В&x&3&2&B&2&6&0а&x&3&6&B&3&5&Fр&x&3&9&B&5&5&Dд&x&3&C&B&6&5&Cе&x&3&F&B&8&5&Bн&x&4&3&B&A&5&Aа &7/wcity tp'
+    display_name: '&x&1&C&A&7&6&9Г&x&1&F&A&8&6&7о&x&2&2&A&9&6&6р&x&2&5&A&B&6&5о&x&2&9&A&D&6&4д&x&2&C&A&E&6&2 &x&2&F&B&0&6&1В&x&3&2&B&2&6&0а&x&3&6&B&3&5&Fр&x&3&9&B&5&5&Dд&x&3&C&B&6&5&Cе&x&3&F&B&8&5&Bн&x&4&3&B&A&5&Aа &7/wcity tp'
     lore:
       - '&f Опасный город с лутом'
       - '&f и сундуками с ресурсами.'
@@ -295,7 +267,7 @@ items:
 
   'Дом /home':
     slots:
-    - 25
+    - 24
     material: RED_BED
     display_name: '&x&1&C&A&7&6&9Д&x&2&F&B&0&6&1о&x&4&3&B&A&5&Aм &7/home'
     lore:

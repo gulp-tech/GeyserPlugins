@@ -121,62 +121,229 @@ cases:
       - "&7Внутри: титул после ника. Меню: &f/titles"
     prizes:
       - id: vezunchik
-        name: "&#7CFC00Титул: Везунчик"
+        name: "&#7CFC00Везунчик"
         material: PAPER
-        weight: 300
+        weight: 800
         announce: false
         commands:
           - 'lp user {player} meta setsuffix 90 " &#7CFC00Везунчик&r"'
           - 'lp user {player} permission set titles.vezunchik true'
       - id: ohotnik
-        name: "&#8CE8FFТитул: Охотник"
+        name: "&#8CE8FFОхотник"
         material: BOW
-        weight: 220
+        weight: 650
         announce: false
         commands:
           - 'lp user {player} meta setsuffix 90 " &#8CE8FFОхотник&r"'
           - 'lp user {player} permission set titles.ohotnik true'
       - id: bogach
-        name: "&#FFD93DТитул: Богач"
+        name: "&#FFD93DБогач"
         material: GOLD_INGOT
-        weight: 160
+        weight: 500
         announce: false
         commands:
           - 'lp user {player} meta setsuffix 90 " &#FFD93DБогач&r"'
           - 'lp user {player} permission set titles.bogach true'
       - id: groza
-        name: "&#55E6FFТитул: Гроза"
+        name: "&#55E6FFГроза"
         material: LIGHTNING_ROD
-        weight: 110
+        weight: 400
         announce: true
         commands:
           - 'lp user {player} meta setsuffix 90 " &#55E6FFГроза&r"'
           - 'lp user {player} permission set titles.groza true'
       - id: prizrak
-        name: "&#C86BFFТитул: Призрак"
+        name: "&#C86BFFПризрак"
         material: PHANTOM_MEMBRANE
-        weight: 70
+        weight: 300
         announce: true
         commands:
           - 'lp user {player} meta setsuffix 90 " &#C86BFFПризрак&r"'
           - 'lp user {player} permission set titles.prizrak true'
       - id: legenda
-        name: "&#FF9A3DТитул: Легенда"
+        name: "&#FF9A3DЛегенда"
         material: NETHERITE_SWORD
-        weight: 35
+        weight: 150
         announce: true
         commands:
           - 'lp user {player} meta setsuffix 90 " &#FF9A3DЛегенда&r"'
           - 'lp user {player} permission set titles.legenda true'
       - id: mif
-        name: "<gradient:#FFD93D:#FF5555>Титул: Миф</gradient>"
+        name: "<gradient:#FFD93D:#FF5555>Миф</gradient>"
         material: ENCHANTED_GOLDEN_APPLE
-        weight: 10
+        weight: 40
         announce: true
         commands:
           - 'lp user {player} meta setsuffix 90 " &#FF5555Миф&r"'
           - 'lp user {player} permission set titles.mif true'
-
+      - id: vesna
+        name: "&#7CFC00Весна"
+        material: FERN
+        weight: 300
+        announce: false
+        commands:
+          - 'lp user {player} meta setsuffix 90 " &#7CFC00Весна&r"'
+          - 'lp user {player} permission set titles.vesna true'
+      - id: leto
+        name: "&#FFD93DЛето"
+        material: SUNFLOWER
+        weight: 300
+        announce: false
+        commands:
+          - 'lp user {player} meta setsuffix 90 " &#FFD93DЛето&r"'
+          - 'lp user {player} permission set titles.leto true'
+      - id: osen
+        name: "&#FF9A3DОсень"
+        material: PUMPKIN
+        weight: 300
+        announce: false
+        commands:
+          - 'lp user {player} meta setsuffix 90 " &#FF9A3DОсень&r"'
+          - 'lp user {player} permission set titles.osen true'
+      - id: zima
+        name: "&#8CE8FFЗима"
+        material: SNOWBALL
+        weight: 300
+        announce: false
+        commands:
+          - 'lp user {player} meta setsuffix 90 " &#8CE8FFЗима&r"'
+          - 'lp user {player} permission set titles.zima true'
+      - id: perviysneg
+        name: "&#B8B8FFПервый снег"
+        material: SNOW_BLOCK
+        weight: 150
+        announce: false
+        commands:
+          - 'lp user {player} meta setsuffix 90 " &#B8B8FFПервый снег&r"'
+          - 'lp user {player} permission set titles.perviysneg true'
+      - id: rassvet
+        name: "&#FFB340Рассвет"
+        material: CLOCK
+        weight: 150
+        announce: false
+        commands:
+          - 'lp user {player} meta setsuffix 90 " &#FFB340Рассвет&r"'
+          - 'lp user {player} permission set titles.rassvet true'
+      - id: zakat
+        name: "&#FF7847Закат"
+        material: GLOWSTONE_DUST
+        weight: 150
+        announce: false
+        commands:
+          - 'lp user {player} meta setsuffix 90 " &#FF7847Закат&r"'
+          - 'lp user {player} permission set titles.zakat true'
+      - id: raduga
+        name: "<gradient:#FF5555:#55E6FF>Радуга</gradient>"
+        material: AMETHYST_SHARD
+        weight: 150
+        announce: false
+        commands:
+          - 'lp user {player} meta setsuffix 90 " &#FF7847Радуга&r"'
+          - 'lp user {player} permission set titles.raduga true'
+      - id: zvezdopad
+        name: "<gradient:#55E6FF:#C86BFF>Звездопад</gradient>"
+        material: GLOW_INK_SAC
+        weight: 150
+        announce: true
+        commands:
+          - 'lp user {player} meta setsuffix 90 " &#55E6FFЗвездопад&r"'
+          - 'lp user {player} permission set titles.zvezdopad true'
+      - id: sigma
+        name: "&#55E6FFСигма"
+        material: DIAMOND
+        weight: 250
+        announce: false
+        commands:
+          - 'lp user {player} meta setsuffix 90 " &#55E6FFСигма&r"'
+          - 'lp user {player} permission set titles.sigma true'
+      - id: krindzh
+        name: "&#FF5555Кринж"
+        material: WITHER_ROSE
+        weight: 250
+        announce: false
+        commands:
+          - 'lp user {player} meta setsuffix 90 " &#FF5555Кринж&r"'
+          - 'lp user {player} permission set titles.krindzh true'
+      - id: vaib
+        name: "&#C86BFFВайб"
+        material: LILY_PAD
+        weight: 250
+        announce: false
+        commands:
+          - 'lp user {player} meta setsuffix 90 " &#C86BFFВайб&r"'
+          - 'lp user {player} permission set titles.vaib true'
+      - id: skuf
+        name: "&#B8B8FFСкуф"
+        material: MUSHROOM_STEW
+        weight: 250
+        announce: false
+        commands:
+          - 'lp user {player} meta setsuffix 90 " &#B8B8FFСкуф&r"'
+          - 'lp user {player} permission set titles.skuf true'
+      - id: gigachad
+        name: "&#FF9A3DГигачад"
+        material: DIAMOND_BLOCK
+        weight: 250
+        announce: true
+        commands:
+          - 'lp user {player} meta setsuffix 90 " &#FF9A3DГигачад&r"'
+          - 'lp user {player} permission set titles.gigachad true'
+      - id: aboba
+        name: "&#7CFC00Абоба"
+        material: SLIME_BALL
+        weight: 250
+        announce: false
+        commands:
+          - 'lp user {player} meta setsuffix 90 " &#7CFC00Абоба&r"'
+          - 'lp user {player} permission set titles.aboba true'
+      - id: dedinsaid
+        name: "&#FFD93DДед инсайд"
+        material: TOTEM_OF_UNDYING
+        weight: 250
+        announce: false
+        commands:
+          - 'lp user {player} meta setsuffix 90 " &#FFD93DДед инсайд&r"'
+          - 'lp user {player} permission set titles.dedinsaid true'
+      - id: chil
+        name: "&#8CE8FFЧил"
+        material: CAMPFIRE
+        weight: 250
+        announce: false
+        commands:
+          - 'lp user {player} meta setsuffix 90 " &#8CE8FFЧил&r"'
+          - 'lp user {player} permission set titles.chil true'
+      - id: nouneim
+        name: "&#B8B8FFНоунейм"
+        material: NAME_TAG
+        weight: 250
+        announce: false
+        commands:
+          - 'lp user {player} meta setsuffix 90 " &#B8B8FFНоунейм&r"'
+          - 'lp user {player} permission set titles.nouneim true'
+      - id: pelmen
+        name: "&#FFB340Пельмень"
+        material: PUFFERFISH
+        weight: 250
+        announce: false
+        commands:
+          - 'lp user {player} meta setsuffix 90 " &#FFB340Пельмень&r"'
+          - 'lp user {player} permission set titles.pelmen true'
+      - id: shahter
+        name: "&#B8B8FFШахтёр"
+        material: IRON_PICKAXE
+        weight: 200
+        announce: false
+        commands:
+          - 'lp user {player} meta setsuffix 90 " &#B8B8FFШахтёр&r"'
+          - 'lp user {player} permission set titles.shahter true'
+      - id: kriperoborec
+        name: "&#7CFC00Крипероборец"
+        material: GUNPOWDER
+        weight: 200
+        announce: false
+        commands:
+          - 'lp user {player} meta setsuffix 90 " &#7CFC00Крипероборец&r"'
+          - 'lp user {player} permission set titles.kriperoborec true'
   # ---------------- Кейс осколков (PlayerPoints) ----------------
   shards:
     display-name: "&#8CE8FFКейс осколков"
