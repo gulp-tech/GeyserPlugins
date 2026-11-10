@@ -1,7 +1,17 @@
-# DeluxeMenus — меню титулов VoidPE (v2: 28 титулов)
+# DeluxeMenus — меню титулов VoidPE
 # Файл в: plugins/DeluxeMenus/gui_menus/titles.yml
-# Титулы выпадают ТОЛЬКО из кейса титулов (VoidCases): приз выдаёт
-# право titles.<id> в LuckPerms. Нажатие — суффикс setsuffix 90.
+# Открытие: /titles
+#
+# Как это работает:
+#  * Титулы выдаются ТОЛЬКО из кейса титулов (VoidCases): при выигрыше
+#    кейс, помимо суффикса, выдаёт право titles.<id> в LuckPerms.
+#    Ничего не продаётся и командами не выдаётся.
+#  * Нажатие на титул проверяет право (has permission titles.<id>):
+#    есть право — титул применяется суффиксом LuckPerms (setsuffix 90,
+#    как ставит сам кейс и как читает VoidTab), нет — сообщение, что
+#    титула нет.
+#  * Кнопка «Очистить» (слот 53) убирает титул: meta removesuffix 90.
+
 menu_title: '• Титулы'
 open_command: titles
 register_command: true
@@ -12,20 +22,48 @@ items:
 
   'Рамка':
     priority: -1
-    slots: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 17, 18, 26, 27, 35, 36, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53]
+    slots:
+    - 0
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
+    - 6
+    - 7
+    - 8
+    - 9
+    - 17
+    - 18
+    - 26
+    - 27
+    - 35
+    - 36
+    - 44
+    - 45
+    - 46
+    - 47
+    - 48
+    - 49
+    - 50
+    - 51
+    - 52
+    - 53
     material: BLACK_STAINED_GLASS_PANE
     display_name: '&8'
 
+
   'Титул Везунчик':
-    slots: [10]
+    slots:
+    - 10
     material: NAME_TAG
-    display_name: '&#7CFC00Везунчик'
+    display_name: '&aВезунчик'
     lore:
       - ''
       - '&fТитул после ника в чате.'
-      - '&7Шанс из кейса: &#7CFC0010.4%'
+      - '&7Шанс из кейса: &a33.1%'
       - ''
-      - '&#FFD93DВыбивается только из кейса титулов!'
+      - '&eВыбивается только из кейса титулов!'
       - '&eНажми, чтобы применить'
     click_requirement:
       requirements:
@@ -33,24 +71,25 @@ items:
           type: has permission
           permission: titles.vezunchik
       deny_commands:
-        - '[message] &#FF6B6BУ тебя нет титула «Везунчик». Он выпадает только из кейса титулов.'
+        - '[message] &cУ тебя нет титула «Везунчик». Он выпадает только из кейса титулов.'
         - '[sound] ENTITY_VILLAGER_NO'
     click_commands:
-      - '[console] lp user %player_name% meta setsuffix 90 " &#7CFC00Везунчик&r"'
-      - '[message] &#7CFC00Титул «Везунчик» применён! Теперь он после твоего ника.'
+      - '[console] lp user %player_name% meta setsuffix 90 " &aВезунчик&r"'
+      - '[message] &aТитул «Везунчик» применён! Теперь он после твоего ника.'
       - '[sound] ENTITY_PLAYER_LEVELUP'
       - '[refresh]'
 
   'Титул Охотник':
-    slots: [11]
+    slots:
+    - 11
     material: NAME_TAG
-    display_name: '&#8CE8FFОхотник'
+    display_name: '&bОхотник'
     lore:
       - ''
       - '&fТитул после ника в чате.'
-      - '&7Шанс из кейса: &#8CE8FF8.5%'
+      - '&7Шанс из кейса: &b24.3%'
       - ''
-      - '&#FFD93DВыбивается только из кейса титулов!'
+      - '&eВыбивается только из кейса титулов!'
       - '&eНажми, чтобы применить'
     click_requirement:
       requirements:
@@ -58,24 +97,25 @@ items:
           type: has permission
           permission: titles.ohotnik
       deny_commands:
-        - '[message] &#FF6B6BУ тебя нет титула «Охотник». Он выпадает только из кейса титулов.'
+        - '[message] &cУ тебя нет титула «Охотник». Он выпадает только из кейса титулов.'
         - '[sound] ENTITY_VILLAGER_NO'
     click_commands:
-      - '[console] lp user %player_name% meta setsuffix 90 " &#8CE8FFОхотник&r"'
-      - '[message] &#8CE8FFТитул «Охотник» применён! Теперь он после твоего ника.'
+      - '[console] lp user %player_name% meta setsuffix 90 " &bОхотник&r"'
+      - '[message] &bТитул «Охотник» применён! Теперь он после твоего ника.'
       - '[sound] ENTITY_PLAYER_LEVELUP'
       - '[refresh]'
 
   'Титул Богач':
-    slots: [12]
+    slots:
+    - 12
     material: NAME_TAG
-    display_name: '&#FFD93DБогач'
+    display_name: '&eБогач'
     lore:
       - ''
       - '&fТитул после ника в чате.'
-      - '&7Шанс из кейса: &#FFD93D6.5%'
+      - '&7Шанс из кейса: &e17.7%'
       - ''
-      - '&#FFD93DВыбивается только из кейса титулов!'
+      - '&eВыбивается только из кейса титулов!'
       - '&eНажми, чтобы применить'
     click_requirement:
       requirements:
@@ -83,24 +123,25 @@ items:
           type: has permission
           permission: titles.bogach
       deny_commands:
-        - '[message] &#FF6B6BУ тебя нет титула «Богач». Он выпадает только из кейса титулов.'
+        - '[message] &cУ тебя нет титула «Богач». Он выпадает только из кейса титулов.'
         - '[sound] ENTITY_VILLAGER_NO'
     click_commands:
-      - '[console] lp user %player_name% meta setsuffix 90 " &#FFD93DБогач&r"'
-      - '[message] &#FFD93DТитул «Богач» применён! Теперь он после твоего ника.'
+      - '[console] lp user %player_name% meta setsuffix 90 " &eБогач&r"'
+      - '[message] &eТитул «Богач» применён! Теперь он после твоего ника.'
       - '[sound] ENTITY_PLAYER_LEVELUP'
       - '[refresh]'
 
   'Титул Гроза':
-    slots: [13]
+    slots:
+    - 13
     material: NAME_TAG
-    display_name: '&#55E6FFГроза'
+    display_name: '&dГроза'
     lore:
       - ''
       - '&fТитул после ника в чате.'
-      - '&7Шанс из кейса: &#55E6FF5.2%'
+      - '&7Шанс из кейса: &d12.1%'
       - ''
-      - '&#FFD93DВыбивается только из кейса титулов!'
+      - '&eВыбивается только из кейса титулов!'
       - '&eНажми, чтобы применить'
     click_requirement:
       requirements:
@@ -108,24 +149,25 @@ items:
           type: has permission
           permission: titles.groza
       deny_commands:
-        - '[message] &#FF6B6BУ тебя нет титула «Гроза». Он выпадает только из кейса титулов.'
+        - '[message] &cУ тебя нет титула «Гроза». Он выпадает только из кейса титулов.'
         - '[sound] ENTITY_VILLAGER_NO'
     click_commands:
-      - '[console] lp user %player_name% meta setsuffix 90 " &#55E6FFГроза&r"'
-      - '[message] &#55E6FFТитул «Гроза» применён! Теперь он после твоего ника.'
+      - '[console] lp user %player_name% meta setsuffix 90 " &bГроза&r"'
+      - '[message] &bТитул «Гроза» применён! Теперь он после твоего ника.'
       - '[sound] ENTITY_PLAYER_LEVELUP'
       - '[refresh]'
 
   'Титул Призрак':
-    slots: [14]
+    slots:
+    - 14
     material: NAME_TAG
-    display_name: '&#C86BFFПризрак'
+    display_name: '&7Призрак'
     lore:
       - ''
       - '&fТитул после ника в чате.'
-      - '&7Шанс из кейса: &#C86BFF3.9%'
+      - '&7Шанс из кейса: 7.7%'
       - ''
-      - '&#FFD93DВыбивается только из кейса титулов!'
+      - '&eВыбивается только из кейса титулов!'
       - '&eНажми, чтобы применить'
     click_requirement:
       requirements:
@@ -133,24 +175,25 @@ items:
           type: has permission
           permission: titles.prizrak
       deny_commands:
-        - '[message] &#FF6B6BУ тебя нет титула «Призрак». Он выпадает только из кейса титулов.'
+        - '[message] &cУ тебя нет титула «Призрак». Он выпадает только из кейса титулов.'
         - '[sound] ENTITY_VILLAGER_NO'
     click_commands:
-      - '[console] lp user %player_name% meta setsuffix 90 " &#C86BFFПризрак&r"'
-      - '[message] &#C86BFFТитул «Призрак» применён! Теперь он после твоего ника.'
+      - '[console] lp user %player_name% meta setsuffix 90 " &dПризрак&r"'
+      - '[message] &dТитул «Призрак» применён! Теперь он после твоего ника.'
       - '[sound] ENTITY_PLAYER_LEVELUP'
       - '[refresh]'
 
   'Титул Легенда':
-    slots: [15]
+    slots:
+    - 15
     material: NAME_TAG
-    display_name: '&#FF9A3DЛегенда'
+    display_name: '&6Легенда'
     lore:
       - ''
       - '&fТитул после ника в чате.'
-      - '&7Шанс из кейса: &#FF9A3D2.0%'
+      - '&7Шанс из кейса: &63.9%'
       - ''
-      - '&#FFD93DВыбивается только из кейса титулов!'
+      - '&eВыбивается только из кейса титулов!'
       - '&eНажми, чтобы применить'
     click_requirement:
       requirements:
@@ -158,24 +201,25 @@ items:
           type: has permission
           permission: titles.legenda
       deny_commands:
-        - '[message] &#FF6B6BУ тебя нет титула «Легенда». Он выпадает только из кейса титулов.'
+        - '[message] &cУ тебя нет титула «Легенда». Он выпадает только из кейса титулов.'
         - '[sound] ENTITY_VILLAGER_NO'
     click_commands:
-      - '[console] lp user %player_name% meta setsuffix 90 " &#FF9A3DЛегенда&r"'
-      - '[message] &#FF9A3DТитул «Легенда» применён! Теперь он после твоего ника.'
+      - '[console] lp user %player_name% meta setsuffix 90 " &6Легенда&r"'
+      - '[message] &6Титул «Легенда» применён! Теперь он после твоего ника.'
       - '[sound] ENTITY_PLAYER_LEVELUP'
       - '[refresh]'
 
   'Титул Миф':
-    slots: [16]
+    slots:
+    - 16
     material: NAME_TAG
-    display_name: '<gradient:#FFD93D:#FF5555>Миф</gradient>'
+    display_name: '&cМиф'
     lore:
       - ''
       - '&fТитул после ника в чате.'
-      - '&7Шанс из кейса: &#FF55550.5%'
+      - '&7Шанс из кейса: &c1.1%'
       - ''
-      - '&#FFD93DВыбивается только из кейса титулов!'
+      - '&eВыбивается только из кейса титулов!'
       - '&eНажми, чтобы применить'
     click_requirement:
       requirements:
@@ -183,24 +227,25 @@ items:
           type: has permission
           permission: titles.mif
       deny_commands:
-        - '[message] &#FF6B6BУ тебя нет титула «Миф». Он выпадает только из кейса титулов.'
+        - '[message] &cУ тебя нет титула «Миф». Он выпадает только из кейса титулов.'
         - '[sound] ENTITY_VILLAGER_NO'
     click_commands:
-      - '[console] lp user %player_name% meta setsuffix 90 " &#FF5555Миф&r"'
-      - '[message] &#FF5555Титул «Миф» применён! Теперь он после твоего ника.'
+      - '[console] lp user %player_name% meta setsuffix 90 " &cМиф&r"'
+      - '[message] &cТитул «Миф» применён! Теперь он после твоего ника.'
       - '[sound] ENTITY_PLAYER_LEVELUP'
       - '[refresh]'
 
   'Титул Весна':
-    slots: [19]
+    slots:
+    - 19
     material: NAME_TAG
-    display_name: '&#7CFC00Весна'
+    display_name: '&aВесна'
     lore:
       - ''
       - '&fТитул после ника в чате.'
-      - '&7Шанс из кейса: &#7CFC003.9%'
+      - '&7Шанс из кейса: &a3.9%'
       - ''
-      - '&#FFD93DВыбивается только из кейса титулов!'
+      - '&eВыбивается только из кейса титулов!'
       - '&eНажми, чтобы применить'
     click_requirement:
       requirements:
@@ -208,24 +253,24 @@ items:
           type: has permission
           permission: titles.vesna
       deny_commands:
-        - '[message] &#FF6B6BУ тебя нет титула «Весна». Он выпадает только из кейса титулов.'
+        - '[message] &cУ тебя нет титула «Весна». Он выпадает только из кейса титулов.'
         - '[sound] ENTITY_VILLAGER_NO'
     click_commands:
-      - '[console] lp user %player_name% meta setsuffix 90 " &#7CFC00Весна&r"'
-      - '[message] &#7CFC00Титул «Весна» применён! Теперь он после твоего ника.'
+      - '[console] lp user %player_name% meta setsuffix 90 " &aВесна&r"'
+      - '[message] &aТитул «Весна» применён! Теперь он после твоего ника.'
       - '[sound] ENTITY_PLAYER_LEVELUP'
       - '[refresh]'
-
   'Титул Лето':
-    slots: [20]
+    slots:
+    - 20
     material: NAME_TAG
-    display_name: '&#FFD93DЛето'
+    display_name: '&eЛето'
     lore:
       - ''
       - '&fТитул после ника в чате.'
-      - '&7Шанс из кейса: &#FFD93D3.9%'
+      - '&7Шанс из кейса: &e3.9%'
       - ''
-      - '&#FFD93DВыбивается только из кейса титулов!'
+      - '&eВыбивается только из кейса титулов!'
       - '&eНажми, чтобы применить'
     click_requirement:
       requirements:
@@ -233,24 +278,24 @@ items:
           type: has permission
           permission: titles.leto
       deny_commands:
-        - '[message] &#FF6B6BУ тебя нет титула «Лето». Он выпадает только из кейса титулов.'
+        - '[message] &cУ тебя нет титула «Лето». Он выпадает только из кейса титулов.'
         - '[sound] ENTITY_VILLAGER_NO'
     click_commands:
-      - '[console] lp user %player_name% meta setsuffix 90 " &#FFD93DЛето&r"'
-      - '[message] &#FFD93DТитул «Лето» применён! Теперь он после твоего ника.'
+      - '[console] lp user %player_name% meta setsuffix 90 " &eЛето&r"'
+      - '[message] &eТитул «Лето» применён! Теперь он после твоего ника.'
       - '[sound] ENTITY_PLAYER_LEVELUP'
       - '[refresh]'
-
   'Титул Осень':
-    slots: [21]
+    slots:
+    - 21
     material: NAME_TAG
-    display_name: '&#FF9A3DОсень'
+    display_name: '&6Осень'
     lore:
       - ''
       - '&fТитул после ника в чате.'
-      - '&7Шанс из кейса: &#FF9A3D3.9%'
+      - '&7Шанс из кейса: &63.9%'
       - ''
-      - '&#FFD93DВыбивается только из кейса титулов!'
+      - '&eВыбивается только из кейса титулов!'
       - '&eНажми, чтобы применить'
     click_requirement:
       requirements:
@@ -258,24 +303,24 @@ items:
           type: has permission
           permission: titles.osen
       deny_commands:
-        - '[message] &#FF6B6BУ тебя нет титула «Осень». Он выпадает только из кейса титулов.'
+        - '[message] &cУ тебя нет титула «Осень». Он выпадает только из кейса титулов.'
         - '[sound] ENTITY_VILLAGER_NO'
     click_commands:
-      - '[console] lp user %player_name% meta setsuffix 90 " &#FF9A3DОсень&r"'
-      - '[message] &#FF9A3DТитул «Осень» применён! Теперь он после твоего ника.'
+      - '[console] lp user %player_name% meta setsuffix 90 " &6Осень&r"'
+      - '[message] &6Титул «Осень» применён! Теперь он после твоего ника.'
       - '[sound] ENTITY_PLAYER_LEVELUP'
       - '[refresh]'
-
   'Титул Зима':
-    slots: [22]
+    slots:
+    - 22
     material: NAME_TAG
-    display_name: '&#8CE8FFЗима'
+    display_name: '&bЗима'
     lore:
       - ''
       - '&fТитул после ника в чате.'
-      - '&7Шанс из кейса: &#8CE8FF3.9%'
+      - '&7Шанс из кейса: &b3.9%'
       - ''
-      - '&#FFD93DВыбивается только из кейса титулов!'
+      - '&eВыбивается только из кейса титулов!'
       - '&eНажми, чтобы применить'
     click_requirement:
       requirements:
@@ -283,24 +328,24 @@ items:
           type: has permission
           permission: titles.zima
       deny_commands:
-        - '[message] &#FF6B6BУ тебя нет титула «Зима». Он выпадает только из кейса титулов.'
+        - '[message] &cУ тебя нет титула «Зима». Он выпадает только из кейса титулов.'
         - '[sound] ENTITY_VILLAGER_NO'
     click_commands:
-      - '[console] lp user %player_name% meta setsuffix 90 " &#8CE8FFЗима&r"'
-      - '[message] &#8CE8FFТитул «Зима» применён! Теперь он после твоего ника.'
+      - '[console] lp user %player_name% meta setsuffix 90 " &bЗима&r"'
+      - '[message] &bТитул «Зима» применён! Теперь он после твоего ника.'
       - '[sound] ENTITY_PLAYER_LEVELUP'
       - '[refresh]'
-
   'Титул Первый снег':
-    slots: [23]
+    slots:
+    - 23
     material: NAME_TAG
-    display_name: '&#B8B8FFПервый снег'
+    display_name: '&fПервый снег'
     lore:
       - ''
       - '&fТитул после ника в чате.'
-      - '&7Шанс из кейса: &#B8B8FF2.0%'
+      - '&7Шанс из кейса: &f2.0%'
       - ''
-      - '&#FFD93DВыбивается только из кейса титулов!'
+      - '&eВыбивается только из кейса титулов!'
       - '&eНажми, чтобы применить'
     click_requirement:
       requirements:
@@ -308,24 +353,24 @@ items:
           type: has permission
           permission: titles.perviysneg
       deny_commands:
-        - '[message] &#FF6B6BУ тебя нет титула «Первый снег». Он выпадает только из кейса титулов.'
+        - '[message] &cУ тебя нет титула «Первый снег». Он выпадает только из кейса титулов.'
         - '[sound] ENTITY_VILLAGER_NO'
     click_commands:
-      - '[console] lp user %player_name% meta setsuffix 90 " &#B8B8FFПервый снег&r"'
-      - '[message] &#B8B8FFТитул «Первый снег» применён! Теперь он после твоего ника.'
+      - '[console] lp user %player_name% meta setsuffix 90 " &fПервый снег&r"'
+      - '[message] &fТитул «Первый снег» применён! Теперь он после твоего ника.'
       - '[sound] ENTITY_PLAYER_LEVELUP'
       - '[refresh]'
-
   'Титул Рассвет':
-    slots: [24]
+    slots:
+    - 24
     material: NAME_TAG
-    display_name: '&#FFB340Рассвет'
+    display_name: '&dРассвет'
     lore:
       - ''
       - '&fТитул после ника в чате.'
-      - '&7Шанс из кейса: &#FFB3402.0%'
+      - '&7Шанс из кейса: &d2.0%'
       - ''
-      - '&#FFD93DВыбивается только из кейса титулов!'
+      - '&eВыбивается только из кейса титулов!'
       - '&eНажми, чтобы применить'
     click_requirement:
       requirements:
@@ -333,24 +378,24 @@ items:
           type: has permission
           permission: titles.rassvet
       deny_commands:
-        - '[message] &#FF6B6BУ тебя нет титула «Рассвет». Он выпадает только из кейса титулов.'
+        - '[message] &cУ тебя нет титула «Рассвет». Он выпадает только из кейса титулов.'
         - '[sound] ENTITY_VILLAGER_NO'
     click_commands:
-      - '[console] lp user %player_name% meta setsuffix 90 " &#FFB340Рассвет&r"'
-      - '[message] &#FFB340Титул «Рассвет» применён! Теперь он после твоего ника.'
+      - '[console] lp user %player_name% meta setsuffix 90 " &dРассвет&r"'
+      - '[message] &dТитул «Рассвет» применён! Теперь он после твоего ника.'
       - '[sound] ENTITY_PLAYER_LEVELUP'
       - '[refresh]'
-
   'Титул Закат':
-    slots: [25]
+    slots:
+    - 25
     material: NAME_TAG
-    display_name: '&#FF7847Закат'
+    display_name: '&cЗакат'
     lore:
       - ''
       - '&fТитул после ника в чате.'
-      - '&7Шанс из кейса: &#FF78472.0%'
+      - '&7Шанс из кейса: &c2.0%'
       - ''
-      - '&#FFD93DВыбивается только из кейса титулов!'
+      - '&eВыбивается только из кейса титулов!'
       - '&eНажми, чтобы применить'
     click_requirement:
       requirements:
@@ -358,24 +403,24 @@ items:
           type: has permission
           permission: titles.zakat
       deny_commands:
-        - '[message] &#FF6B6BУ тебя нет титула «Закат». Он выпадает только из кейса титулов.'
+        - '[message] &cУ тебя нет титула «Закат». Он выпадает только из кейса титулов.'
         - '[sound] ENTITY_VILLAGER_NO'
     click_commands:
-      - '[console] lp user %player_name% meta setsuffix 90 " &#FF7847Закат&r"'
-      - '[message] &#FF7847Титул «Закат» применён! Теперь он после твоего ника.'
+      - '[console] lp user %player_name% meta setsuffix 90 " &cЗакат&r"'
+      - '[message] &cТитул «Закат» применён! Теперь он после твоего ника.'
       - '[sound] ENTITY_PLAYER_LEVELUP'
       - '[refresh]'
-
   'Титул Радуга':
-    slots: [28]
+    slots:
+    - 28
     material: NAME_TAG
-    display_name: '<gradient:#FF5555:#55E6FF>Радуга</gradient>'
+    display_name: '&5Радуга'
     lore:
       - ''
       - '&fТитул после ника в чате.'
-      - '&7Шанс из кейса: &#FF78472.0%'
+      - '&7Шанс из кейса: &52.0%'
       - ''
-      - '&#FFD93DВыбивается только из кейса титулов!'
+      - '&eВыбивается только из кейса титулов!'
       - '&eНажми, чтобы применить'
     click_requirement:
       requirements:
@@ -383,24 +428,24 @@ items:
           type: has permission
           permission: titles.raduga
       deny_commands:
-        - '[message] &#FF6B6BУ тебя нет титула «Радуга». Он выпадает только из кейса титулов.'
+        - '[message] &cУ тебя нет титула «Радуга». Он выпадает только из кейса титулов.'
         - '[sound] ENTITY_VILLAGER_NO'
     click_commands:
-      - '[console] lp user %player_name% meta setsuffix 90 " &#FF7847Радуга&r"'
-      - '[message] &#FF7847Титул «Радуга» применён! Теперь он после твоего ника.'
+      - '[console] lp user %player_name% meta setsuffix 90 " &5Радуга&r"'
+      - '[message] &5Титул «Радуга» применён! Теперь он после твоего ника.'
       - '[sound] ENTITY_PLAYER_LEVELUP'
       - '[refresh]'
-
   'Титул Звездопад':
-    slots: [29]
+    slots:
+    - 29
     material: NAME_TAG
-    display_name: '<gradient:#55E6FF:#C86BFF>Звездопад</gradient>'
+    display_name: '&9Звездопад'
     lore:
       - ''
       - '&fТитул после ника в чате.'
-      - '&7Шанс из кейса: &#55E6FF2.0%'
+      - '&7Шанс из кейса: &92.0%'
       - ''
-      - '&#FFD93DВыбивается только из кейса титулов!'
+      - '&eВыбивается только из кейса титулов!'
       - '&eНажми, чтобы применить'
     click_requirement:
       requirements:
@@ -408,24 +453,24 @@ items:
           type: has permission
           permission: titles.zvezdopad
       deny_commands:
-        - '[message] &#FF6B6BУ тебя нет титула «Звездопад». Он выпадает только из кейса титулов.'
+        - '[message] &cУ тебя нет титула «Звездопад». Он выпадает только из кейса титулов.'
         - '[sound] ENTITY_VILLAGER_NO'
     click_commands:
-      - '[console] lp user %player_name% meta setsuffix 90 " &#55E6FFЗвездопад&r"'
-      - '[message] &#55E6FFТитул «Звездопад» применён! Теперь он после твоего ника.'
+      - '[console] lp user %player_name% meta setsuffix 90 " &9Звездопад&r"'
+      - '[message] &9Титул «Звездопад» применён! Теперь он после твоего ника.'
       - '[sound] ENTITY_PLAYER_LEVELUP'
       - '[refresh]'
-
   'Титул Сигма':
-    slots: [30]
+    slots:
+    - 30
     material: NAME_TAG
-    display_name: '&#55E6FFСигма'
+    display_name: '&bСигма'
     lore:
       - ''
       - '&fТитул после ника в чате.'
-      - '&7Шанс из кейса: &#55E6FF3.3%'
+      - '&7Шанс из кейса: &b3.3%'
       - ''
-      - '&#FFD93DВыбивается только из кейса титулов!'
+      - '&eВыбивается только из кейса титулов!'
       - '&eНажми, чтобы применить'
     click_requirement:
       requirements:
@@ -433,24 +478,24 @@ items:
           type: has permission
           permission: titles.sigma
       deny_commands:
-        - '[message] &#FF6B6BУ тебя нет титула «Сигма». Он выпадает только из кейса титулов.'
+        - '[message] &cУ тебя нет титула «Сигма». Он выпадает только из кейса титулов.'
         - '[sound] ENTITY_VILLAGER_NO'
     click_commands:
-      - '[console] lp user %player_name% meta setsuffix 90 " &#55E6FFСигма&r"'
-      - '[message] &#55E6FFТитул «Сигма» применён! Теперь он после твоего ника.'
+      - '[console] lp user %player_name% meta setsuffix 90 " &bСигма&r"'
+      - '[message] &bТитул «Сигма» применён! Теперь он после твоего ника.'
       - '[sound] ENTITY_PLAYER_LEVELUP'
       - '[refresh]'
-
   'Титул Кринж':
-    slots: [31]
+    slots:
+    - 31
     material: NAME_TAG
-    display_name: '&#FF5555Кринж'
+    display_name: '&cКринж'
     lore:
       - ''
       - '&fТитул после ника в чате.'
-      - '&7Шанс из кейса: &#FF55553.3%'
+      - '&7Шанс из кейса: &c3.3%'
       - ''
-      - '&#FFD93DВыбивается только из кейса титулов!'
+      - '&eВыбивается только из кейса титулов!'
       - '&eНажми, чтобы применить'
     click_requirement:
       requirements:
@@ -458,24 +503,24 @@ items:
           type: has permission
           permission: titles.krindzh
       deny_commands:
-        - '[message] &#FF6B6BУ тебя нет титула «Кринж». Он выпадает только из кейса титулов.'
+        - '[message] &cУ тебя нет титула «Кринж». Он выпадает только из кейса титулов.'
         - '[sound] ENTITY_VILLAGER_NO'
     click_commands:
-      - '[console] lp user %player_name% meta setsuffix 90 " &#FF5555Кринж&r"'
-      - '[message] &#FF5555Титул «Кринж» применён! Теперь он после твоего ника.'
+      - '[console] lp user %player_name% meta setsuffix 90 " &cКринж&r"'
+      - '[message] &cТитул «Кринж» применён! Теперь он после твоего ника.'
       - '[sound] ENTITY_PLAYER_LEVELUP'
       - '[refresh]'
-
   'Титул Вайб':
-    slots: [32]
+    slots:
+    - 32
     material: NAME_TAG
-    display_name: '&#C86BFFВайб'
+    display_name: '&5Вайб'
     lore:
       - ''
       - '&fТитул после ника в чате.'
-      - '&7Шанс из кейса: &#C86BFF3.3%'
+      - '&7Шанс из кейса: &53.3%'
       - ''
-      - '&#FFD93DВыбивается только из кейса титулов!'
+      - '&eВыбивается только из кейса титулов!'
       - '&eНажми, чтобы применить'
     click_requirement:
       requirements:
@@ -483,24 +528,24 @@ items:
           type: has permission
           permission: titles.vaib
       deny_commands:
-        - '[message] &#FF6B6BУ тебя нет титула «Вайб». Он выпадает только из кейса титулов.'
+        - '[message] &cУ тебя нет титула «Вайб». Он выпадает только из кейса титулов.'
         - '[sound] ENTITY_VILLAGER_NO'
     click_commands:
-      - '[console] lp user %player_name% meta setsuffix 90 " &#C86BFFВайб&r"'
-      - '[message] &#C86BFFТитул «Вайб» применён! Теперь он после твоего ника.'
+      - '[console] lp user %player_name% meta setsuffix 90 " &5Вайб&r"'
+      - '[message] &5Титул «Вайб» применён! Теперь он после твоего ника.'
       - '[sound] ENTITY_PLAYER_LEVELUP'
       - '[refresh]'
-
   'Титул Скуф':
-    slots: [33]
+    slots:
+    - 33
     material: NAME_TAG
-    display_name: '&#B8B8FFСкуф'
+    display_name: '&7Скуф'
     lore:
       - ''
       - '&fТитул после ника в чате.'
-      - '&7Шанс из кейса: &#B8B8FF3.3%'
+      - '&7Шанс из кейса: &73.3%'
       - ''
-      - '&#FFD93DВыбивается только из кейса титулов!'
+      - '&eВыбивается только из кейса титулов!'
       - '&eНажми, чтобы применить'
     click_requirement:
       requirements:
@@ -508,24 +553,24 @@ items:
           type: has permission
           permission: titles.skuf
       deny_commands:
-        - '[message] &#FF6B6BУ тебя нет титула «Скуф». Он выпадает только из кейса титулов.'
+        - '[message] &cУ тебя нет титула «Скуф». Он выпадает только из кейса титулов.'
         - '[sound] ENTITY_VILLAGER_NO'
     click_commands:
-      - '[console] lp user %player_name% meta setsuffix 90 " &#B8B8FFСкуф&r"'
-      - '[message] &#B8B8FFТитул «Скуф» применён! Теперь он после твоего ника.'
+      - '[console] lp user %player_name% meta setsuffix 90 " &7Скуф&r"'
+      - '[message] &7Титул «Скуф» применён! Теперь он после твоего ника.'
       - '[sound] ENTITY_PLAYER_LEVELUP'
       - '[refresh]'
-
   'Титул Гигачад':
-    slots: [34]
+    slots:
+    - 34
     material: NAME_TAG
-    display_name: '&#FF9A3DГигачад'
+    display_name: '&6Гигачад'
     lore:
       - ''
       - '&fТитул после ника в чате.'
-      - '&7Шанс из кейса: &#FF9A3D3.3%'
+      - '&7Шанс из кейса: &63.3%'
       - ''
-      - '&#FFD93DВыбивается только из кейса титулов!'
+      - '&eВыбивается только из кейса титулов!'
       - '&eНажми, чтобы применить'
     click_requirement:
       requirements:
@@ -533,24 +578,24 @@ items:
           type: has permission
           permission: titles.gigachad
       deny_commands:
-        - '[message] &#FF6B6BУ тебя нет титула «Гигачад». Он выпадает только из кейса титулов.'
+        - '[message] &cУ тебя нет титула «Гигачад». Он выпадает только из кейса титулов.'
         - '[sound] ENTITY_VILLAGER_NO'
     click_commands:
-      - '[console] lp user %player_name% meta setsuffix 90 " &#FF9A3DГигачад&r"'
-      - '[message] &#FF9A3DТитул «Гигачад» применён! Теперь он после твоего ника.'
+      - '[console] lp user %player_name% meta setsuffix 90 " &6Гигачад&r"'
+      - '[message] &6Титул «Гигачад» применён! Теперь он после твоего ника.'
       - '[sound] ENTITY_PLAYER_LEVELUP'
       - '[refresh]'
-
   'Титул Абоба':
-    slots: [37]
+    slots:
+    - 37
     material: NAME_TAG
-    display_name: '&#7CFC00Абоба'
+    display_name: '&aАбоба'
     lore:
       - ''
       - '&fТитул после ника в чате.'
-      - '&7Шанс из кейса: &#7CFC003.3%'
+      - '&7Шанс из кейса: &a3.3%'
       - ''
-      - '&#FFD93DВыбивается только из кейса титулов!'
+      - '&eВыбивается только из кейса титулов!'
       - '&eНажми, чтобы применить'
     click_requirement:
       requirements:
@@ -558,24 +603,24 @@ items:
           type: has permission
           permission: titles.aboba
       deny_commands:
-        - '[message] &#FF6B6BУ тебя нет титула «Абоба». Он выпадает только из кейса титулов.'
+        - '[message] &cУ тебя нет титула «Абоба». Он выпадает только из кейса титулов.'
         - '[sound] ENTITY_VILLAGER_NO'
     click_commands:
-      - '[console] lp user %player_name% meta setsuffix 90 " &#7CFC00Абоба&r"'
-      - '[message] &#7CFC00Титул «Абоба» применён! Теперь он после твоего ника.'
+      - '[console] lp user %player_name% meta setsuffix 90 " &aАбоба&r"'
+      - '[message] &aТитул «Абоба» применён! Теперь он после твоего ника.'
       - '[sound] ENTITY_PLAYER_LEVELUP'
       - '[refresh]'
-
   'Титул Дед инсайд':
-    slots: [38]
+    slots:
+    - 38
     material: NAME_TAG
-    display_name: '&#FFD93DДед инсайд'
+    display_name: '&eДед инсайд'
     lore:
       - ''
       - '&fТитул после ника в чате.'
-      - '&7Шанс из кейса: &#FFD93D3.3%'
+      - '&7Шанс из кейса: &e3.3%'
       - ''
-      - '&#FFD93DВыбивается только из кейса титулов!'
+      - '&eВыбивается только из кейса титулов!'
       - '&eНажми, чтобы применить'
     click_requirement:
       requirements:
@@ -583,24 +628,24 @@ items:
           type: has permission
           permission: titles.dedinsaid
       deny_commands:
-        - '[message] &#FF6B6BУ тебя нет титула «Дед инсайд». Он выпадает только из кейса титулов.'
+        - '[message] &cУ тебя нет титула «Дед инсайд». Он выпадает только из кейса титулов.'
         - '[sound] ENTITY_VILLAGER_NO'
     click_commands:
-      - '[console] lp user %player_name% meta setsuffix 90 " &#FFD93DДед инсайд&r"'
-      - '[message] &#FFD93DТитул «Дед инсайд» применён! Теперь он после твоего ника.'
+      - '[console] lp user %player_name% meta setsuffix 90 " &eДед инсайд&r"'
+      - '[message] &eТитул «Дед инсайд» применён! Теперь он после твоего ника.'
       - '[sound] ENTITY_PLAYER_LEVELUP'
       - '[refresh]'
-
   'Титул Чил':
-    slots: [39]
+    slots:
+    - 39
     material: NAME_TAG
-    display_name: '&#8CE8FFЧил'
+    display_name: '&bЧил'
     lore:
       - ''
       - '&fТитул после ника в чате.'
-      - '&7Шанс из кейса: &#8CE8FF3.3%'
+      - '&7Шанс из кейса: &b3.3%'
       - ''
-      - '&#FFD93DВыбивается только из кейса титулов!'
+      - '&eВыбивается только из кейса титулов!'
       - '&eНажми, чтобы применить'
     click_requirement:
       requirements:
@@ -608,24 +653,24 @@ items:
           type: has permission
           permission: titles.chil
       deny_commands:
-        - '[message] &#FF6B6BУ тебя нет титула «Чил». Он выпадает только из кейса титулов.'
+        - '[message] &cУ тебя нет титула «Чил». Он выпадает только из кейса титулов.'
         - '[sound] ENTITY_VILLAGER_NO'
     click_commands:
-      - '[console] lp user %player_name% meta setsuffix 90 " &#8CE8FFЧил&r"'
-      - '[message] &#8CE8FFТитул «Чил» применён! Теперь он после твоего ника.'
+      - '[console] lp user %player_name% meta setsuffix 90 " &bЧил&r"'
+      - '[message] &bТитул «Чил» применён! Теперь он после твоего ника.'
       - '[sound] ENTITY_PLAYER_LEVELUP'
       - '[refresh]'
-
   'Титул Ноунейм':
-    slots: [40]
+    slots:
+    - 40
     material: NAME_TAG
-    display_name: '&#B8B8FFНоунейм'
+    display_name: '&7Ноунейм'
     lore:
       - ''
       - '&fТитул после ника в чате.'
-      - '&7Шанс из кейса: &#B8B8FF3.3%'
+      - '&7Шанс из кейса: &73.3%'
       - ''
-      - '&#FFD93DВыбивается только из кейса титулов!'
+      - '&eВыбивается только из кейса титулов!'
       - '&eНажми, чтобы применить'
     click_requirement:
       requirements:
@@ -633,24 +678,24 @@ items:
           type: has permission
           permission: titles.nouneim
       deny_commands:
-        - '[message] &#FF6B6BУ тебя нет титула «Ноунейм». Он выпадает только из кейса титулов.'
+        - '[message] &cУ тебя нет титула «Ноунейм». Он выпадает только из кейса титулов.'
         - '[sound] ENTITY_VILLAGER_NO'
     click_commands:
-      - '[console] lp user %player_name% meta setsuffix 90 " &#B8B8FFНоунейм&r"'
-      - '[message] &#B8B8FFТитул «Ноунейм» применён! Теперь он после твоего ника.'
+      - '[console] lp user %player_name% meta setsuffix 90 " &7Ноунейм&r"'
+      - '[message] &7Титул «Ноунейм» применён! Теперь он после твоего ника.'
       - '[sound] ENTITY_PLAYER_LEVELUP'
       - '[refresh]'
-
   'Титул Пельмень':
-    slots: [41]
+    slots:
+    - 41
     material: NAME_TAG
-    display_name: '&#FFB340Пельмень'
+    display_name: '&fПельмень'
     lore:
       - ''
       - '&fТитул после ника в чате.'
-      - '&7Шанс из кейса: &#FFB3403.3%'
+      - '&7Шанс из кейса: &f3.3%'
       - ''
-      - '&#FFD93DВыбивается только из кейса титулов!'
+      - '&eВыбивается только из кейса титулов!'
       - '&eНажми, чтобы применить'
     click_requirement:
       requirements:
@@ -658,24 +703,24 @@ items:
           type: has permission
           permission: titles.pelmen
       deny_commands:
-        - '[message] &#FF6B6BУ тебя нет титула «Пельмень». Он выпадает только из кейса титулов.'
+        - '[message] &cУ тебя нет титула «Пельмень». Он выпадает только из кейса титулов.'
         - '[sound] ENTITY_VILLAGER_NO'
     click_commands:
-      - '[console] lp user %player_name% meta setsuffix 90 " &#FFB340Пельмень&r"'
-      - '[message] &#FFB340Титул «Пельмень» применён! Теперь он после твоего ника.'
+      - '[console] lp user %player_name% meta setsuffix 90 " &fПельмень&r"'
+      - '[message] &fТитул «Пельмень» применён! Теперь он после твоего ника.'
       - '[sound] ENTITY_PLAYER_LEVELUP'
       - '[refresh]'
-
   'Титул Шахтёр':
-    slots: [42]
+    slots:
+    - 42
     material: NAME_TAG
-    display_name: '&#B8B8FFШахтёр'
+    display_name: '&7Шахтёр'
     lore:
       - ''
       - '&fТитул после ника в чате.'
-      - '&7Шанс из кейса: &#B8B8FF2.6%'
+      - '&7Шанс из кейса: &72.6%'
       - ''
-      - '&#FFD93DВыбивается только из кейса титулов!'
+      - '&eВыбивается только из кейса титулов!'
       - '&eНажми, чтобы применить'
     click_requirement:
       requirements:
@@ -683,24 +728,24 @@ items:
           type: has permission
           permission: titles.shahter
       deny_commands:
-        - '[message] &#FF6B6BУ тебя нет титула «Шахтёр». Он выпадает только из кейса титулов.'
+        - '[message] &cУ тебя нет титула «Шахтёр». Он выпадает только из кейса титулов.'
         - '[sound] ENTITY_VILLAGER_NO'
     click_commands:
-      - '[console] lp user %player_name% meta setsuffix 90 " &#B8B8FFШахтёр&r"'
-      - '[message] &#B8B8FFТитул «Шахтёр» применён! Теперь он после твоего ника.'
+      - '[console] lp user %player_name% meta setsuffix 90 " &7Шахтёр&r"'
+      - '[message] &7Титул «Шахтёр» применён! Теперь он после твоего ника.'
       - '[sound] ENTITY_PLAYER_LEVELUP'
       - '[refresh]'
-
   'Титул Крипероборец':
-    slots: [43]
+    slots:
+    - 43
     material: NAME_TAG
-    display_name: '&#7CFC00Крипероборец'
+    display_name: '&2Крипероборец'
     lore:
       - ''
       - '&fТитул после ника в чате.'
-      - '&7Шанс из кейса: &#7CFC002.6%'
+      - '&7Шанс из кейса: &22.6%'
       - ''
-      - '&#FFD93DВыбивается только из кейса титулов!'
+      - '&eВыбивается только из кейса титулов!'
       - '&eНажми, чтобы применить'
     click_requirement:
       requirements:
@@ -708,28 +753,27 @@ items:
           type: has permission
           permission: titles.kriperoborec
       deny_commands:
-        - '[message] &#FF6B6BУ тебя нет титула «Крипероборец». Он выпадает только из кейса титулов.'
+        - '[message] &cУ тебя нет титула «Крипероборец». Он выпадает только из кейса титулов.'
         - '[sound] ENTITY_VILLAGER_NO'
     click_commands:
-      - '[console] lp user %player_name% meta setsuffix 90 " &#7CFC00Крипероборец&r"'
-      - '[message] &#7CFC00Титул «Крипероборец» применён! Теперь он после твоего ника.'
+      - '[console] lp user %player_name% meta setsuffix 90 " &2Крипероборец&r"'
+      - '[message] &2Титул «Крипероборец» применён! Теперь он после твоего ника.'
       - '[sound] ENTITY_PLAYER_LEVELUP'
       - '[refresh]'
-
   'Назад в меню':
-    slots: [45]
+    slots:
+    - 45
     material: ARROW
-    display_name: '&#1CA769← &fНазад'
-    lore:
-      - '&7Вернуться в главное меню.'
+    display_name: '&fНазад'
     click_commands:
       - '[sound] ITEM_BOOK_PAGE_TURN'
       - '[player] menu'
 
   'Как получить':
-    slots: [49]
+    slots:
+    - 49
     material: ENDER_CHEST
-    display_name: '&#FFD93DКак получить титул?'
+    display_name: '&eКак получить титул?'
     lore:
       - ''
       - '&f1. Открой &bКейс титулов&f: выпавший'
@@ -744,7 +788,8 @@ items:
       - '[sound] ITEM_BOOK_PAGE_TURN'
 
   'Очистить':
-    slots: [53]
+    slots:
+    - 53
     material: BARRIER
     display_name: '&cОчистить титул'
     lore:
