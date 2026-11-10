@@ -14,7 +14,6 @@ EXPECTED_MODULE_UUID = "d8e39da4-49a3-4d5a-b713-4140f17b6972"
 VOID_PACK_HEADER_UUID = "be7304eb-1c69-4b48-a293-1f08375d08de"
 FRAME_COUNT = 76
 
-
 def png_size(path: Path) -> tuple[int, int]:
     data = path.read_bytes()
     assert data[:8] == b"\x89PNG\r\n\x1a\n", path
@@ -28,11 +27,11 @@ def main() -> None:
     assert manifest["format_version"] == 2
     assert manifest["header"]["uuid"] == EXPECTED_HEADER_UUID
     assert manifest["header"]["uuid"] != VOID_PACK_HEADER_UUID  # must not collide with VoidResourcePack
-    assert manifest["header"]["version"] == [1, 0, 0]
+    assert manifest["header"]["version"] == [1, 1, 0]
     assert manifest["header"]["min_engine_version"] == [1, 20, 0]
     assert manifest["modules"][0]["uuid"] == EXPECTED_MODULE_UUID
     assert manifest["modules"][0]["type"] == "resources"
-    assert manifest["modules"][0]["version"] == [1, 0, 0]
+    assert manifest["modules"][0]["version"] == [1, 1, 0]
     assert (SOURCE / "pack_icon.png").is_file()
 
     entity = json.loads((SOURCE / "entity/zombie_horse.entity.json").read_text(encoding="utf-8"))
@@ -76,6 +75,22 @@ def main() -> None:
         frame = SOURCE / f"textures/entity/pistoletov/f{i:03d}.png"
         assert frame.is_file(), frame
         assert png_size(frame) == (320, 242), frame
+
+    # Песня «Я российский новый пират» — звуковой банк FSB5 + определение события.
+    sound_definitions = json.loads((SOURCE / "sounds/sound_definitions.json").read_text(encoding="utf-8"))
+    assert sound_definitions == {
+        "format_version": "1.14.0",
+        "sound_definitions": {
+            "pistoletov.pirates": {
+                "category": "music",
+                "sounds": [{"name": "sounds/pistoletov/pirates", "volume": 1.0}],
+            }
+        },
+    }
+    sound_bank = SOURCE / "sounds/pistoletov/pirates.fsb"
+    assert sound_bank.is_file(), sound_bank
+    assert sound_bank.read_bytes()[:4] == b"FSB5", sound_bank
+    assert sound_bank.stat().st_size > 1_000_000, sound_bank
 
     if "--require-output" in sys.argv or OUTPUT.exists():
         source_files = {
