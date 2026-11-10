@@ -1,0 +1,265 @@
+# DeluxeMenus — меню китов VoidPE (наборы привилегий LiteKits)
+# Файл в: plugins/DeluxeMenus/gui_menus/kits_menu.yml
+# Открывается командой /kits_menu и кнопкой «Наборы /kit» из главного меню.
+menu_title: '• Меню китов'
+open_command: kits_menu
+register_command: true
+size: 54
+open_commands:
+  - '[sound] ITEM_BOOK_PAGE_TURN'
+items:
+
+  # ---------- Оформление: рамка и пустые слоты ----------
+  'Рамка':
+    priority: -1
+    slots:
+    - 0
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
+    - 6
+    - 7
+    - 8
+    - 9
+    - 17
+    - 18
+    - 26
+    - 27
+    - 35
+    - 36
+    - 44
+    - 45
+    - 46
+    - 47
+    - 48
+    - 49
+    - 50
+    - 51
+    - 52
+    - 53
+    material: BLACK_STAINED_GLASS_PANE
+    display_name: '&8'
+
+  'Пустышки':
+    priority: -1
+    slots:
+    - 10
+    - 11
+    - 12
+    - 13
+    - 14
+    - 15
+    - 16
+    - 29
+    - 30
+    - 32
+    - 33
+    - 37
+    - 38
+    - 39
+    - 40
+    - 41
+    - 42
+    - 43
+    material: GRAY_STAINED_GLASS_PANE
+    display_name: '&7'
+
+  # ---------- Профиль (голова со статистикой) ----------
+  Информация:
+    slots:
+    - 31
+    material: head-%player_name%
+    display_name: '&7%player_name%'
+    update_interval: 2
+    lore:
+      - ''
+      - '&fНаборы привилегий &bVoidPE&f:'
+      - '&7• &fНаборы выдаются по &bрангу&f.'
+      - '&7• &fКулдаун: &bот 24 часов&f.'
+      - '&7• &fМонеты: &#00F15E%vault_eco_balance_formatted%$'
+      - '&7• &fОсколки: &#00F15E%playerpoints_points%'
+      - ''
+      - '&#1CA769➥ &fВыберите набор в среднем ряду.'
+    view_requirement:
+      requirements:
+        bedrock:
+          type: string equals
+          input: '%purpurbedrock_is_bedrock%'
+          output: 'true'
+
+  'Информация (Java)':
+    slots:
+    - 31
+    material: PLAYER_HEAD
+    display_name: '&7%player_name%'
+    update_interval: 2
+    lore:
+      - ''
+      - '&fНаборы привилегий &bVoidPE&f:'
+      - '&7• &fНаборы выдаются по &bрангу&f.'
+      - '&7• &fКулдаун: &bот 24 часов&f.'
+      - '&7• &fМонеты: &#00F15E%vault_eco_balance_formatted%$'
+      - '&7• &fОсколки: &#00F15E%playerpoints_points%'
+      - ''
+      - '&#1CA769➥ &fВыберите набор в среднем ряду.'
+    view_requirement:
+      requirements:
+        java:
+          type: string equals
+          input: '%purpurbedrock_is_bedrock%'
+          output: 'false'
+
+  # ---------- Киты (наборы привилегий) ----------
+
+  'Кит Странник':
+    slots:
+    - 19
+    material: LEATHER_CHESTPLATE
+    display_name: '&x&1&C&A&7&6&9С&x&2&1&A&9&6&6т&x&2&7&A&C&6&4р&x&2&C&A&F&6&2а&x&3&2&B&1&6&0н&x&3&7&B&4&5&Eн&x&3&D&B&7&5&Cи&x&4&3&B&A&5&Aк &7/kit strannik'
+    lore:
+      - '&f Набор привилегий &bСтранник&f.'
+      - '&f Начальный набор для новичков.'
+      - ''
+      - '&7• &fКулдаун: &b24 часа'
+      - '&7• &fКоманда: &b/kit strannik'
+      - '&7• &fДоступ: &bпо рангу'
+      - ''
+      - '&#1CA769➥ &fНажмите, чтобы получить набор.'
+    click_commands:
+      - '[sound] ITEM_BOOK_PAGE_TURN'
+      - '[player] kit strannik'
+
+  'Кит Герой':
+    slots:
+    - 20
+    material: IRON_CHESTPLATE
+    display_name: '&x&1&C&A&7&6&9Г&x&2&5&A&B&6&5е&x&2&F&B&0&6&1р&x&3&9&B&5&5&Dо&x&4&3&B&A&5&Aй &7/kit geroy'
+    lore:
+      - '&f Набор привилегий &bГерой&f.'
+      - '&f Набор для опытных бойцов.'
+      - ''
+      - '&7• &fКулдаун: &b24 часа'
+      - '&7• &fКоманда: &b/kit geroy'
+      - '&7• &fДоступ: &bпо рангу'
+      - ''
+      - '&#1CA769➥ &fНажмите, чтобы получить набор.'
+    click_commands:
+      - '[sound] ITEM_BOOK_PAGE_TURN'
+      - '[player] kit geroy'
+
+  'Кит Рыцарь':
+    slots:
+    - 21
+    material: SHIELD
+    display_name: '&x&1&C&A&7&6&9Р&x&2&3&A&A&6&6ы&x&2&B&A&E&6&3ц&x&3&3&B&2&6&0а&x&3&B&B&6&5&Dр&x&4&3&B&A&5&Aь &7/kit rycar'
+    lore:
+      - '&f Набор привилегий &bРыцарь&f.'
+      - '&f Набор защитника и стража.'
+      - ''
+      - '&7• &fКулдаун: &b24 часа'
+      - '&7• &fКоманда: &b/kit rycar'
+      - '&7• &fДоступ: &bпо рангу'
+      - ''
+      - '&#1CA769➥ &fНажмите, чтобы получить набор.'
+    click_commands:
+      - '[sound] ITEM_BOOK_PAGE_TURN'
+      - '[player] kit rycar'
+
+  'Кит Барон':
+    slots:
+    - 22
+    material: GOLDEN_CHESTPLATE
+    display_name: '&x&1&C&A&7&6&9Б&x&2&5&A&B&6&5а&x&2&F&B&0&6&1р&x&3&9&B&5&5&Dо&x&4&3&B&A&5&Aн &7/kit baron'
+    lore:
+      - '&f Набор привилегий &bБарон&f.'
+      - '&f Набор знатного вельможи.'
+      - ''
+      - '&7• &fКулдаун: &b24 часа'
+      - '&7• &fКоманда: &b/kit baron'
+      - '&7• &fДоступ: &bпо рангу'
+      - ''
+      - '&#1CA769➥ &fНажмите, чтобы получить набор.'
+    click_commands:
+      - '[sound] ITEM_BOOK_PAGE_TURN'
+      - '[player] kit baron'
+
+  'Кит Лорд':
+    slots:
+    - 23
+    material: DIAMOND_CHESTPLATE
+    display_name: '&x&1&C&A&7&6&9Л&x&2&9&A&D&6&4о&x&3&6&B&3&5&Fр&x&4&3&B&A&5&Aд &7/kit lord'
+    lore:
+      - '&f Набор привилегий &bЛорд&f.'
+      - '&f Набор правителя земель.'
+      - ''
+      - '&7• &fКулдаун: &b24 часа'
+      - '&7• &fКоманда: &b/kit lord'
+      - '&7• &fДоступ: &bпо рангу'
+      - ''
+      - '&#1CA769➥ &fНажмите, чтобы получить набор.'
+    click_commands:
+      - '[sound] ITEM_BOOK_PAGE_TURN'
+      - '[player] kit lord'
+
+  'Кит Князь':
+    slots:
+    - 24
+    material: NETHERITE_CHESTPLATE
+    display_name: '&x&1&C&A&7&6&9К&x&2&5&A&B&6&5н&x&2&F&B&0&6&1я&x&3&9&B&5&5&Dз&x&4&3&B&A&5&Aь &7/kit knyaz'
+    lore:
+      - '&f Набор привилегий &bКнязь&f.'
+      - '&f Набор правителя княжества.'
+      - ''
+      - '&7• &fКулдаун: &b3 дня'
+      - '&7• &fКоманда: &b/kit knyaz'
+      - '&7• &fДоступ: &bпо рангу'
+      - ''
+      - '&#1CA769➥ &fНажмите, чтобы получить набор.'
+    click_commands:
+      - '[sound] ITEM_BOOK_PAGE_TURN'
+      - '[player] kit knyaz'
+
+  'Кит Император':
+    slots:
+    - 25
+    material: ENCHANTED_GOLDEN_APPLE
+    display_name: '&x&1&C&A&7&6&9И&x&2&0&A&9&6&7м&x&2&5&A&B&6&5п&x&2&A&A&E&6&3е&x&2&F&B&0&6&1р&x&3&4&B&2&5&Fа&x&3&9&B&5&5&Dт&x&3&E&B&7&5&Bо&x&4&3&B&A&5&Aр &7/kit imperator'
+    lore:
+      - '&f Набор привилегий &bИмператор&f.'
+      - '&f Высший набор сервера.'
+      - ''
+      - '&7• &fКулдаун: &b7 дней'
+      - '&7• &fКоманда: &b/kit imperator'
+      - '&7• &fДоступ: &bпо рангу'
+      - ''
+      - '&#1CA769➥ &fНажмите, чтобы получить набор.'
+    click_commands:
+      - '[sound] ITEM_BOOK_PAGE_TURN'
+      - '[player] kit imperator'
+
+  # ---------- Навигация ----------
+
+  'Назад':
+    slots:
+    - 28
+    material: ARROW
+    display_name: '&#1CA769← &fНазад в меню'
+    lore:
+      - '&7• &fВернуться в главное меню.'
+    click_commands:
+      - '[sound] ITEM_BOOK_PAGE_TURN'
+      - '[player] menu'
+      - '[close]'
+
+  'Закрыть':
+    slots:
+    - 34
+    material: BARRIER
+    display_name: '&c✖ &fЗакрыть'
+    lore:
+      - '&7• &fЗакрыть меню китов.'
+    click_commands:
+      - '[sound] ITEM_BOOK_PAGE_TURN'
+      - '[close]'

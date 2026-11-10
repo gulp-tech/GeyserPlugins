@@ -211,7 +211,7 @@ items:
       - '&#1CA769➥ &fНажмите, чтобы выбрать набор.'
     click_commands:
       - '[sound] ITEM_BOOK_PAGE_TURN'
-      - '[player] kit'
+      - '[player] kits_menu'
       - '[close]'
 
   'Талисманы /talisman':
