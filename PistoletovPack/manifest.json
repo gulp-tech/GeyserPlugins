@@ -1,8 +1,8 @@
 {
   "format_version": 2,
   "header": {
-    "name": "Пистолетов Pack",
-    "description": "Призываемая GIF-сущность: /summon zombie_horse — Пистолетов танцует на экране. Удаление: /kill @e[type=zombie_horse]",
+    "name": "Александр Пистолетов Pack",
+    "description": "Призываемая GIF-сущность: /summon zombie_horse — Александр Пистолетов танцует на экране. Удаление: /kill @e[type=zombie_horse]",
     "uuid": "b75e302b-bf8d-4bd5-8e0d-3c35c2f074ef",
     "version": [
       1,
