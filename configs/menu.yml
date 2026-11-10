@@ -1,0 +1,418 @@
+# DeluxeMenus — главное меню VoidPE (крупные кнопки, удобно на телефоне)
+# Файл в: plugins/DeluxeMenus/gui_menus/menu.yml
+menu_title: '• Меню сервера'
+open_command: menu
+register_command: true
+size: 54
+open_commands:
+  - '[sound] ITEM_BOOK_PAGE_TURN'
+items:
+
+  # ---------- Оформление: рамка и пустые слоты ----------
+  'Рамка':
+    priority: -1
+    slots:
+    - 0
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
+    - 6
+    - 7
+    - 8
+    - 9
+    - 17
+    - 18
+    - 26
+    - 27
+    - 35
+    - 36
+    - 44
+    - 45
+    - 46
+    - 47
+    - 48
+    - 49
+    - 50
+    - 51
+    - 52
+    - 53
+    material: BLACK_STAINED_GLASS_PANE
+    display_name: '&8'
+
+  'Пустышки':
+    priority: -1
+    slots:
+    - 29
+    - 31
+    - 33
+    - 37
+    - 39
+    - 41
+    - 43
+    material: GRAY_STAINED_GLASS_PANE
+    display_name: '&7'
+
+  # ---------- Профиль (голова со статистикой) ----------
+  Информация:
+    slots:
+    - 13
+    material: head-%player_name%
+    display_name: '&7%player_name%'
+    update_interval: 2
+    lore:
+      - ''
+      - '&fВаша статистика:'
+      - '&7• &fМонеты: &#00F15E%vault_eco_balance_formatted%$'
+      - '&7• &fОсколки: &#00F15E%playerpoints_points%'
+      - '&7• &fУбийств: &#00F15E%statistic_player_kills%'
+      - '&7• &fСмертей: &#00F15E%statistic_deaths%'
+      - '&7• &fНаиграно часов: &#00F15E%statistic_hours_played%'
+      - ''
+      - '&fПодключение:'
+      - '&7• &fУстройство: &#00F15E%purpurbedrock_device%'
+      - '&7• &fУправление: &#00F15E%purpurbedrock_input%'
+      - '&7• &fВерсия: &#00F15E%purpurbedrock_version%'
+      - '&7• &fПинг: &#00F15E%purpurbedrock_ping% мс'
+    # Показывать профиль только Bedrock-игрокам (ядро Purpurbedrock).
+    view_requirement:
+      requirements:
+        bedrock:
+          type: string equals
+          input: '%purpurbedrock_is_bedrock%'
+          output: 'true'
+
+  'Профиль (Java)':
+    slots:
+    - 13
+    material: PLAYER_HEAD
+    display_name: '&7%player_name%'
+    update_interval: 2
+    lore:
+      - ''
+      - '&fВаша статистика:'
+      - '&7• &fМонеты: &#00F15E%vault_eco_balance_formatted%$'
+      - '&7• &fОсколки: &#00F15E%playerpoints_points%'
+      - '&7• &fУбийств: &#00F15E%statistic_player_kills%'
+      - '&7• &fСмертей: &#00F15E%statistic_deaths%'
+      - '&7• &fНаиграно часов: &#00F15E%statistic_hours_played%'
+    view_requirement:
+      requirements:
+        java:
+          type: string equals
+          input: '%purpurbedrock_is_bedrock%'
+          output: 'false'
+
+  # ---------- Экономика и торговля ----------
+
+  'Кейсы /cases':
+    slots:
+    - 10
+    material: CHEST
+    display_name: '&x&1&C&A&7&6&9К&x&2&5&A&B&6&5е&x&2&F&B&0&6&1й&x&3&9&B&5&5&Dс&x&4&3&B&A&5&Aы &7/cases'
+    lore:
+      - '&f Открывайте кейсы и выбивайте'
+      - '&f титулы, предметы и ресурсы!'
+      - ''
+      - '&#1CA769➥ &fНажмите, чтобы открыть кейсы.'
+    click_commands:
+      - '[sound] ITEM_BOOK_PAGE_TURN'
+      - '[player] cases'
+      - '[close]'
+
+  'Магазин ключей /keys':
+    slots:
+    - 11
+    material: TRIPWIRE_HOOK
+    display_name: '&x&1&C&A&7&6&9М&x&1&F&A&8&6&7а&x&2&2&A&9&6&6г&x&2&5&A&B&6&5а&x&2&8&A&C&6&4з&x&2&B&A&E&6&3и&x&2&E&A&F&6&2н&x&3&1&B&1&6&0 &x&3&4&B&2&5&Fк&x&3&7&B&4&5&Eл&x&3&A&B&5&5&Dю&x&3&D&B&7&5&Cч&x&4&0&B&8&5&Bе&x&4&3&B&A&5&Aй &7/keys'
+    lore:
+      - '&f Ключи от кейсов за монеты'
+      - '&f и осколки.'
+      - ''
+      - '&#1CA769➥ &fНажмите, чтобы купить ключи.'
+    click_commands:
+      - '[sound] ITEM_BOOK_PAGE_TURN'
+      - '[player] keys'
+      - '[close]'
+
+  'Аукцион /ah':
+    slots:
+    - 12
+    material: GOLD_INGOT
+    display_name: '&x&1&C&A&7&6&9А&x&2&2&A&A&6&6у&x&2&9&A&D&6&4к&x&2&F&B&0&6&1ц&x&3&6&B&3&5&Fи&x&3&C&B&6&5&Cо&x&4&3&B&A&5&Aн &7/ah'
+    lore:
+      - '&f Покупайте и продавайте вещи'
+      - '&f через аукцион игроков.'
+      - ''
+      - '&#1CA769➥ &fНажмите, чтобы открыть аукцион.'
+    click_commands:
+      - '[sound] ITEM_BOOK_PAGE_TURN'
+      - '[player] ah'
+      - '[close]'
+
+  'Донат-магазин /shop':
+    slots:
+    - 14
+    material: NETHERITE_INGOT
+    display_name: '&x&1&C&A&7&6&9Д&x&1&F&A&8&6&7о&x&2&2&A&A&6&6н&x&2&5&A&B&6&5а&x&2&9&A&D&6&4т&x&2&C&A&E&6&2-&x&2&F&B&0&6&1м&x&3&2&B&2&6&0а&x&3&6&B&3&5&Fг&x&3&9&B&5&5&Dа&x&3&C&B&6&5&Cз&x&3&F&B&8&5&Bи&x&4&3&B&A&5&Aн &7/shop'
+    lore:
+      - '&f Кастомные предметы, зелья, кирки,'
+      - '&f талисманы и сферы за осколки.'
+      - ''
+      - '&#1CA769➥ &fНажмите, чтобы открыть.'
+    click_commands:
+      - '[sound] ITEM_BOOK_PAGE_TURN'
+      - '[player] shop'
+      - '[close]'
+
+  'Скупщик /buyer':
+    slots:
+    - 15
+    material: EMERALD
+    display_name: '&x&1&C&A&7&6&9С&x&2&2&A&A&6&6к&x&2&9&A&D&6&4у&x&2&F&B&0&6&1п&x&3&6&B&3&5&Fщ&x&3&C&B&6&5&Cи&x&4&3&B&A&5&Aк &7/buyer'
+    lore:
+      - '&f Скупщик ресурсов — продайте'
+      - '&f лишнее по выгодной цене.'
+      - ''
+      - '&#1CA769➥ &fНажмите, чтобы продать.'
+    click_commands:
+      - '[sound] ITEM_BOOK_PAGE_TURN'
+      - '[player] buyer'
+      - '[close]'
+
+  'Титулы /titles':
+    slots:
+    - 16
+    material: NAME_TAG
+    display_name: '&#C86BFFТитулы &7/titles'
+    lore:
+      - ''
+      - '&f Титулы после ника в чате.'
+      - '&f Выбиваются только из кейса титулов!'
+      - ''
+      - '&#1CA769➥ &fНажмите, чтобы посмотреть.'
+    click_commands:
+      - '[sound] ITEM_BOOK_PAGE_TURN'
+      - '[player] titles'
+      - '[close]'
+
+  # ---------- Игровое ----------
+
+  'Наборы /kit':
+    slots:
+    - 19
+    material: DIAMOND_CHESTPLATE
+    display_name: '&x&1&C&A&7&6&9Н&x&2&3&A&A&6&6а&x&2&B&A&E&6&3б&x&3&3&B&2&6&0о&x&3&B&B&6&5&Dр&x&4&3&B&A&5&Aы &7/kit'
+    lore:
+      - '&f Бесплатные и привилегированные'
+      - '&f наборы предметов.'
+      - ''
+      - '&#1CA769➥ &fНажмите, чтобы выбрать набор.'
+    click_commands:
+      - '[sound] ITEM_BOOK_PAGE_TURN'
+      - '[player] kit'
+      - '[close]'
+
+  'Талисманы /talisman':
+    slots:
+    - 20
+    material: TOTEM_OF_UNDYING
+    display_name: '&x&1&C&A&7&6&9Т&x&2&0&A&9&6&7а&x&2&5&A&B&6&5л&x&2&A&A&E&6&3и&x&2&F&B&0&6&1с&x&3&4&B&2&5&Fм&x&3&9&B&5&5&Dа&x&3&E&B&7&5&Bн&x&4&3&B&A&5&Aы &7/talisman'
+    lore:
+      - '&f Талисманы и сферы с бонусами'
+      - '&f к характеристикам.'
+      - ''
+      - '&#1CA769➥ &fНажмите, чтобы открыть талисманы.'
+    click_commands:
+      - '[sound] ITEM_BOOK_PAGE_TURN'
+      - '[player] talisman'
+      - '[close]'
+
+  'Кланы /clan':
+    slots:
+    - 21
+    material: SHIELD
+    display_name: '&x&1&C&A&7&6&9К&x&2&5&A&B&6&5л&x&2&F&B&0&6&1а&x&3&9&B&5&5&Dн&x&4&3&B&A&5&Aы &7/clan'
+    lore:
+      - '&f Создавайте кланы, воюйте'
+      - '&f и развивайте территорию.'
+      - ''
+      - '&#1CA769➥ &fНажмите, чтобы открыть кланы.'
+    click_commands:
+      - '[sound] ITEM_BOOK_PAGE_TURN'
+      - '[player] clan'
+      - '[close]'
+
+  'О сервере':
+    slots:
+    - 22
+    material: BOOK
+    display_name: '&x&1&C&A&7&6&9О&x&2&0&A&9&6&7 &x&2&5&A&B&6&5с&x&2&A&A&E&6&3е&x&2&F&B&0&6&1р&x&3&4&B&2&5&Fв&x&3&9&B&5&5&Dе&x&3&E&B&7&5&Bр&x&4&3&B&A&5&Aе'
+    lore:
+      - ''
+      - '&b&lVoidPE &f— Bedrock-сервер выживания.'
+      - ''
+      - '&fПолезные команды:'
+      - '&7• &f/menu &7— это меню'
+      - '&7• &f/kit &7— наборы привилегий'
+      - '&7• &f/keys &7— магазин ключей'
+      - '&7• &f/ah &7— аукцион игроков'
+      - '&7• &f/buyer &7— скупщик'
+      - '&7• &f/rtp &7— случайный телепорт'
+      - ''
+      - '&fПриятной игры!'
+
+  'Ночное зрение /nv':
+    slots:
+    - 23
+    material: GLOWSTONE_DUST
+    display_name: '&x&1&C&A&7&6&9Н&x&1&F&A&8&6&7о&x&2&2&A&A&6&6ч&x&2&5&A&B&6&5н&x&2&9&A&D&6&4о&x&2&C&A&E&6&2е&x&2&F&B&0&6&1 &x&3&2&B&2&6&0з&x&3&6&B&3&5&Fр&x&3&9&B&5&5&Dе&x&3&C&B&6&5&Cн&x&3&F&B&8&5&Bи&x&4&3&B&A&5&Aе &7/nv'
+    lore:
+      - '&f Включает ночное зрение'
+      - '&f до смерти или повторного ввода.'
+      - ''
+      - '&#1CA769➥ &fНажмите, чтобы включить.'
+    click_commands:
+      - '[sound] ITEM_BOOK_PAGE_TURN'
+      - '[player] nv'
+      - '[close]'
+
+  'Город Вардена /wcity':
+    slots:
+    - 24
+    material: SCULK_SHRIEKER
+    display_name: '&x&1&C&A&7&6&9Г&x&1&F&A&8&6&7о&x&2&2&A&A&6&6р&x&2&5&A&B&6&5о&x&2&9&A&D&6&4д&x&2&C&A&E&6&2 &x&2&F&B&0&6&1В&x&3&2&B&2&6&0а&x&3&6&B&3&5&Fр&x&3&9&B&5&5&Dд&x&3&C&B&6&5&Cе&x&3&F&B&8&5&Bн&x&4&3&B&A&5&Aа &7/wcity tp'
+    lore:
+      - '&f Опасный город с лутом'
+      - '&f и сундуками с ресурсами.'
+      - ''
+      - '&#1CA769➥ &fНажмите, чтобы отправиться.'
+    click_commands:
+      - '[sound] ITEM_BOOK_PAGE_TURN'
+      - '[player] wcity tp'
+      - '[close]'
+
+  'Дом /home':
+    slots:
+    - 25
+    material: RED_BED
+    display_name: '&x&1&C&A&7&6&9Д&x&2&F&B&0&6&1о&x&4&3&B&A&5&Aм &7/home'
+    lore:
+      - '&f Телепорт в ваш дом.'
+      - '&f Установить: &7/sethome&f.'
+      - ''
+      - '&#1CA769➥ &fНажмите, чтобы отправиться домой.'
+    click_commands:
+      - '[sound] ITEM_BOOK_PAGE_TURN'
+      - '[player] home'
+      - '[close]'
+
+  # ---------- Телепорты ----------
+  'Автошахта /warp mine':
+    slots:
+    - 28
+    material: NETHERITE_PICKAXE
+    display_name: '&x&1&C&A&7&6&9А&x&2&0&A&9&6&7в&x&2&5&A&B&6&5т&x&2&A&A&E&6&3о&x&2&F&B&0&6&1ш&x&3&4&B&2&5&Fа&x&3&9&B&5&5&Dх&x&3&E&B&7&5&Bт&x&4&3&B&A&5&Aа &7/warp mine'
+    lore:
+      - ''
+      - '&f Телепорт на автошахту,'
+      - '&f где можно копать ресурсы.'
+      - ''
+      - '&#1CA769➥ &fНажмите, чтобы отправиться.'
+    click_commands:
+      - '[sound] ITEM_BOOK_PAGE_TURN'
+      - '[player] warp mine'
+      - '[close]'
+
+  'Спавн /spawn':
+    slots:
+    - 30
+    material: BEACON
+    display_name: '&x&1&C&A&7&6&9С&x&2&5&A&B&6&5п&x&2&F&B&0&6&1а&x&3&9&B&5&5&Dв&x&4&3&B&A&5&Aн &7/spawn'
+    lore:
+      - '&f Вернуться на главный спавн'
+      - '&f сервера.'
+      - ''
+      - '&#1CA769➥ &fНажмите, чтобы вернуться на спавн.'
+    click_commands:
+      - '[sound] ITEM_BOOK_PAGE_TURN'
+      - '[player] spawn'
+      - '[close]'
+  'PvP Арена /warp pvp':
+    slots:
+    - 32
+    material: NETHERITE_SWORD
+    display_name: '&x&1&C&A&7&6&9P&x&2&0&A&9&6&7v&x&2&5&A&B&6&5P&x&2&A&A&E&6&3 &x&2&F&B&0&6&1А&x&3&4&B&2&5&Fр&x&3&9&B&5&5&Dе&x&3&E&B&7&5&Bн&x&4&3&B&A&5&Aа &7/warp pvp'
+    lore:
+      - ''
+      - '&f Телепорт на PvP-арену.'
+      - '&f Сражайтесь с другими игроками!'
+      - ''
+      - '&#1CA769➥ &fНажмите, чтобы отправиться.'
+    click_commands:
+      - '[sound] ITEM_BOOK_PAGE_TURN'
+      - '[player] warp pvp'
+      - '[close]'
+  'Случайный телепорт /rtp':
+    slots:
+    - 34
+    material: CHORUS_FRUIT
+    display_name: '&x&1&C&A&7&6&9С&x&1&E&A&8&6&8л&x&2&0&A&9&6&7у&x&2&2&A&A&6&6ч&x&2&5&A&B&6&5а&x&2&7&A&C&6&4й&x&2&9&A&D&6&3н&x&2&C&A&E&6&2ы&x&2&E&A&F&6&1й&x&3&0&B&1&6&1 &x&3&2&B&2&6&0т&x&3&5&B&3&5&Fе&x&3&7&B&4&5&Eл&x&3&9&B&5&5&Dе&x&3&C&B&6&5&Cп&x&3&E&B&7&5&Bо&x&4&0&B&8&5&Aр&x&4&3&B&A&5&Aт &7/rtp'
+    lore:
+      - ''
+      - '&f Случайный телепорт в мир выживания.'
+      - '&f Кулдаун: &b15 секунд&f.'
+      - ''
+      - '&#1CA769➥ &fНажмите, чтобы отправиться.'
+    click_commands:
+      - '[sound] ITEM_BOOK_PAGE_TURN'
+      - '[player] rtp'
+      - '[close]'
+
+  # ---------- Утилиты ----------
+
+  'Телепорт к игроку /tpa':
+    slots:
+    - 38
+    material: ENDER_EYE
+    display_name: '&x&1&C&A&7&6&9Т&x&1&E&A&8&6&8е&x&2&0&A&9&6&7л&x&2&3&A&A&6&6е&x&2&5&A&B&6&5п&x&2&8&A&C&6&4о&x&2&A&A&E&6&3р&x&2&D&A&F&6&2т&x&2&F&B&0&6&1 &x&3&1&B&1&6&0к&x&3&4&B&2&5&F &x&3&6&B&4&5&Eи&x&3&9&B&5&5&Dг&x&3&B&B&6&5&Cр&x&3&E&B&7&5&Bо&x&4&0&B&8&5&Aк&x&4&3&B&A&5&Aу &7/tpa'
+    lore:
+      - '&f Попросите телепорт к игроку'
+      - '&f или к себе.'
+      - ''
+      - '&#1CA769➥ &fНажмите, чтобы телепортироваться.'
+    click_commands:
+      - '[sound] ITEM_BOOK_PAGE_TURN'
+      - '[player] tpa'
+      - '[close]'
+
+  'Назад /back':
+    slots:
+    - 40
+    material: CLOCK
+    display_name: '&x&1&C&A&7&6&9Н&x&2&5&A&B&6&5а&x&2&F&B&0&6&1з&x&3&9&B&5&5&Dа&x&4&3&B&A&5&Aд &7/back'
+    lore:
+      - '&f Вернуться на прежнее место'
+      - '&f после телепорта или смерти.'
+      - ''
+      - '&#1CA769➥ &fНажмите, чтобы вернуться.'
+    click_commands:
+      - '[sound] ITEM_BOOK_PAGE_TURN'
+      - '[player] back'
+      - '[close]'
+
+  'Все телепорты /warp':
+    slots:
+    - 42
+    material: COMPASS
+    display_name: '&x&1&C&A&7&6&9В&x&1&F&A&8&6&7с&x&2&2&A&A&6&6е&x&2&5&A&B&6&5 &x&2&9&A&D&6&4т&x&2&C&A&E&6&2е&x&2&F&B&0&6&1л&x&3&2&B&2&6&0е&x&3&6&B&3&5&Fп&x&3&9&B&5&5&Dо&x&3&C&B&6&5&Cр&x&3&F&B&8&5&Bт&x&4&3&B&A&5&Aы &7/warp'
+    lore:
+      - '&f Список всех телепортов'
+      - '&f сервера.'
+      - ''
+      - '&#1CA769➥ &fНажмите, чтобы посмотреть.'
+    click_commands:
+      - '[sound] ITEM_BOOK_PAGE_TURN'
+      - '[player] warp'
+      - '[close]'
