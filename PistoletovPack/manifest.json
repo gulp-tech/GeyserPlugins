@@ -1,0 +1,29 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "Пистолетов Pack",
+    "description": "Призываемая GIF-сущность: /summon zombie_horse — Пистолетов танцует на экране. Удаление: /kill @e[type=zombie_horse]",
+    "uuid": "b75e302b-bf8d-4bd5-8e0d-3c35c2f074ef",
+    "version": [
+      1,
+      0,
+      0
+    ],
+    "min_engine_version": [
+      1,
+      20,
+      0
+    ]
+  },
+  "modules": [
+    {
+      "type": "resources",
+      "uuid": "d8e39da4-49a3-4d5a-b713-4140f17b6972",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    }
+  ]
+}

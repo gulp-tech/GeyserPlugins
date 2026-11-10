@@ -1,0 +1,98 @@
+{
+  "format_version": "1.10.0",
+  "render_controllers": {
+    "controller.render.pistoletov": {
+      "arrays": {
+        "textures": {
+          "Array.frames": [
+            "Texture.f000",
+            "Texture.f001",
+            "Texture.f002",
+            "Texture.f003",
+            "Texture.f004",
+            "Texture.f005",
+            "Texture.f006",
+            "Texture.f007",
+            "Texture.f008",
+            "Texture.f009",
+            "Texture.f010",
+            "Texture.f011",
+            "Texture.f012",
+            "Texture.f013",
+            "Texture.f014",
+            "Texture.f015",
+            "Texture.f016",
+            "Texture.f017",
+            "Texture.f018",
+            "Texture.f019",
+            "Texture.f020",
+            "Texture.f021",
+            "Texture.f022",
+            "Texture.f023",
+            "Texture.f024",
+            "Texture.f025",
+            "Texture.f026",
+            "Texture.f027",
+            "Texture.f028",
+            "Texture.f029",
+            "Texture.f030",
+            "Texture.f031",
+            "Texture.f032",
+            "Texture.f033",
+            "Texture.f034",
+            "Texture.f035",
+            "Texture.f036",
+            "Texture.f037",
+            "Texture.f038",
+            "Texture.f039",
+            "Texture.f040",
+            "Texture.f041",
+            "Texture.f042",
+            "Texture.f043",
+            "Texture.f044",
+            "Texture.f045",
+            "Texture.f046",
+            "Texture.f047",
+            "Texture.f048",
+            "Texture.f049",
+            "Texture.f050",
+            "Texture.f051",
+            "Texture.f052",
+            "Texture.f053",
+            "Texture.f054",
+            "Texture.f055",
+            "Texture.f056",
+            "Texture.f057",
+            "Texture.f058",
+            "Texture.f059",
+            "Texture.f060",
+            "Texture.f061",
+            "Texture.f062",
+            "Texture.f063",
+            "Texture.f064",
+            "Texture.f065",
+            "Texture.f066",
+            "Texture.f067",
+            "Texture.f068",
+            "Texture.f069",
+            "Texture.f070",
+            "Texture.f071",
+            "Texture.f072",
+            "Texture.f073",
+            "Texture.f074",
+            "Texture.f075"
+          ]
+        }
+      },
+      "geometry": "Geometry.default",
+      "materials": [
+        {
+          "*": "Material.default"
+        }
+      ],
+      "textures": [
+        "Array.frames[math.mod(math.floor(query.life_time * 25.0), 76.0)]"
+      ]
+    }
+  }
+}
