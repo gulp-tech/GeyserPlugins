@@ -35,9 +35,10 @@
   с иконкой из `VoidTalismans.mcpack`.
 
   **Ванильный тотем без PDC-метки остаётся ванильным** — записей без предиката
-  на `minecraft:totem_of_undying` нет. Иконка раздела меню использует
-  отдельный `item_model: voidtalismans:menu_icon` (запись на `minecraft:paper`
-  без предиката — этот model не встречается у настоящих предметов).
+  на `minecraft:totem_of_undying` с model `minecraft:totem_of_undying` нет.
+  Иконки меню используют отдельные `item_model: voidtalismans:menu_<id>`
+  (12 иконочных записей без предикатов — эти model не встречаются у настоящих
+  предметов) и `voidtalismans:menu_icon` для раздела в shop.yml.
 
 ## Правила
 

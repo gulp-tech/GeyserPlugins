@@ -3,6 +3,8 @@
 # Рамка — обычное ванильное чёрное стекло. Покупки списывают осколки
 # PlayerPoints только если хватает (click_requirement на каждом товаре).
 # Цены: output и points take в одном товаре должны совпадать.
+# item_model: voidtalismans:menu_<id> — иконка талисмана на Bedrock
+# (через Geyser-talismans-pdc-mapping.json + VoidTalismans.mcpack).
 menu_title: '• Магазин: талисманы'
 open_command: shoptalismans
 register_command: true
@@ -45,10 +47,10 @@ items:
     slots:
     - 13
     material: PRISMARINE_SHARD
-    display_name: '&#54C8FFТвои осколки'
+    display_name: '&bТвои осколки'
     lore:
       - ''
-      - '&fБаланс: &#54C8FF%playerpoints_points% осколков'
+      - '&fБаланс: &b%playerpoints_points% осколков'
       - '&7Ими оплачиваются покупки в этом магазине.'
     click_commands:
       - '[sound] ITEM_BOOK_PAGE_TURN'
@@ -57,7 +59,10 @@ items:
     slots:
     - 19
     material: TOTEM_OF_UNDYING
-    display_name: '&#FF5555Талисман воина'
+    item_model: voidtalismans:menu_crusher
+    model_data_component:
+      floats: [6]
+    display_name: '&cТалисман воина'
     lore:
       - ''
       - '&7Работает только в левой руке.'
@@ -66,22 +71,22 @@ items:
       - '&7Броня: &a+4'
       - '&7Здоровье: &a+2'
       - ''
-      - '&fЦена: &#54C8FF650 осколков'
-      - '&7Твой баланс: &#54C8FF%playerpoints_points%'
+      - '&fЦена: &b423 осколков'
+      - '&7Твой баланс: &b%playerpoints_points%'
       - '&eНажми, чтобы купить'
     click_requirement:
       requirements:
         shards:
           type: '>='
           input: '%playerpoints_points%'
-          output: '650'
+          output: '423'
       deny_commands:
-        - '[message] &#FF6B6BНе хватает осколков: нужно 650, у тебя %playerpoints_points%.'
+        - '[message] &cНе хватает осколков: нужно 423, у тебя %playerpoints_points%.'
         - '[sound] ENTITY_VILLAGER_NO'
     click_commands:
-      - '[console] points take %player_name% 650'
+      - '[console] points take %player_name% 423'
       - '[console] talisman give %player_name% crusher 1'
-      - '[message] &#7CFC00Покупка успешна: &#FF5555Талисман воина'
+      - '[message] &aПокупка успешна: &cТалисман воина'
       - '[sound] ENTITY_PLAYER_LEVELUP'
       - '[refresh]'
 
@@ -89,7 +94,10 @@ items:
     slots:
     - 21
     material: TOTEM_OF_UNDYING
-    display_name: '&#FF7847Талисман берсерка'
+    item_model: voidtalismans:menu_punisher
+    model_data_component:
+      floats: [8]
+    display_name: '&cТалисман берсерка'
     lore:
       - ''
       - '&7Работает только в левой руке.'
@@ -97,22 +105,22 @@ items:
       - '&7Урон: &a+4'
       - '&7Здоровье: &c-4'
       - ''
-      - '&fЦена: &#54C8FF910 осколков'
-      - '&7Твой баланс: &#54C8FF%playerpoints_points%'
+      - '&fЦена: &b592 осколков'
+      - '&7Твой баланс: &b%playerpoints_points%'
       - '&eНажми, чтобы купить'
     click_requirement:
       requirements:
         shards:
           type: '>='
           input: '%playerpoints_points%'
-          output: '910'
+          output: '592'
       deny_commands:
-        - '[message] &#FF6B6BНе хватает осколков: нужно 910, у тебя %playerpoints_points%.'
+        - '[message] &cНе хватает осколков: нужно 592, у тебя %playerpoints_points%.'
         - '[sound] ENTITY_VILLAGER_NO'
     click_commands:
-      - '[console] points take %player_name% 910'
+      - '[console] points take %player_name% 592'
       - '[console] talisman give %player_name% punisher 1'
-      - '[message] &#7CFC00Покупка успешна: &#FF7847Талисман берсерка'
+      - '[message] &aПокупка успешна: &cТалисман берсерка'
       - '[sound] ENTITY_PLAYER_LEVELUP'
       - '[refresh]'
 
@@ -120,7 +128,10 @@ items:
     slots:
     - 23
     material: TOTEM_OF_UNDYING
-    display_name: '&#7CFC00Талисман убийцы'
+    item_model: voidtalismans:menu_cobra
+    model_data_component:
+      floats: [7]
+    display_name: '&aТалисман убийцы'
     lore:
       - ''
       - '&7Работает только в левой руке.'
@@ -129,22 +140,22 @@ items:
       - '&7Скорость: &a+10%'
       - '&7Здоровье: &c-4'
       - ''
-      - '&fЦена: &#54C8FF1040 осколков'
-      - '&7Твой баланс: &#54C8FF%playerpoints_points%'
+      - '&fЦена: &b676 осколков'
+      - '&7Твой баланс: &b%playerpoints_points%'
       - '&eНажми, чтобы купить'
     click_requirement:
       requirements:
         shards:
           type: '>='
           input: '%playerpoints_points%'
-          output: '1040'
+          output: '676'
       deny_commands:
-        - '[message] &#FF6B6BНе хватает осколков: нужно 1040, у тебя %playerpoints_points%.'
+        - '[message] &cНе хватает осколков: нужно 676, у тебя %playerpoints_points%.'
         - '[sound] ENTITY_VILLAGER_NO'
     click_commands:
-      - '[console] points take %player_name% 1040'
+      - '[console] points take %player_name% 676'
       - '[console] talisman give %player_name% cobra 1'
-      - '[message] &#7CFC00Покупка успешна: &#7CFC00Талисман убийцы'
+      - '[message] &aПокупка успешна: Талисман убийцы'
       - '[sound] ENTITY_PLAYER_LEVELUP'
       - '[refresh]'
 
@@ -152,7 +163,10 @@ items:
     slots:
     - 25
     material: TOTEM_OF_UNDYING
-    display_name: '&#FF3D3DТалисман ярости'
+    item_model: voidtalismans:menu_echidna
+    model_data_component:
+      floats: [2]
+    display_name: '&cТалисман ярости'
     lore:
       - ''
       - '&7Работает только в левой руке.'
@@ -161,22 +175,22 @@ items:
       - '&7Броня: &c-2'
       - '&7Здоровье: &c-2'
       - ''
-      - '&fЦена: &#54C8FF975 осколков'
-      - '&7Твой баланс: &#54C8FF%playerpoints_points%'
+      - '&fЦена: &b634 осколков'
+      - '&7Твой баланс: &b%playerpoints_points%'
       - '&eНажми, чтобы купить'
     click_requirement:
       requirements:
         shards:
           type: '>='
           input: '%playerpoints_points%'
-          output: '975'
+          output: '634'
       deny_commands:
-        - '[message] &#FF6B6BНе хватает осколков: нужно 975, у тебя %playerpoints_points%.'
+        - '[message] &cНе хватает осколков: нужно 634, у тебя %playerpoints_points%.'
         - '[sound] ENTITY_VILLAGER_NO'
     click_commands:
-      - '[console] points take %player_name% 975'
+      - '[console] points take %player_name% 634'
       - '[console] talisman give %player_name% echidna 1'
-      - '[message] &#7CFC00Покупка успешна: &#FF3D3DТалисман ярости'
+      - '[message] &aПокупка успешна: &cТалисман ярости'
       - '[sound] ENTITY_PLAYER_LEVELUP'
       - '[refresh]'
 
@@ -184,7 +198,10 @@ items:
     slots:
     - 28
     material: TOTEM_OF_UNDYING
-    display_name: '&#55E6FFТалисман бегуна'
+    item_model: voidtalismans:menu_grani
+    model_data_component:
+      floats: [10]
+    display_name: '&bТалисман бегуна'
     lore:
       - ''
       - '&7Работает только в левой руке.'
@@ -193,22 +210,22 @@ items:
       - '&7Скорость: &a+20%'
       - '&7Здоровье: &c-2'
       - ''
-      - '&fЦена: &#54C8FF845 осколков'
-      - '&7Твой баланс: &#54C8FF%playerpoints_points%'
+      - '&fЦена: &b549 осколков'
+      - '&7Твой баланс: &b%playerpoints_points%'
       - '&eНажми, чтобы купить'
     click_requirement:
       requirements:
         shards:
           type: '>='
           input: '%playerpoints_points%'
-          output: '845'
+          output: '549'
       deny_commands:
-        - '[message] &#FF6B6BНе хватает осколков: нужно 845, у тебя %playerpoints_points%.'
+        - '[message] &cНе хватает осколков: нужно 549, у тебя %playerpoints_points%.'
         - '[sound] ENTITY_VILLAGER_NO'
     click_commands:
-      - '[console] points take %player_name% 845'
+      - '[console] points take %player_name% 549'
       - '[console] talisman give %player_name% grani 1'
-      - '[message] &#7CFC00Покупка успешна: &#55E6FFТалисман бегуна'
+      - '[message] &aПокупка успешна: &bТалисман бегуна'
       - '[sound] ENTITY_PLAYER_LEVELUP'
       - '[refresh]'
 
@@ -216,7 +233,10 @@ items:
     slots:
     - 30
     material: TOTEM_OF_UNDYING
-    display_name: '&#C19A6BТалисман охотника'
+    item_model: voidtalismans:menu_vepr
+    model_data_component:
+      floats: [9]
+    display_name: '&7Талисман охотника'
     lore:
       - ''
       - '&7Работает только в левой руке.'
@@ -225,22 +245,22 @@ items:
       - '&7Скорость: &a+10%'
       - '&7Здоровье: &c-2'
       - ''
-      - '&fЦена: &#54C8FF780 осколков'
-      - '&7Твой баланс: &#54C8FF%playerpoints_points%'
+      - '&fЦена: &b507 осколков'
+      - '&7Твой баланс: &b%playerpoints_points%'
       - '&eНажми, чтобы купить'
     click_requirement:
       requirements:
         shards:
           type: '>='
           input: '%playerpoints_points%'
-          output: '780'
+          output: '507'
       deny_commands:
-        - '[message] &#FF6B6BНе хватает осколков: нужно 780, у тебя %playerpoints_points%.'
+        - '[message] &cНе хватает осколков: нужно 507, у тебя %playerpoints_points%.'
         - '[sound] ENTITY_VILLAGER_NO'
     click_commands:
-      - '[console] points take %player_name% 780'
+      - '[console] points take %player_name% 507'
       - '[console] talisman give %player_name% vepr 1'
-      - '[message] &#7CFC00Покупка успешна: &#C19A6BТалисман охотника'
+      - '[message] &aПокупка успешна: &7Талисман охотника'
       - '[sound] ENTITY_PLAYER_LEVELUP'
       - '[refresh]'
 
@@ -248,7 +268,10 @@ items:
     slots:
     - 32
     material: TOTEM_OF_UNDYING
-    display_name: '&#C86BFFТалисман странника'
+    item_model: voidtalismans:menu_harmony
+    model_data_component:
+      floats: [4]
+    display_name: '&dТалисман странника'
     lore:
       - ''
       - '&7Работает только в левой руке.'
@@ -257,22 +280,22 @@ items:
       - '&7Здоровье: &a+2'
       - '&7Скорость: &a+5%'
       - ''
-      - '&fЦена: &#54C8FF585 осколков'
-      - '&7Твой баланс: &#54C8FF%playerpoints_points%'
+      - '&fЦена: &b380 осколков'
+      - '&7Твой баланс: &b%playerpoints_points%'
       - '&eНажми, чтобы купить'
     click_requirement:
       requirements:
         shards:
           type: '>='
           input: '%playerpoints_points%'
-          output: '585'
+          output: '380'
       deny_commands:
-        - '[message] &#FF6B6BНе хватает осколков: нужно 585, у тебя %playerpoints_points%.'
+        - '[message] &cНе хватает осколков: нужно 380, у тебя %playerpoints_points%.'
         - '[sound] ENTITY_VILLAGER_NO'
     click_commands:
-      - '[console] points take %player_name% 585'
+      - '[console] points take %player_name% 380'
       - '[console] talisman give %player_name% harmony 1'
-      - '[message] &#7CFC00Покупка успешна: &#C86BFFТалисман странника'
+      - '[message] &aПокупка успешна: &dТалисман странника'
       - '[sound] ENTITY_PLAYER_LEVELUP'
       - '[refresh]'
 
@@ -280,29 +303,32 @@ items:
     slots:
     - 34
     material: TOTEM_OF_UNDYING
-    display_name: '&#FFC46BТалисман жизни'
+    item_model: voidtalismans:menu_phoenix
+    model_data_component:
+      floats: [1]
+    display_name: '&eТалисман жизни'
     lore:
       - ''
       - '&7Работает только в левой руке.'
       - ''
       - '&7Здоровье: &a+6'
       - ''
-      - '&fЦена: &#54C8FF1040 осколков'
-      - '&7Твой баланс: &#54C8FF%playerpoints_points%'
+      - '&fЦена: &b676 осколков'
+      - '&7Твой баланс: &b%playerpoints_points%'
       - '&eНажми, чтобы купить'
     click_requirement:
       requirements:
         shards:
           type: '>='
           input: '%playerpoints_points%'
-          output: '1040'
+          output: '676'
       deny_commands:
-        - '[message] &#FF6B6BНе хватает осколков: нужно 1040, у тебя %playerpoints_points%.'
+        - '[message] &cНе хватает осколков: нужно 676, у тебя %playerpoints_points%.'
         - '[sound] ENTITY_VILLAGER_NO'
     click_commands:
-      - '[console] points take %player_name% 1040'
+      - '[console] points take %player_name% 676'
       - '[console] talisman give %player_name% phoenix 1'
-      - '[message] &#7CFC00Покупка успешна: &#FFC46BТалисман жизни'
+      - '[message] &aПокупка успешна: &eТалисман жизни'
       - '[sound] ENTITY_PLAYER_LEVELUP'
       - '[refresh]'
 
@@ -310,7 +336,10 @@ items:
     slots:
     - 37
     material: TOTEM_OF_UNDYING
-    display_name: '&#4DB8FFТалисман танка'
+    item_model: voidtalismans:menu_sources
+    model_data_component:
+      floats: [5]
+    display_name: '&bТалисман танка'
     lore:
       - ''
       - '&7Работает только в левой руке.'
@@ -319,22 +348,22 @@ items:
       - '&7Здоровье: &a+4'
       - '&7Скорость: &c-10%'
       - ''
-      - '&fЦена: &#54C8FF1170 осколков'
-      - '&7Твой баланс: &#54C8FF%playerpoints_points%'
+      - '&fЦена: &b761 осколков'
+      - '&7Твой баланс: &b%playerpoints_points%'
       - '&eНажми, чтобы купить'
     click_requirement:
       requirements:
         shards:
           type: '>='
           input: '%playerpoints_points%'
-          output: '1170'
+          output: '761'
       deny_commands:
-        - '[message] &#FF6B6BНе хватает осколков: нужно 1170, у тебя %playerpoints_points%.'
+        - '[message] &cНе хватает осколков: нужно 761, у тебя %playerpoints_points%.'
         - '[sound] ENTITY_VILLAGER_NO'
     click_commands:
-      - '[console] points take %player_name% 1170'
+      - '[console] points take %player_name% 761'
       - '[console] talisman give %player_name% sources 1'
-      - '[message] &#7CFC00Покупка успешна: &#4DB8FFТалисман танка'
+      - '[message] &aПокупка успешна: &bТалисман танка'
       - '[sound] ENTITY_PLAYER_LEVELUP'
       - '[refresh]'
 
@@ -342,7 +371,10 @@ items:
     slots:
     - 39
     material: TOTEM_OF_UNDYING
-    display_name: '&#7FB2FFТалисман стража'
+    item_model: voidtalismans:menu_triton
+    model_data_component:
+      floats: [3]
+    display_name: '&bТалисман стража'
     lore:
       - ''
       - '&7Работает только в левой руке.'
@@ -351,22 +383,22 @@ items:
       - '&7Здоровье: &a+2'
       - '&7Скорость: &c-5%'
       - ''
-      - '&fЦена: &#54C8FF975 осколков'
-      - '&7Твой баланс: &#54C8FF%playerpoints_points%'
+      - '&fЦена: &b634 осколков'
+      - '&7Твой баланс: &b%playerpoints_points%'
       - '&eНажми, чтобы купить'
     click_requirement:
       requirements:
         shards:
           type: '>='
           input: '%playerpoints_points%'
-          output: '975'
+          output: '634'
       deny_commands:
-        - '[message] &#FF6B6BНе хватает осколков: нужно 975, у тебя %playerpoints_points%.'
+        - '[message] &cНе хватает осколков: нужно 634, у тебя %playerpoints_points%.'
         - '[sound] ENTITY_VILLAGER_NO'
     click_commands:
-      - '[console] points take %player_name% 975'
+      - '[console] points take %player_name% 634'
       - '[console] talisman give %player_name% triton 1'
-      - '[message] &#7CFC00Покупка успешна: &#7FB2FFТалисман стража'
+      - '[message] &aПокупка успешна: &bТалисман стража'
       - '[sound] ENTITY_PLAYER_LEVELUP'
       - '[refresh]'
 
@@ -374,7 +406,10 @@ items:
     slots:
     - 41
     material: TOTEM_OF_UNDYING
-    display_name: '&#B03060Талисман демона'
+    item_model: voidtalismans:menu_satan
+    model_data_component:
+      floats: [11]
+    display_name: '&cТалисман демона'
     lore:
       - ''
       - '&7Работает только в левой руке.'
@@ -383,22 +418,22 @@ items:
       - '&7Здоровье: &a+4'
       - '&7Броня: &c-4'
       - ''
-      - '&fЦена: &#54C8FF1170 осколков'
-      - '&7Твой баланс: &#54C8FF%playerpoints_points%'
+      - '&fЦена: &b761 осколков'
+      - '&7Твой баланс: &b%playerpoints_points%'
       - '&eНажми, чтобы купить'
     click_requirement:
       requirements:
         shards:
           type: '>='
           input: '%playerpoints_points%'
-          output: '1170'
+          output: '761'
       deny_commands:
-        - '[message] &#FF6B6BНе хватает осколков: нужно 1170, у тебя %playerpoints_points%.'
+        - '[message] &cНе хватает осколков: нужно 761, у тебя %playerpoints_points%.'
         - '[sound] ENTITY_VILLAGER_NO'
     click_commands:
-      - '[console] points take %player_name% 1170'
+      - '[console] points take %player_name% 761'
       - '[console] talisman give %player_name% satan 1'
-      - '[message] &#7CFC00Покупка успешна: &#B03060Талисман демона'
+      - '[message] &aПокупка успешна: &cТалисман демона'
       - '[sound] ENTITY_PLAYER_LEVELUP'
       - '[refresh]'
 
@@ -406,7 +441,10 @@ items:
     slots:
     - 43
     material: TOTEM_OF_UNDYING
-    display_name: '&#FFE259Талисман героя'
+    item_model: voidtalismans:menu_absolut
+    model_data_component:
+      floats: [12]
+    display_name: '&eТалисман героя'
     lore:
       - ''
       - '&7Работает только в левой руке.'
@@ -416,22 +454,22 @@ items:
       - '&7Здоровье: &a+4'
       - '&7Скорость: &a+10%'
       - ''
-      - '&fЦена: &#54C8FF1625 осколков'
-      - '&7Твой баланс: &#54C8FF%playerpoints_points%'
+      - '&fЦена: &b1056 осколков'
+      - '&7Твой баланс: &b%playerpoints_points%'
       - '&eНажми, чтобы купить'
     click_requirement:
       requirements:
         shards:
           type: '>='
           input: '%playerpoints_points%'
-          output: '1625'
+          output: '1056'
       deny_commands:
-        - '[message] &#FF6B6BНе хватает осколков: нужно 1625, у тебя %playerpoints_points%.'
+        - '[message] &cНе хватает осколков: нужно 1056, у тебя %playerpoints_points%.'
         - '[sound] ENTITY_VILLAGER_NO'
     click_commands:
-      - '[console] points take %player_name% 1625'
+      - '[console] points take %player_name% 1056'
       - '[console] talisman give %player_name% absolut 1'
-      - '[message] &#7CFC00Покупка успешна: &#FFE259Талисман героя'
+      - '[message] &aПокупка успешна: &eТалисман героя'
       - '[sound] ENTITY_PLAYER_LEVELUP'
       - '[refresh]'
 

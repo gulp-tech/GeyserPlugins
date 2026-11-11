@@ -205,6 +205,114 @@
           "fallback_key": "faraltalismans:talisman_id",
           "value": "harmony"
         }
+      },
+      {
+        "type": "definition",
+        "model": "voidtalismans:menu_crusher",
+        "bedrock_identifier": "geyser_custom:talisman_menu_crusher",
+        "bedrock_options": {
+          "icon": "talisman_crusher",
+          "creative_category": "items"
+        }
+      },
+      {
+        "type": "definition",
+        "model": "voidtalismans:menu_punisher",
+        "bedrock_identifier": "geyser_custom:talisman_menu_punisher",
+        "bedrock_options": {
+          "icon": "talisman_punisher",
+          "creative_category": "items"
+        }
+      },
+      {
+        "type": "definition",
+        "model": "voidtalismans:menu_cobra",
+        "bedrock_identifier": "geyser_custom:talisman_menu_cobra",
+        "bedrock_options": {
+          "icon": "talisman_cobra",
+          "creative_category": "items"
+        }
+      },
+      {
+        "type": "definition",
+        "model": "voidtalismans:menu_echidna",
+        "bedrock_identifier": "geyser_custom:talisman_menu_echidna",
+        "bedrock_options": {
+          "icon": "talisman_echidna",
+          "creative_category": "items"
+        }
+      },
+      {
+        "type": "definition",
+        "model": "voidtalismans:menu_grani",
+        "bedrock_identifier": "geyser_custom:talisman_menu_grani",
+        "bedrock_options": {
+          "icon": "talisman_grani",
+          "creative_category": "items"
+        }
+      },
+      {
+        "type": "definition",
+        "model": "voidtalismans:menu_vepr",
+        "bedrock_identifier": "geyser_custom:talisman_menu_vepr",
+        "bedrock_options": {
+          "icon": "talisman_vepr",
+          "creative_category": "items"
+        }
+      },
+      {
+        "type": "definition",
+        "model": "voidtalismans:menu_harmony",
+        "bedrock_identifier": "geyser_custom:talisman_menu_harmony",
+        "bedrock_options": {
+          "icon": "talisman_harmony",
+          "creative_category": "items"
+        }
+      },
+      {
+        "type": "definition",
+        "model": "voidtalismans:menu_phoenix",
+        "bedrock_identifier": "geyser_custom:talisman_menu_phoenix",
+        "bedrock_options": {
+          "icon": "talisman_phoenix",
+          "creative_category": "items"
+        }
+      },
+      {
+        "type": "definition",
+        "model": "voidtalismans:menu_sources",
+        "bedrock_identifier": "geyser_custom:talisman_menu_sources",
+        "bedrock_options": {
+          "icon": "talisman_sources",
+          "creative_category": "items"
+        }
+      },
+      {
+        "type": "definition",
+        "model": "voidtalismans:menu_triton",
+        "bedrock_identifier": "geyser_custom:talisman_menu_triton",
+        "bedrock_options": {
+          "icon": "talisman_triton",
+          "creative_category": "items"
+        }
+      },
+      {
+        "type": "definition",
+        "model": "voidtalismans:menu_satan",
+        "bedrock_identifier": "geyser_custom:talisman_menu_satan",
+        "bedrock_options": {
+          "icon": "talisman_satan",
+          "creative_category": "items"
+        }
+      },
+      {
+        "type": "definition",
+        "model": "voidtalismans:menu_absolut",
+        "bedrock_identifier": "geyser_custom:talisman_menu_absolut",
+        "bedrock_options": {
+          "icon": "talisman_absolut",
+          "creative_category": "items"
+        }
       }
     ],
     "minecraft:paper": [
