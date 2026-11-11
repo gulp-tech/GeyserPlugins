@@ -237,6 +237,22 @@ jobs:
           "$RUNNER_TEMP/tnt-venv/bin/pip" install PyYAML
           "$RUNNER_TEMP/tnt-venv/bin/python" tools/test_hypertnt_configs.py
 
+      - name: Проверить и собрать плагин HyperTNT
+        working-directory: HyperTNT
+        run: |
+          mkdir -p "$RUNNER_TEMP/hypertnt-tests"
+          javac -d "$RUNNER_TEMP/hypertnt-tests" src/main/java/mk/hypertnt/TntRegistry.java src/testSelf/java/mk/hypertnt/TntRegistryTest.java
+          java -ea -cp "$RUNNER_TEMP/hypertnt-tests" mk.hypertnt.TntRegistryTest
+          build() { mvn -B -DskipTests "$@" package > mvn.log 2>&1; }
+          if ! build -Dpurpur.version="$PURPUR_VERSION"; then
+            grep -E "\[ERROR\]|BUILD FAILURE|Could not resolve|Failed to read" mvn.log | head -20 | sed 's/%/%25/g; s/^/::error::/'
+            echo "Purpur API недоступна — собираем с Paper API (на Purpur работает так же)"
+            if ! build -Dapi.groupId=io.papermc.paper -Dapi.artifactId=paper-api -Dpurpur.version=26.2-R0.1-SNAPSHOT; then
+              grep -E "\[ERROR\]|BUILD FAILURE|Could not resolve|Failed to read" mvn.log | head -20 | sed 's/%/%25/g; s/^/::error::/'
+              exit 1
+            fi
+          fi
+
       - name: Собрать плагин VoidShulker
         working-directory: VoidShulker
         run: |
@@ -321,6 +337,7 @@ jobs:
             VoidRtpZone/target/VoidRtpZone-*.jar
             VoidNV/target/VoidNV-*.jar
             VoidShulker/target/VoidShulker-*.jar
+            HyperTNT/target/HyperTNT-*.jar
             VoidAnvilExtension/build/libs/VoidAnvilExtension-*.jar
             VoidVersionsExtension/build/libs/VoidVersionsExtension-*.jar
             VoidCommandsExtension/build/libs/VoidCommandsExtension-*.jar

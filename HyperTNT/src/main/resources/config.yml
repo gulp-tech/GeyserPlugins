@@ -1,0 +1,19 @@
+# ═══════════════════════════════════════════════════════
+#   HyperTNT — config.yml
+#   Telegram: @arsiii111
+# ═══════════════════════════════════════════════════════
+
+tnts:
+  sources:
+  - tnt_basic.yml
+  - tnt_fire.yml
+  - tnt_obs.yml
+  - tnt_heavy.yml
+  - tnt_explosive.yml
+  - tnt_poseidon.yml
+
+config-version: 2
+
+settings:
+  locale: ru_RU
+  debug: false
