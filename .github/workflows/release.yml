@@ -221,6 +221,22 @@ jobs:
           "$RUNNER_TEMP/tnt-venv/bin/pip" install PyYAML
           "$RUNNER_TEMP/tnt-venv/bin/python" tools/test_hypertnt_configs.py
 
+      - name: Проверить и собрать плагин HyperTNT
+        working-directory: HyperTNT
+        run: |
+          mkdir -p "$RUNNER_TEMP/hypertnt-tests"
+          javac -d "$RUNNER_TEMP/hypertnt-tests" src/main/java/mk/hypertnt/TntRegistry.java src/testSelf/java/mk/hypertnt/TntRegistryTest.java
+          java -ea -cp "$RUNNER_TEMP/hypertnt-tests" mk.hypertnt.TntRegistryTest
+          build() { mvn -B -DskipTests "$@" package > mvn.log 2>&1; }
+          if ! build -Dpurpur.version="$PURPUR_VERSION"; then
+            grep -E "\[ERROR\]|BUILD FAILURE|Could not resolve|Failed to read" mvn.log | head -20 | sed 's/%/%25/g; s/^/::error::/'
+            echo "Purpur API недоступна — собираем с Paper API (на Purpur работает так же)"
+            if ! build -Dapi.groupId=io.papermc.paper -Dapi.artifactId=paper-api -Dpurpur.version=26.2-R0.1-SNAPSHOT; then
+              grep -E "\[ERROR\]|BUILD FAILURE|Could not resolve|Failed to read" mvn.log | head -20 | sed 's/%/%25/g; s/^/::error::/'
+              exit 1
+            fi
+          fi
+
       - name: Собрать плагин VoidShulker
         working-directory: VoidShulker
         run: |
@@ -323,12 +339,13 @@ jobs:
           RTZ=$(ls VoidRtpZone/target/VoidRtpZone-*.jar | head -1)
           NV=$(ls VoidNV/target/VoidNV-*.jar | head -1)
           SHU=$(ls VoidShulker/target/VoidShulker-*.jar | head -1)
+          HTN=$(ls HyperTNT/target/HyperTNT-*.jar | head -1)
           ANV=$(ls VoidAnvilExtension/build/libs/VoidAnvilExtension-*.jar | head -1)
           VVE=$(ls VoidVersionsExtension/build/libs/VoidVersionsExtension-*.jar | head -1)
           VCE=$(ls VoidCommandsExtension/build/libs/VoidCommandsExtension-*.jar | head -1)
           python3 tools/package_hypertnt_configs.py "$RUNNER_TEMP/VoidPE-HyperTNT-safe-configs.zip"
           echo "Файлы релиза: $JAR + $TAL + $ITM (ресурспак убран: он вызывал лаги)"
-          gh release create "${{ inputs.tag || github.ref_name }}" "$PVP" "$JAR" "$TAL" "$ITM" "$ENC" "$CAS" "$CLN" "$DRP" "$CMB" "$VAC" "$AUS" "$WCT" "$RTZ" "$NV" "$SHU" "$ANV" "$VVE" "$VCE" VoidResourcePack.mcpack VoidSpheres.mcpack "$RUNNER_TEMP/VoidPE-HyperTNT-safe-configs.zip" \
+          gh release create "${{ inputs.tag || github.ref_name }}" "$PVP" "$JAR" "$TAL" "$ITM" "$ENC" "$CAS" "$CLN" "$DRP" "$CMB" "$VAC" "$AUS" "$WCT" "$RTZ" "$NV" "$SHU" "$HTN" "$ANV" "$VVE" "$VCE" VoidResourcePack.mcpack VoidSpheres.mcpack "$RUNNER_TEMP/VoidPE-HyperTNT-safe-configs.zip" \
             --target "$GITHUB_SHA" \
             --title "VoidPE ${{ inputs.tag || github.ref_name }}" \
             --notes "VoidCommandsExtension 1.0.0: настоящие per-player Bukkit tab-completion для аргументов Bedrock-команд, включая имена домов /home; списки обновляются после команд и без перезахода. VoidResourcePack 1.18.1: скрывает красные числа sidebar TAB через коллекцию и сам score label, сохраняя строки и их порядок. Для этой задачи установите расширение в plugins/Geyser-Spigot/extensions и замените пак в plugins/Geyser-Spigot/packs, затем перезапустите сервер; TAB 6.2.1 можно оставить. VoidWardenCity 1.4.3: защита городских сундуков от застройки и разрушения. VoidShulker 1.0.4: свободное размещение в любом слоте. VoidSpheres.mcpack — только для сфер."
