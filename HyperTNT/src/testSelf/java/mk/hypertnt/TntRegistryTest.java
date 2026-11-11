@@ -113,7 +113,7 @@ public final class TntRegistryTest {
         piston.put(outChunk, "tnt_basic");
         piston.put(farChunk, "tnt_basic");
         checkEquals(2, piston.positionsIn(world, 1, 1).size(), "positionsIn фильтрует по чанку");
-        checkEquals(3, piston.positionsIn(world).size(), "positionsIn(world) без фильтра чанка");
+        checkEquals(4, piston.positionsIn(world).size(), "positionsIn(world) без фильтра чанка");
         checkEquals(0, piston.positionsIn(nether).size(), "чужой мир пуст");
 
         // validateIn: устаревшие записи удаляются, живые остаются
