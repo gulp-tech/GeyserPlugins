@@ -1,0 +1,30 @@
+{
+  "format_version": 2,
+  "header": {
+    "description": "VoidPE: кастомные текстуры талисманов (12 шт.) — тотемы Mob Vote",
+    "name": "VoidTalismans",
+    "uuid": "c9920c77-1da2-45f6-9282-d1cd31629af2",
+    "version": [
+      1,
+      0,
+      0
+    ],
+    "min_engine_version": [
+      1,
+      18,
+      10
+    ]
+  },
+  "modules": [
+    {
+      "description": "VoidTalismans resources",
+      "type": "resources",
+      "uuid": "4cdef49d-f7d6-4dbc-b834-ea376133c549",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    }
+  ]
+}

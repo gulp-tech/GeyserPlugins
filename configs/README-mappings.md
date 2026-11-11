@@ -25,6 +25,20 @@
   старого ядра, где `server_pdc_string` не поддерживается. Любая бумага с
   подходящим `item_model` получает кастомный вид (подделка возможна).
 
+## Талисманы
+
+- `Geyser-talismans-pdc-mapping.json` — **новый, защищённый** (тестовое ядро).
+  12 записей по `minecraft:totem_of_undying` с predicate `server_pdc_string`
+  (`voidtalismans:talisman_id` + `fallback_key` `faraltalismans:talisman_id`,
+  value = id талисмана: crusher, punisher, absolut, cobra, echidna, grani,
+  satan, sources, triton, phoenix, vepr, harmony) → `geyser_custom:talisman_<id>`
+  с иконкой из `VoidTalismans.mcpack`.
+
+  **Ванильный тотем без PDC-метки остаётся ванильным** — записей без предиката
+  на `minecraft:totem_of_undying` нет. Иконка раздела меню использует
+  отдельный `item_model: voidtalismans:menu_icon` (запись на `minecraft:paper`
+  без предиката — этот model не встречается у настоящих предметов).
+
 ## Правила
 
 1. `item_model` предмета должен совпадать с записью маппинга

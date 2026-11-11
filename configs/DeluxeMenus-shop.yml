@@ -109,6 +109,7 @@ items:
     slots:
     - 29
     material: PAPER
+    item_model: voidtalismans:menu_icon
     model_data_component:
       floats: [42]
     display_name: '&eТалисманы'

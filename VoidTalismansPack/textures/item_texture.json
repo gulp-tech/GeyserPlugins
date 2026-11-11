@@ -1,0 +1,45 @@
+{
+  "resource_pack_name": "geyser_custom",
+  "texture_name": "atlas.items",
+  "texture_data": {
+    "talisman_crusher": {
+      "textures": "textures/item/talisman_crusher"
+    },
+    "talisman_punisher": {
+      "textures": "textures/item/talisman_punisher"
+    },
+    "talisman_absolut": {
+      "textures": "textures/item/talisman_absolut"
+    },
+    "talisman_cobra": {
+      "textures": "textures/item/talisman_cobra"
+    },
+    "talisman_echidna": {
+      "textures": "textures/item/talisman_echidna"
+    },
+    "talisman_grani": {
+      "textures": "textures/item/talisman_grani"
+    },
+    "talisman_satan": {
+      "textures": "textures/item/talisman_satan"
+    },
+    "talisman_sources": {
+      "textures": "textures/item/talisman_sources"
+    },
+    "talisman_triton": {
+      "textures": "textures/item/talisman_triton"
+    },
+    "talisman_phoenix": {
+      "textures": "textures/item/talisman_phoenix"
+    },
+    "talisman_vepr": {
+      "textures": "textures/item/talisman_vepr"
+    },
+    "talisman_harmony": {
+      "textures": "textures/item/talisman_harmony"
+    },
+    "talisman_menu": {
+      "textures": "textures/item/talisman_menu"
+    }
+  }
+}

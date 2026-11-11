@@ -1,0 +1,222 @@
+{
+  "format_version": 2,
+  "items": {
+    "minecraft:totem_of_undying": [
+      {
+        "type": "definition",
+        "model": "minecraft:totem_of_undying",
+        "bedrock_identifier": "geyser_custom:talisman_crusher",
+        "bedrock_options": {
+          "icon": "talisman_crusher",
+          "allow_offhand": true,
+          "display_handheld": true,
+          "creative_category": "items"
+        },
+        "predicate": {
+          "type": "server_pdc_string",
+          "key": "voidtalismans:talisman_id",
+          "fallback_key": "faraltalismans:talisman_id",
+          "value": "crusher"
+        }
+      },
+      {
+        "type": "definition",
+        "model": "minecraft:totem_of_undying",
+        "bedrock_identifier": "geyser_custom:talisman_punisher",
+        "bedrock_options": {
+          "icon": "talisman_punisher",
+          "allow_offhand": true,
+          "display_handheld": true,
+          "creative_category": "items"
+        },
+        "predicate": {
+          "type": "server_pdc_string",
+          "key": "voidtalismans:talisman_id",
+          "fallback_key": "faraltalismans:talisman_id",
+          "value": "punisher"
+        }
+      },
+      {
+        "type": "definition",
+        "model": "minecraft:totem_of_undying",
+        "bedrock_identifier": "geyser_custom:talisman_absolut",
+        "bedrock_options": {
+          "icon": "talisman_absolut",
+          "allow_offhand": true,
+          "display_handheld": true,
+          "creative_category": "items"
+        },
+        "predicate": {
+          "type": "server_pdc_string",
+          "key": "voidtalismans:talisman_id",
+          "fallback_key": "faraltalismans:talisman_id",
+          "value": "absolut"
+        }
+      },
+      {
+        "type": "definition",
+        "model": "minecraft:totem_of_undying",
+        "bedrock_identifier": "geyser_custom:talisman_cobra",
+        "bedrock_options": {
+          "icon": "talisman_cobra",
+          "allow_offhand": true,
+          "display_handheld": true,
+          "creative_category": "items"
+        },
+        "predicate": {
+          "type": "server_pdc_string",
+          "key": "voidtalismans:talisman_id",
+          "fallback_key": "faraltalismans:talisman_id",
+          "value": "cobra"
+        }
+      },
+      {
+        "type": "definition",
+        "model": "minecraft:totem_of_undying",
+        "bedrock_identifier": "geyser_custom:talisman_echidna",
+        "bedrock_options": {
+          "icon": "talisman_echidna",
+          "allow_offhand": true,
+          "display_handheld": true,
+          "creative_category": "items"
+        },
+        "predicate": {
+          "type": "server_pdc_string",
+          "key": "voidtalismans:talisman_id",
+          "fallback_key": "faraltalismans:talisman_id",
+          "value": "echidna"
+        }
+      },
+      {
+        "type": "definition",
+        "model": "minecraft:totem_of_undying",
+        "bedrock_identifier": "geyser_custom:talisman_grani",
+        "bedrock_options": {
+          "icon": "talisman_grani",
+          "allow_offhand": true,
+          "display_handheld": true,
+          "creative_category": "items"
+        },
+        "predicate": {
+          "type": "server_pdc_string",
+          "key": "voidtalismans:talisman_id",
+          "fallback_key": "faraltalismans:talisman_id",
+          "value": "grani"
+        }
+      },
+      {
+        "type": "definition",
+        "model": "minecraft:totem_of_undying",
+        "bedrock_identifier": "geyser_custom:talisman_satan",
+        "bedrock_options": {
+          "icon": "talisman_satan",
+          "allow_offhand": true,
+          "display_handheld": true,
+          "creative_category": "items"
+        },
+        "predicate": {
+          "type": "server_pdc_string",
+          "key": "voidtalismans:talisman_id",
+          "fallback_key": "faraltalismans:talisman_id",
+          "value": "satan"
+        }
+      },
+      {
+        "type": "definition",
+        "model": "minecraft:totem_of_undying",
+        "bedrock_identifier": "geyser_custom:talisman_sources",
+        "bedrock_options": {
+          "icon": "talisman_sources",
+          "allow_offhand": true,
+          "display_handheld": true,
+          "creative_category": "items"
+        },
+        "predicate": {
+          "type": "server_pdc_string",
+          "key": "voidtalismans:talisman_id",
+          "fallback_key": "faraltalismans:talisman_id",
+          "value": "sources"
+        }
+      },
+      {
+        "type": "definition",
+        "model": "minecraft:totem_of_undying",
+        "bedrock_identifier": "geyser_custom:talisman_triton",
+        "bedrock_options": {
+          "icon": "talisman_triton",
+          "allow_offhand": true,
+          "display_handheld": true,
+          "creative_category": "items"
+        },
+        "predicate": {
+          "type": "server_pdc_string",
+          "key": "voidtalismans:talisman_id",
+          "fallback_key": "faraltalismans:talisman_id",
+          "value": "triton"
+        }
+      },
+      {
+        "type": "definition",
+        "model": "minecraft:totem_of_undying",
+        "bedrock_identifier": "geyser_custom:talisman_phoenix",
+        "bedrock_options": {
+          "icon": "talisman_phoenix",
+          "allow_offhand": true,
+          "display_handheld": true,
+          "creative_category": "items"
+        },
+        "predicate": {
+          "type": "server_pdc_string",
+          "key": "voidtalismans:talisman_id",
+          "fallback_key": "faraltalismans:talisman_id",
+          "value": "phoenix"
+        }
+      },
+      {
+        "type": "definition",
+        "model": "minecraft:totem_of_undying",
+        "bedrock_identifier": "geyser_custom:talisman_vepr",
+        "bedrock_options": {
+          "icon": "talisman_vepr",
+          "allow_offhand": true,
+          "display_handheld": true,
+          "creative_category": "items"
+        },
+        "predicate": {
+          "type": "server_pdc_string",
+          "key": "voidtalismans:talisman_id",
+          "fallback_key": "faraltalismans:talisman_id",
+          "value": "vepr"
+        }
+      },
+      {
+        "type": "definition",
+        "model": "minecraft:totem_of_undying",
+        "bedrock_identifier": "geyser_custom:talisman_harmony",
+        "bedrock_options": {
+          "icon": "talisman_harmony",
+          "allow_offhand": true,
+          "display_handheld": true,
+          "creative_category": "items"
+        },
+        "predicate": {
+          "type": "server_pdc_string",
+          "key": "voidtalismans:talisman_id",
+          "fallback_key": "faraltalismans:talisman_id",
+          "value": "harmony"
+        }
+      }
+    ],
+    "minecraft:paper": [
+      {
+        "type": "definition",
+        "model": "voidtalismans:menu_icon",
+        "bedrock_identifier": "geyser_custom:talisman_menu",
+        "bedrock_options": {
+          "icon": "talisman_menu",
+          "creative_category": "items"
+        }
+      }
+    ]
+  }
+}
