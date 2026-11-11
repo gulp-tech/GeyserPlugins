@@ -6,7 +6,7 @@
 menu_title: '• Донат-магазин'
 open_command: shop
 register_command: true
-size: 45
+size: 54
 open_commands:
   - '[sound] ITEM_BOOK_PAGE_TURN'
 items:
@@ -36,6 +36,15 @@ items:
     - 42
     - 43
     - 44
+    - 45
+    - 46
+    - 47
+    - 48
+    - 49
+    - 50
+    - 51
+    - 52
+    - 53
     material: BLACK_STAINED_GLASS_PANE
     display_name: ' '
 
@@ -43,10 +52,10 @@ items:
     slots:
     - 13
     material: PRISMARINE_SHARD
-    display_name: '&#54C8FFТвои осколки'
+    display_name: '&bТвои осколки'
     lore:
       - ''
-      - '&fБаланс: &#54C8FF%playerpoints_points% осколков'
+      - '&fБаланс: &b%playerpoints_points% осколков'
       - '&7Ими оплачиваются покупки в этом магазине.'
     click_commands:
       - '[sound] ITEM_BOOK_PAGE_TURN'
@@ -55,7 +64,7 @@ items:
     slots:
     - 20
     material: CHEST
-    display_name: '&#C86BFFКастомные предметы'
+    display_name: '&dКастомные предметы'
     lore:
       - ''
       - '&7Капкан, пыль обнаружения, око'
@@ -70,7 +79,7 @@ items:
     slots:
     - 22
     material: POTION
-    display_name: '&#FF5555Зелья'
+    display_name: '&cЗелья'
     lore:
       - ''
       - '&7Особые зелья: ярость, боевое,'
@@ -85,7 +94,7 @@ items:
     slots:
     - 24
     material: NETHERITE_PICKAXE
-    display_name: '&#FFB340Кирки'
+    display_name: '&6Кирки'
     lore:
       - ''
       - '&7Кирки шахтёра I, II и III:'
@@ -99,8 +108,10 @@ items:
   'Раздел талисманы':
     slots:
     - 29
-    material: TOTEM_OF_UNDYING
-    display_name: '&#FFD93DТалисманы'
+    material: PAPER
+    model_data_component:
+      floats: [42]
+    display_name: '&eТалисманы'
     lore:
       - ''
       - '&7Работают только в левой руке.'
@@ -118,7 +129,7 @@ items:
     item_model: voidspheres:sphere1
     model_data_component:
       floats: [9001.0]
-    display_name: '&#B388FFСферы'
+    display_name: '&dСферы'
     lore:
       - ''
       - '&7Сферы трёх уровней: сумерек,'
@@ -133,7 +144,7 @@ items:
     slots:
     - 33
     material: ENCHANTED_BOOK
-    display_name: '&#C86BFFКастомные зачарования'
+    display_name: '&dКастомные зачарования'
     lore:
       - ''
       - '&7Книги: Автоплавка, Магнит и Бур.'

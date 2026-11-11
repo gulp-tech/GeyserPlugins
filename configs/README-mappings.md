@@ -8,7 +8,18 @@
   `fallback_key` `faraltalismans:talisman_id`). Работает **только на тестовом
   ядре** Purpurbedrock с поддержкой `server_pdc_string` (v26.2.0-bedrock
   spheres-marker-test и новее). Загружается в `bedrock/custom_mappings/`.
-  Идентичен эталону `spheres-pdc-mapping-test.json` из релиза Purpurbedrock.
+  Первые четыре записи идентичны эталону `spheres-pdc-mapping-test.json`
+  из релиза Purpurbedrock.
+
+  В файле есть **иконочные записи-фолбэки** (`geyser_custom:sphereN_menu`)
+  для предметов с `item_model voidspheres:sphereN`, но **без** PDC-метки —
+  это иконки меню DeluxeMenus (их нельзя снабдить PDC). Они идут ПОСЛЕ
+  защищённых записей и дают только плоскую иконку сферы (без 3D-модели):
+  - настоящая сфера (PDC есть) → `geyser_custom:sphereN` — полная 3D-модель;
+  - иконка меню / подделка без PDC → `geyser_custom:sphereN_menu` — только
+    иконка, с настоящими сферами не стакается и в руке не имеет 3D.
+
+  Без этих записей иконки сфер в меню магазина были бы обычной бумагой.
 
 - `Geyser-spheres-mapping.json` — старый, без защитного условия. Только для
   старого ядра, где `server_pdc_string` не поддерживается. Любая бумага с
