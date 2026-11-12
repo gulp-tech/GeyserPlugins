@@ -116,10 +116,18 @@ public final class SecuritySmoke extends JavaPlugin implements Listener {
     }
 
     @SuppressWarnings("unchecked")
-    private static Map<Location, String> placedMap(Object listener) throws Exception {
-        Field field = listener.getClass().getDeclaredField("placed");
-        field.setAccessible(true);
-        return (Map<Location, String>) field.get(listener);
+    private static java.util.Map<Object, String> placedMap(Plugin tnt) throws Exception {
+        Object registry = tnt.getClass().getMethod("getRegistry").invoke(tnt);
+        return (java.util.Map<Object, String>) registry.getClass().getMethod("snapshot").invoke(registry);
+    }
+
+    /** Type recorded for a placed custom TNT block, via the persistent TntRegistry. */
+    private static String registryType(Plugin tnt, World world, int x, int y, int z) throws Exception {
+        Object registry = tnt.getClass().getMethod("getRegistry").invoke(tnt);
+        Class<?> posClass = Class.forName("mk.hypertnt.TntRegistry$Pos", true, tnt.getClass().getClassLoader());
+        Object pos = posClass.getConstructor(UUID.class, int.class, int.class, int.class)
+                .newInstance(world.getUID(), x, y, z);
+        return (String) registry.getClass().getMethod("get", posClass).invoke(registry, pos);
     }
 
     /** Places a custom TNT through HyperTNT's own onPlace handler, the same path a player's placement takes. */
@@ -305,14 +313,16 @@ public final class SecuritySmoke extends JavaPlugin implements Listener {
                 }
             }
             getLogger().info("FINDING shulker-breakBlock: loose diamonds=" + loose + ", inside box diamonds=" + insideDrop
-                    + (loose == 7 && insideDrop == 7 ? " -> DUPLICATION" : " -> no duplication"));
+                    + (loose + insideDrop == 7 ? " -> no duplication" : " -> DUPLICATION"));
+            check(loose + insideDrop == 7, "breakBlock must not duplicate or destroy shulker contents (loose="
+                    + loose + ", inside=" + insideDrop + ")");
 
             // Restart probe: phase 2 checks that this block is still in the world and whether HyperTNT still knows its type.
             Block probe = world.getBlockAt(PROBE_X, 80, PROBE_Z);
             probe.setType(Material.AIR, false);
             placeCustomTnt(tnt, managerTnt, probe);
-            check("tnt".equals(placedMap(findListener(tnt, "TntListener")).get(probe.getLocation())),
-                    "HyperTNT records the placed type in memory before restart");
+            check("tnt".equals(registryType(tnt, world, PROBE_X, 80, PROBE_Z)),
+                    "HyperTNT records the placed type in the persistent registry before restart");
             // Entities still in the world would otherwise be saved with the chunk and re-tick after the restart.
             for (TNTPrimed leftover : world.getEntitiesByClass(TNTPrimed.class)) leftover.remove();
 
@@ -371,17 +381,18 @@ public final class SecuritySmoke extends JavaPlugin implements Listener {
             // Restart probe. The custom TNT block must still be in the world; HyperTNT's type map is memory only.
             Block probe = world.getBlockAt(PROBE_X, 80, PROBE_Z);
             check(probe.getType() == Material.TNT, "placed custom TNT block survives the restart in the world");
-            Object listener = findListener(tnt, "TntListener");
-            Map<Location, String> placed = placedMap(listener);
-            boolean typeKept = placed.containsKey(probe.getLocation());
-            getLogger().info("FINDING restart-placed-hypertnt: world block=TNT, in-memory placed map has type=" + typeKept
+            String kept = registryType(tnt, world, PROBE_X, 80, PROBE_Z);
+            boolean typeKept = "tnt".equals(kept);
+            getLogger().info("FINDING restart-placed-hypertnt: world block=TNT, registry type=" + kept
                     + (typeKept ? " -> type kept" : " -> type lost; break/redstone/flint paths ignore this block and treat it as vanilla TNT"));
+            check(typeKept, "HyperTNT type must survive the restart via placed-tnts.txt (found: " + kept + ")");
 
             // A placement after restart must be recorded again, so HyperTNT works for new blocks.
             Block fresh = world.getBlockAt(PROBE_X + 1, 80, PROBE_Z);
             fresh.setType(Material.AIR, false);
             placeCustomTnt(tnt, call(tnt, "getTntManager", new Class<?>[0]), fresh);
-            check("tnt".equals(placedMap(listener).get(fresh.getLocation())), "new custom TNT placement recorded after restart");
+            check("tnt".equals(registryType(tnt, world, PROBE_X + 1, 80, PROBE_Z)),
+                    "new custom TNT placement recorded after restart");
 
             getLogger().info("SECURITY_SMOKE_PASS (phase 2): region, flags, boundary TNT and world blocks survived the restart; see FINDING lines");
             Files.writeString(Path.of(System.getProperty("voidpe.smoke.marker")), "passed\n");

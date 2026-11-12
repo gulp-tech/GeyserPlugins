@@ -140,7 +140,10 @@ public final class ExplosionService {
             drops = java.util.Collections.singletonList(custom);
          }
       }
-      if (state instanceof InventoryHolder holder) {
+      // Шалкер-бокс: getDrops() уже отдаёт предмет с содержимым внутри (BlockStateMeta),
+      // поэтому россыпь содержимого отдельно удваивала бы предметы. Россыпаем только
+      // у контейнеров, чей дроп-предмет не несёт содержимое (сундуки, воронки и т.п.).
+      if (state instanceof InventoryHolder holder && !(state instanceof org.bukkit.block.ShulkerBox)) {
          for (ItemStack item : holder.getInventory().getContents()) {
             if (item != null && !item.getType().isAir()) {
                block.getWorld().dropItemNaturally(block.getLocation().add(0.5, 0.5, 0.5), item.clone());

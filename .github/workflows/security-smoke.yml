@@ -24,7 +24,7 @@ jobs:
           cache: maven
       - name: Build test plugins
         run: |
-          for module in VoidShulker VoidWardenCity tests/security-smoke; do
+          for module in VoidShulker VoidWardenCity HyperTNT tests/security-smoke; do
             mvn -B -f "$module/pom.xml" -DskipTests package > "$RUNNER_TEMP/$(basename "$module").log" 2>&1 || { tail -100 "$RUNNER_TEMP/$(basename "$module").log"; exit 1; }
           done
       - name: Prepare isolated server and pinned dependencies
@@ -40,7 +40,7 @@ jobs:
           cp "$GITHUB_WORKSPACE"/VoidShulker/target/VoidShulker-*.jar plugins/
           cp "$GITHUB_WORKSPACE"/VoidWardenCity/target/VoidWardenCity-*.jar plugins/
           cp "$GITHUB_WORKSPACE"/tests/security-smoke/target/SecuritySmoke-*.jar plugins/
-          cp "$GITHUB_WORKSPACE/HyperTNT.jar" plugins/
+          cp "$GITHUB_WORKSPACE"/HyperTNT/target/HyperTNT-*.jar plugins/HyperTNT.jar
           cp "$GITHUB_WORKSPACE/HyperTNT/config.yml" "$GITHUB_WORKSPACE/HyperTNT/messages.yml" plugins/HyperTNT/
           cp "$GITHUB_WORKSPACE"/HyperTNT/tnts/*.yml plugins/HyperTNT/tnts/
           printf 'eula=true\n' > eula.txt
