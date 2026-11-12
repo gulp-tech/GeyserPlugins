@@ -34,7 +34,7 @@ def main() -> int:
         return 1
 
     files = sorted(p for p in SRC.rglob('*') if p.is_file())
-    textures = {p.stem for p in (SRC / 'textures/item').glob('dark_*.png')}
+    textures = {p.stem for p in (SRC / 'textures/item').glob('*.png')}
     for shortname, entry in texture_data.items():
         tex = Path(entry['textures']).name
         if tex not in textures:

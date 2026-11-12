@@ -2,35 +2,11 @@
   "resource_pack_name": "geyser_custom",
   "texture_name": "atlas.items",
   "texture_data": {
-    "dark_axe": {
-      "textures": "textures/item/dark_axe"
+    "dragon_light": {
+      "textures": "textures/item/dragon_light"
     },
-    "dark_boots": {
-      "textures": "textures/item/dark_boots"
-    },
-    "dark_chestplate": {
-      "textures": "textures/item/dark_chestplate"
-    },
-    "dark_hammer": {
-      "textures": "textures/item/dark_hammer"
-    },
-    "dark_helmet": {
-      "textures": "textures/item/dark_helmet"
-    },
-    "dark_leggings": {
-      "textures": "textures/item/dark_leggings"
-    },
-    "dark_mace": {
-      "textures": "textures/item/dark_mace"
-    },
-    "dark_pickaxe": {
-      "textures": "textures/item/dark_pickaxe"
-    },
-    "dark_shovel": {
-      "textures": "textures/item/dark_shovel"
-    },
-    "dark_sword": {
-      "textures": "textures/item/dark_sword"
+    "monty_hammer": {
+      "textures": "textures/item/monty_hammer"
     }
   }
 }
