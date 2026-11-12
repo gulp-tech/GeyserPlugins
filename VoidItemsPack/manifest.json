@@ -1,0 +1,30 @@
+{
+  "format_version": 2,
+  "header": {
+    "description": "Тёмный набор: меч, броня, инструменты (VoidPE)",
+    "name": "VoidItems Custom Textures",
+    "uuid": "7acd258a-ec69-4060-927c-fe99d61b8556",
+    "version": [
+      1,
+      0,
+      0
+    ],
+    "min_engine_version": [
+      1,
+      18,
+      10
+    ]
+  },
+  "modules": [
+    {
+      "description": "VoidTalismans resources",
+      "type": "resources",
+      "uuid": "fa1bd792-1ddf-4e04-bc06-dc7439121bbc",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    }
+  ]
+}

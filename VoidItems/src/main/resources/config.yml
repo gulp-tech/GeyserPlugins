@@ -395,3 +395,149 @@ items:
     #   effects:
     #     - {type: LUCK, amplifier: 1, duration: 120}
     #   recipe: {enabled: false, shape: [], ingredients: {}}
+
+  # ---------------- Тёмный набор (кастомные текстуры) ----------------
+  # Текстуры: VoidItems.mcpack (пак на сервере) + Geyser-items-pdc-mapping.json
+  # (bedrock/custom_mappings). Свои текстуры только у этих предметов —
+  # ванильные мечи/броня/инструменты не затрагиваются.
+  # Крафт как у алмазных вещей, только вместо алмазов — обсидиан.
+
+  dark_sword:
+    kind: GEAR
+    enabled: true
+    display-name: "&#B8B8D0Тёмный меч"
+    material: DIAMOND_SWORD
+    glow: false
+    lore: []
+    enchants:
+      - {type: SHARPNESS, level: 3}
+    recipe:
+      enabled: true
+      shape: [" O ", " O ", " S "]
+      ingredients: {O: OBSIDIAN, S: STICK}
+
+  dark_pickaxe:
+    kind: GEAR
+    enabled: true
+    display-name: "&#B8B8D0Тёмная кирка"
+    material: DIAMOND_PICKAXE
+    glow: false
+    lore: []
+    enchants:
+      - {type: EFFICIENCY, level: 3}
+    recipe:
+      enabled: true
+      shape: ["OOO", " S ", " S "]
+      ingredients: {O: OBSIDIAN, S: STICK}
+
+  dark_shovel:
+    kind: GEAR
+    enabled: true
+    display-name: "&#B8B8D0Тёмная лопата"
+    material: DIAMOND_SHOVEL
+    glow: false
+    lore: []
+    enchants:
+      - {type: EFFICIENCY, level: 3}
+    recipe:
+      enabled: true
+      shape: [" O ", " S ", " S "]
+      ingredients: {O: OBSIDIAN, S: STICK}
+
+  dark_axe:
+    kind: GEAR
+    enabled: true
+    display-name: "&#B8B8D0Тёмный топор"
+    material: DIAMOND_AXE
+    glow: false
+    lore: []
+    enchants:
+      - {type: EFFICIENCY, level: 3}
+    recipe:
+      enabled: true
+      shape: ["OO ", "OS ", " S "]
+      ingredients: {O: OBSIDIAN, S: STICK}
+
+  dark_mace:
+    kind: GEAR
+    enabled: true
+    display-name: "&#B8B8D0Тёмная булава"
+    material: MACE
+    glow: false
+    lore: []
+    enchants:
+      - {type: DENSITY, level: 3}
+    recipe:
+      enabled: true
+      shape: [" O ", "OSO", " S "]
+      ingredients: {O: OBSIDIAN, S: STICK}
+
+  dark_hammer:
+    kind: GEAR
+    enabled: true
+    display-name: "&#B8B8D0Тёмный молот"
+    material: MACE
+    glow: false
+    lore: []
+    enchants:
+      - {type: DENSITY, level: 3}
+    recipe:
+      enabled: true
+      shape: ["OOO", "OSO", " S "]
+      ingredients: {O: OBSIDIAN, S: STICK}
+
+  dark_helmet:
+    kind: ARMOR
+    enabled: true
+    display-name: "&#B8B8D0Тёмный шлем"
+    material: DIAMOND_HELMET
+    glow: false
+    lore: []
+    enchants:
+      - {type: PROTECTION, level: 3}
+    recipe:
+      enabled: true
+      shape: ["OOO", "O O", "   "]
+      ingredients: {O: OBSIDIAN}
+
+  dark_chestplate:
+    kind: ARMOR
+    enabled: true
+    display-name: "&#B8B8D0Тёмный нагрудник"
+    material: DIAMOND_CHESTPLATE
+    glow: false
+    lore: []
+    enchants:
+      - {type: PROTECTION, level: 3}
+    recipe:
+      enabled: true
+      shape: ["O O", "OOO", "OOO"]
+      ingredients: {O: OBSIDIAN}
+
+  dark_leggings:
+    kind: ARMOR
+    enabled: true
+    display-name: "&#B8B8D0Тёмные поножи"
+    material: DIAMOND_LEGGINGS
+    glow: false
+    lore: []
+    enchants:
+      - {type: PROTECTION, level: 3}
+    recipe:
+      enabled: true
+      shape: ["OOO", "O O", "O O"]
+      ingredients: {O: OBSIDIAN}
+
+  dark_boots:
+    kind: ARMOR
+    enabled: true
+    display-name: "&#B8B8D0Тёмные ботинки"
+    material: DIAMOND_BOOTS
+    glow: false
+    lore: []
+    enchants:
+      - {type: PROTECTION, level: 3}
+    recipe:
+      enabled: true
+      shape: ["   ", "O O", "O O"]
+      ingredients: {O: OBSIDIAN}

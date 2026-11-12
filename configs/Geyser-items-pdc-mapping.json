@@ -1,0 +1,189 @@
+{
+  "format_version": 2,
+  "items": {
+    "minecraft:diamond_sword": [
+      {
+        "type": "definition",
+        "model": "minecraft:diamond_sword",
+        "bedrock_identifier": "geyser_custom:dark_sword",
+        "bedrock_options": {
+          "icon": "dark_sword",
+          "display_handheld": true,
+          "allow_offhand": true,
+          "creative_category": "items"
+        },
+        "predicate": {
+          "type": "server_pdc_string",
+          "key": "voiditems:item_id",
+          "fallback_key": "voiditems:item_id",
+          "value": "dark_sword"
+        }
+      }
+    ],
+    "minecraft:diamond_pickaxe": [
+      {
+        "type": "definition",
+        "model": "minecraft:diamond_pickaxe",
+        "bedrock_identifier": "geyser_custom:dark_pickaxe",
+        "bedrock_options": {
+          "icon": "dark_pickaxe",
+          "display_handheld": true,
+          "allow_offhand": true,
+          "creative_category": "items"
+        },
+        "predicate": {
+          "type": "server_pdc_string",
+          "key": "voiditems:item_id",
+          "fallback_key": "voiditems:item_id",
+          "value": "dark_pickaxe"
+        }
+      }
+    ],
+    "minecraft:diamond_shovel": [
+      {
+        "type": "definition",
+        "model": "minecraft:diamond_shovel",
+        "bedrock_identifier": "geyser_custom:dark_shovel",
+        "bedrock_options": {
+          "icon": "dark_shovel",
+          "display_handheld": true,
+          "allow_offhand": true,
+          "creative_category": "items"
+        },
+        "predicate": {
+          "type": "server_pdc_string",
+          "key": "voiditems:item_id",
+          "fallback_key": "voiditems:item_id",
+          "value": "dark_shovel"
+        }
+      }
+    ],
+    "minecraft:diamond_axe": [
+      {
+        "type": "definition",
+        "model": "minecraft:diamond_axe",
+        "bedrock_identifier": "geyser_custom:dark_axe",
+        "bedrock_options": {
+          "icon": "dark_axe",
+          "display_handheld": true,
+          "allow_offhand": true,
+          "creative_category": "items"
+        },
+        "predicate": {
+          "type": "server_pdc_string",
+          "key": "voiditems:item_id",
+          "fallback_key": "voiditems:item_id",
+          "value": "dark_axe"
+        }
+      }
+    ],
+    "minecraft:mace": [
+      {
+        "type": "definition",
+        "model": "minecraft:mace",
+        "bedrock_identifier": "geyser_custom:dark_mace",
+        "bedrock_options": {
+          "icon": "dark_mace",
+          "display_handheld": true,
+          "allow_offhand": true,
+          "creative_category": "items"
+        },
+        "predicate": {
+          "type": "server_pdc_string",
+          "key": "voiditems:item_id",
+          "fallback_key": "voiditems:item_id",
+          "value": "dark_mace"
+        }
+      },
+      {
+        "type": "definition",
+        "model": "minecraft:mace",
+        "bedrock_identifier": "geyser_custom:dark_hammer",
+        "bedrock_options": {
+          "icon": "dark_hammer",
+          "display_handheld": true,
+          "allow_offhand": true,
+          "creative_category": "items"
+        },
+        "predicate": {
+          "type": "server_pdc_string",
+          "key": "voiditems:item_id",
+          "fallback_key": "voiditems:item_id",
+          "value": "dark_hammer"
+        }
+      }
+    ],
+    "minecraft:diamond_helmet": [
+      {
+        "type": "definition",
+        "model": "minecraft:diamond_helmet",
+        "bedrock_identifier": "geyser_custom:dark_helmet",
+        "bedrock_options": {
+          "icon": "dark_helmet",
+          "allow_offhand": true,
+          "creative_category": "items"
+        },
+        "predicate": {
+          "type": "server_pdc_string",
+          "key": "voiditems:item_id",
+          "fallback_key": "voiditems:item_id",
+          "value": "dark_helmet"
+        }
+      }
+    ],
+    "minecraft:diamond_chestplate": [
+      {
+        "type": "definition",
+        "model": "minecraft:diamond_chestplate",
+        "bedrock_identifier": "geyser_custom:dark_chestplate",
+        "bedrock_options": {
+          "icon": "dark_chestplate",
+          "allow_offhand": true,
+          "creative_category": "items"
+        },
+        "predicate": {
+          "type": "server_pdc_string",
+          "key": "voiditems:item_id",
+          "fallback_key": "voiditems:item_id",
+          "value": "dark_chestplate"
+        }
+      }
+    ],
+    "minecraft:diamond_leggings": [
+      {
+        "type": "definition",
+        "model": "minecraft:diamond_leggings",
+        "bedrock_identifier": "geyser_custom:dark_leggings",
+        "bedrock_options": {
+          "icon": "dark_leggings",
+          "allow_offhand": true,
+          "creative_category": "items"
+        },
+        "predicate": {
+          "type": "server_pdc_string",
+          "key": "voiditems:item_id",
+          "fallback_key": "voiditems:item_id",
+          "value": "dark_leggings"
+        }
+      }
+    ],
+    "minecraft:diamond_boots": [
+      {
+        "type": "definition",
+        "model": "minecraft:diamond_boots",
+        "bedrock_identifier": "geyser_custom:dark_boots",
+        "bedrock_options": {
+          "icon": "dark_boots",
+          "allow_offhand": true,
+          "creative_category": "items"
+        },
+        "predicate": {
+          "type": "server_pdc_string",
+          "key": "voiditems:item_id",
+          "fallback_key": "voiditems:item_id",
+          "value": "dark_boots"
+        }
+      }
+    ]
+  }
+}
