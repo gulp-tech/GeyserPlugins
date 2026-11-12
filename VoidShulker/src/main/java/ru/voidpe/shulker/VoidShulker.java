@@ -4,8 +4,11 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
+import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Tag;
+import org.bukkit.block.Block;
 import org.bukkit.block.ShulkerBox;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -41,6 +44,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -227,6 +231,8 @@ public class VoidShulker extends JavaPlugin implements Listener, CommandExecutor
         if (!found && !player.isDead()) {
             getLogger().warning("Шалкер сессии " + holder.owner + " перемещён/удалён извне; копии GUI не выдаются.");
         }
+        // A client resurrect can land at close time; sweep the recent placements once more.
+        if (isEnabled()) Bukkit.getScheduler().runTask(this, () -> resolveGhosts(player));
     }
 
     private void stripStaleMarkers(Player player) {
@@ -275,8 +281,89 @@ public class VoidShulker extends JavaPlugin implements Listener, CommandExecutor
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onPlace(BlockPlaceEvent event) {
-        if (sessions.containsKey(event.getPlayer().getUniqueId())
-                && Tag.SHULKER_BOXES.isTagged(event.getBlockPlaced().getType())) event.setCancelled(true);
+        if (sessions.containsKey(event.getPlayer().getUniqueId()) && isShulkerBlock(event.getBlockPlaced())) {
+            event.setCancelled(true);
+        }
+    }
+
+    /**
+     * Bedrock race guard: one quick tap can open the GUI and place the box while
+     * the item itself survives the placement (core-side ghost copy). One tick
+     * later — and again at session close — the world and the inventory must not
+     * both hold the same filled shulker; exactly one honest copy is kept.
+     */
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onPlacedShulker(BlockPlaceEvent event) {
+        if (!isShulkerBlock(event.getBlockPlaced())) return;
+        Player player = event.getPlayer();
+        if (player.getGameMode() == GameMode.CREATIVE || player.getGameMode() == GameMode.SPECTATOR) return;
+        ItemStack placedItem = copyItem(event.getItemInHand());
+        if (!isShulker(placedItem)) return;
+        int slot = event.getHand() == EquipmentSlot.OFF_HAND ? OFFHAND_SLOT : player.getInventory().getHeldItemSlot();
+        ghosts.add(new GhostRecord(player.getUniqueId(), event.getBlockPlaced().getLocation(), placedItem, slot,
+                sessions.containsKey(player.getUniqueId()), System.currentTimeMillis()));
+        Bukkit.getScheduler().runTask(this, () -> resolveGhosts(player));
+    }
+
+    private static final class GhostRecord {
+        final UUID owner;
+        final Location location;
+        final ItemStack placedItem;
+        final int slot;
+        final boolean session;
+        final long time;
+
+        GhostRecord(UUID owner, Location location, ItemStack placedItem, int slot, boolean session, long time) {
+            this.owner = owner;
+            this.location = location;
+            this.placedItem = placedItem;
+            this.slot = slot;
+            this.session = session;
+            this.time = time;
+        }
+    }
+
+    private final List<GhostRecord> ghosts = new ArrayList<>();
+
+    /** Removes the ghost copy left by a placement race; the honest copy always stays. */
+    private void resolveGhosts(Player player) {
+        if (!player.isOnline()) return;
+        long now = System.currentTimeMillis();
+        Iterator<GhostRecord> iterator = ghosts.iterator();
+        while (iterator.hasNext()) {
+            GhostRecord ghost = iterator.next();
+            if (now - ghost.time > 3000L) {
+                iterator.remove();
+                continue;
+            }
+            if (!ghost.owner.equals(player.getUniqueId())) continue;
+            ItemStack held = player.getInventory().getItem(ghost.slot);
+            if (isEmpty(held) || held.getType() != ghost.placedItem.getType()) continue;
+            if (!(held.getItemMeta() instanceof BlockStateMeta heldMeta)
+                    || !(heldMeta.getBlockState() instanceof ShulkerBox heldBox)
+                    || !(ghost.placedItem.getItemMeta() instanceof BlockStateMeta placedMeta)
+                    || !(placedMeta.getBlockState() instanceof ShulkerBox placedBox)
+                    || !sameContents(heldBox, placedBox)) continue;
+            Block block = ghost.location.getBlock();
+            if (!(block.getState() instanceof ShulkerBox worldBox) || !sameContents(worldBox, placedBox)) {
+                iterator.remove();
+                continue;
+            }
+            iterator.remove();
+            String ghostKind;
+            if (ghost.session || sessions.containsKey(ghost.owner)) {
+                // The tap only meant to open the GUI: the block is the ghost copy.
+                block.setType(Material.AIR);
+                ghostKind = "блок";
+            } else {
+                // The placement was intended: the surviving item is the ghost copy.
+                player.getInventory().setItem(ghost.slot, null);
+                ghostKind = "предмет";
+            }
+            getLogger().warning("Гонка постановки шалкера у " + ghost.owner + ": удалён призрачный "
+                    + ghostKind + " " + ghost.location);
+            send(player, getConfig().getString("messages.ghost", "&cОбнаружен дубликат шалкера, лишняя копия удалена."));
+        }
     }
 
     /** Creates an all-or-nothing view of the real item, player inventory and cursor. */
@@ -336,6 +423,12 @@ public class VoidShulker extends JavaPlugin implements Listener, CommandExecutor
 
         void commit() {
             if (!changed()) return;
+            // The live inventory must still match the snapshot; a placement race
+            // that consumed the anchor must never be resurrected from bottomAfter.
+            if (!Objects.equals(playerInv.getItem(holder.anchorSlot), bottomBefore[holder.anchorSlot])) {
+                invalidate(player, holder, "инвентарь изменён вне транзакции");
+                return;
+            }
             try {
                 box.getSnapshotInventory().setContents(topAfter);
                 meta.setBlockState(box);
@@ -544,7 +637,18 @@ public class VoidShulker extends JavaPlugin implements Listener, CommandExecutor
     private static ItemStack copyItem(ItemStack item) { return isEmpty(item) ? null : item.clone(); }
     private static int amount(ItemStack item) { return isEmpty(item) ? 0 : item.getAmount(); }
     private static boolean isEmpty(ItemStack item) { return item == null || item.getType().isAir() || item.getAmount() <= 0; }
-    private static boolean isShulker(ItemStack item) { return !isEmpty(item) && Tag.SHULKER_BOXES.isTagged(item.getType()); }
+    private static boolean isShulker(ItemStack item) {
+        return !isEmpty(item) && (Tag.SHULKER_BOXES.isTagged(item.getType())
+                || item.getType().name().contains("SHULKER_BOX"));
+    }
+    private static boolean isShulkerBlock(Block block) {
+        return block != null && (block.getState() instanceof ShulkerBox
+                || block.getType().name().contains("SHULKER_BOX"));
+    }
+    private static boolean sameContents(ShulkerBox a, ShulkerBox b) {
+        return Arrays.equals(copyContents(a.getSnapshotInventory().getContents()),
+                copyContents(b.getSnapshotInventory().getContents()));
+    }
     private void play(Player player, String configKey) {
         String sound = getConfig().getString(configKey, "");
         if (sound != null && !sound.isBlank()) player.playSound(player.getLocation(), sound, 0.6f, 1.0f);

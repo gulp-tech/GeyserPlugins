@@ -1,0 +1,175 @@
+# ═══════════════════════════════════════════════════════
+#   Взрывной динамит — Супер мощная взрывчатка
+#   Радиус: 15 | Мощность: 20 | Таймер: 3s
+#   Перезарядка: 30с | [ПКМ] Бросить динамит
+# ═══════════════════════════════════════════════════════
+
+tnt_explosive:
+  enabled: true
+
+  item:
+    material: TNT
+    custom_model_data: 0
+    enchanted: true
+    name: '&4&lВзрывной динамит'
+    lore:
+      - '&8Супер мощная взрывчатка'
+      - ''
+      - ' &8▸ &fОписание:'
+      - '   &8▸ &fРадиус: &c15'
+      - '   &8▸ &fМощность: &c20'
+      - '   &8▸ &fПерезарядка: &c30&7с'
+      - '   &8▸ &fВзрыв через: &c3&7с'
+      - ''
+      - '   &8▸ &7[&fПКМ&7] &7Бросить динамит'
+
+  ignite:
+    fuse-seconds: 3.0
+    auto-ignite-on-place: false
+    velocity:
+      gravity: true
+      upward: 0.3
+    throw:
+      enabled: true
+      hand: mainhand
+      velocity-xz: 1.4
+      velocity-y: 0.5
+      auto-ignite: true
+    allow:
+      flint-and-steel: true
+      fire-charge: true
+      redstone: true
+      fire: true
+      explosion: true
+
+  craft:
+    enabled: true
+    disable_vanilla_craft: false
+    shape:
+      - GTG
+      - TDT
+      - GTG
+    ingredients:
+      G: GUNPOWDER
+      T: TNT
+      D: DIAMOND_BLOCK
+
+  conditions:
+    - cooldown 30
+
+  visual:
+    sounds:
+      ignite:
+        enabled: true
+        sound: ENTITY_TNT_PRIMED
+        volume: 2.0
+        pitch: 0.6
+      explosion:
+        enabled: true
+        sound: ENTITY_GENERIC_EXPLODE
+        volume: 7.0
+        pitch: 0.5
+    particles:
+      enabled: true
+      type: EXPLOSION_NORMAL
+      count: 50
+      offset:
+        x: 0.7
+        y: 0.7
+        z: 0.7
+      extra: 0.1
+    hologram:
+      enabled: true
+      type: armorstand
+      line-spacing: 0.25
+      lines:
+        - '&4&lВзрывной динамит'
+        - '&7Взрыв через: &c{time}s'
+        - '&4💣 Супер мощная взрывчатка'
+      height: 2.0
+      update-period-ticks: 4
+      displaytext:
+        shadowed: true
+        see-through: false
+        default-background: false
+        background-color: '#00000000'
+        line-width: 200
+        text-opacity: 255
+        billboard: FIXED
+        alignment: CENTER
+        scale: 1.0
+        glowing: false
+        glow-color: '#FFFFFFFF'
+    glow:
+      enabled: true
+      color: DARK_RED
+      animation:
+        enabled: true
+        colors:
+          - DARK_RED
+          - RED
+          - DARK_RED
+          - ORANGE
+        period-ticks: 5
+
+  explosion:
+    radius: 15.0
+    damage:
+      enabled: true
+      max-damage: 30.0
+      min-damage: 5.0
+      exposure: 1.0
+    raycast:
+      rays: 64
+      strength-multiplier: 2.0
+      resistance-multiplier: 0.5
+    blocks:
+      in-liquid: false
+      max-blocks: 0
+      default:
+        mode: BREAK
+        drop-chance: 0.75
+      per-material:
+        OBSIDIAN:
+          mode: IGNORE
+        CRYING_OBSIDIAN:
+          mode: IGNORE
+        ANCIENT_DEBRIS:
+          mode: IGNORE
+        BEDROCK:
+          mode: IGNORE
+        BARRIER:
+          mode: IGNORE
+        ENDER_CHEST:
+          mode: IGNORE
+        CHEST:
+          mode: BREAK
+          drop-chance: 1.0
+        TRAPPED_CHEST:
+          mode: BREAK
+          drop-chance: 1.0
+        BARREL:
+          mode: BREAK
+          drop-chance: 1.0
+        SHULKER_BOX:
+          mode: BREAK
+          drop-chance: 1.0
+        ANVIL:
+          mode: BREAK
+          drop-chance: 0.9
+        CHIPPED_ANVIL:
+          mode: BREAK
+          drop-chance: 0.9
+        DAMAGED_ANVIL:
+          mode: BREAK
+          drop-chance: 0.9
+    post:
+      set-fire: false
+      fire-chance: 0.0
+      commands: []
+    knockback:
+      enabled: true
+      living-multiplier: 2.0
+      tnt-enabled: true
+      tnt-multiplier: 1.5
+      max-velocity: 4.0

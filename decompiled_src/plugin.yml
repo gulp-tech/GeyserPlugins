@@ -1,0 +1,26 @@
+name: HyperTNT
+version: '2.0.0'
+main: mk.hypertnt.HyperTNTPlugin
+api-version: '1.21'
+author: musd348
+description: Custom TNT with WorldGuard and ShieldyBlocks support
+
+depend:
+  - WorldGuard
+
+softdepend:
+  - ShieldyBlocks
+  - DecentHolograms
+
+commands:
+  hypertnt:
+    description: HyperTNT main command
+    usage: /hypertnt
+    aliases:
+      - htnt
+      - tntadmin
+
+permissions:
+  hypertnt.admin:
+    description: Access to HyperTNT administration commands
+    default: op

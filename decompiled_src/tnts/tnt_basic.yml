@@ -1,0 +1,156 @@
+# ═══════════════════════════════════════════════════════
+#   Динамитная шашка — Базовая взрывчатка
+#   Радиус: 6 | Таймер: 3s
+# ═══════════════════════════════════════════════════════
+
+tnt:
+  enabled: true
+
+  item:
+    material: TNT
+    custom_model_data: 0
+    enchanted: false
+    name: '&fДинамитная шашка'
+    lore:
+      - '&7Базовая взрывчатка'
+      - ''
+      - ' &8▸ &fХарактеристики:'
+      - '   &8▸ &fРадиус взрыва: &a6 блоков'
+
+  ignite:
+    fuse-seconds: 3.0
+    auto-ignite-on-place: false
+    velocity:
+      gravity: true
+      upward: 0.0
+    throw:
+      enabled: false
+      hand: any
+      velocity-xz: 0.9
+      velocity-y: 0.2
+      auto-ignite: false
+    allow:
+      flint-and-steel: true
+      fire-charge: true
+      redstone: true
+      fire: true
+      explosion: true
+
+  craft:
+    enabled: true
+    disable_vanilla_craft: false
+    shape:
+      - GPG
+      - PTP
+      - GPG
+    ingredients:
+      G: GUNPOWDER
+      P: PAPER
+      T: TNT
+
+  conditions: []
+
+  visual:
+    sounds:
+      ignite:
+        enabled: true
+        sound: ENTITY_TNT_PRIMED
+        volume: 1.0
+        pitch: 1.0
+      explosion:
+        enabled: true
+        sound: ENTITY_GENERIC_EXPLODE
+        volume: 4.0
+        pitch: 1.0
+    particles:
+      enabled: false
+      type: FLAME
+      count: 20
+      offset:
+        x: 0.3
+        y: 0.3
+        z: 0.3
+      extra: 0.01
+    hologram:
+      enabled: true
+      type: armorstand
+      line-spacing: 0.25
+      lines:
+        - '&fДинамитная шашка'
+        - '&7Взрыв через: &e{time}s'
+      height: 2.0
+      update-period-ticks: 5
+      displaytext:
+        shadowed: true
+        see-through: false
+        default-background: false
+        background-color: '#00000000'
+        line-width: 200
+        text-opacity: 255
+        billboard: FIXED
+        alignment: CENTER
+        scale: 1.0
+        glowing: false
+        glow-color: '#FFFFFFFF'
+    glow:
+      enabled: true
+      color: RED
+      animation:
+        enabled: false
+        colors:
+          - RED
+          - DARK_RED
+        period-ticks: 10
+
+  explosion:
+    radius: 6.0
+    damage:
+      enabled: true
+      max-damage: 20.0
+      min-damage: 2.0
+      exposure: 1.0
+    raycast:
+      rays: 16
+      strength-multiplier: 1.0
+      resistance-multiplier: 1.0
+    blocks:
+      in-liquid: false
+      max-blocks: 0
+      default:
+        mode: BREAK
+        drop-chance: 1.0
+      per-material:
+        OBSIDIAN:
+          mode: IGNORE
+        CRYING_OBSIDIAN:
+          mode: IGNORE
+        ANCIENT_DEBRIS:
+          mode: IGNORE
+        BEDROCK:
+          mode: IGNORE
+        BARRIER:
+          mode: IGNORE
+        ENDER_CHEST:
+          mode: IGNORE
+        CHEST:
+          mode: BREAK
+          drop-chance: 1.0
+        TRAPPED_CHEST:
+          mode: BREAK
+          drop-chance: 1.0
+        BARREL:
+          mode: BREAK
+          drop-chance: 1.0
+        SHULKER_BOX:
+          mode: BREAK
+          drop-chance: 1.0
+    post:
+      set-fire: false
+      fire-chance: 0.0
+      commands: []
+    knockback:
+      enabled: true
+      living-multiplier: 1.0
+      tnt-enabled: false
+      tnt-multiplier: 1.0
+      max-velocity: 2.5
