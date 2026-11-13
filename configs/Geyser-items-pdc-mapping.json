@@ -18,6 +18,23 @@
           "fallback_key": "voiditems:item_id",
           "value": "dragon_light"
         }
+      },
+      {
+        "type": "definition",
+        "model": "minecraft:diamond_sword",
+        "bedrock_identifier": "geyser_custom:katana",
+        "bedrock_options": {
+          "icon": "katana",
+          "display_handheld": true,
+          "allow_offhand": true,
+          "creative_category": "items"
+        },
+        "predicate": {
+          "type": "server_pdc_string",
+          "key": "voiditems:item_id",
+          "fallback_key": "voiditems:item_id",
+          "value": "katana"
+        }
       }
     ],
     "minecraft:mace": [
@@ -36,78 +53,6 @@
           "key": "voiditems:item_id",
           "fallback_key": "voiditems:item_id",
           "value": "monty_hammer"
-        }
-      }
-    ],
-    "minecraft:diamond_helmet": [
-      {
-        "type": "definition",
-        "model": "minecraft:diamond_helmet",
-        "bedrock_identifier": "geyser_custom:lava_helmet",
-        "bedrock_options": {
-          "icon": "lava_helmet",
-          "allow_offhand": true,
-          "creative_category": "items"
-        },
-        "predicate": {
-          "type": "server_pdc_string",
-          "key": "voiditems:item_id",
-          "fallback_key": "voiditems:item_id",
-          "value": "lava_helmet"
-        }
-      }
-    ],
-    "minecraft:diamond_chestplate": [
-      {
-        "type": "definition",
-        "model": "minecraft:diamond_chestplate",
-        "bedrock_identifier": "geyser_custom:lava_chestplate",
-        "bedrock_options": {
-          "icon": "lava_chestplate",
-          "allow_offhand": true,
-          "creative_category": "items"
-        },
-        "predicate": {
-          "type": "server_pdc_string",
-          "key": "voiditems:item_id",
-          "fallback_key": "voiditems:item_id",
-          "value": "lava_chestplate"
-        }
-      }
-    ],
-    "minecraft:diamond_leggings": [
-      {
-        "type": "definition",
-        "model": "minecraft:diamond_leggings",
-        "bedrock_identifier": "geyser_custom:lava_leggings",
-        "bedrock_options": {
-          "icon": "lava_leggings",
-          "allow_offhand": true,
-          "creative_category": "items"
-        },
-        "predicate": {
-          "type": "server_pdc_string",
-          "key": "voiditems:item_id",
-          "fallback_key": "voiditems:item_id",
-          "value": "lava_leggings"
-        }
-      }
-    ],
-    "minecraft:diamond_boots": [
-      {
-        "type": "definition",
-        "model": "minecraft:diamond_boots",
-        "bedrock_identifier": "geyser_custom:lava_boots",
-        "bedrock_options": {
-          "icon": "lava_boots",
-          "allow_offhand": true,
-          "creative_category": "items"
-        },
-        "predicate": {
-          "type": "server_pdc_string",
-          "key": "voiditems:item_id",
-          "fallback_key": "voiditems:item_id",
-          "value": "lava_boots"
         }
       }
     ]

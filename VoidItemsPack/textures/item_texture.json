@@ -5,17 +5,8 @@
     "dragon_light": {
       "textures": "textures/item/dragon_light"
     },
-    "lava_boots": {
-      "textures": "textures/item/lava_boots"
-    },
-    "lava_chestplate": {
-      "textures": "textures/item/lava_chestplate"
-    },
-    "lava_helmet": {
-      "textures": "textures/item/lava_helmet"
-    },
-    "lava_leggings": {
-      "textures": "textures/item/lava_leggings"
+    "katana": {
+      "textures": "textures/item/katana"
     },
     "monty_hammer": {
       "textures": "textures/item/monty_hammer"

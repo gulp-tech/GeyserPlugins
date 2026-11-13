@@ -420,41 +420,14 @@ items:
     lore: []
     recipe: {enabled: false, shape: [], ingredients: {}}
 
-  # --- Лавовая броня (текстуры с фото владельца). Без чар: на них ложатся
-  # любые ванильные и кастомные зачарования (стол/наковальня), ItemEdit работает.
+  # --- Катана (иконка — рендер Blockbench-модели diamond-sword). Без чар:
+  # ложатся любые ванильные и кастомные зачарования, ItemEdit работает.
 
-  lava_helmet:
-    kind: ARMOR
+  katana:
+    kind: GEAR
     enabled: true
-    display-name: "&#FF6B3DЛавовый шлем"
-    material: DIAMOND_HELMET
-    glow: false
-    lore: []
-    recipe: {enabled: false, shape: [], ingredients: {}}
-
-  lava_chestplate:
-    kind: ARMOR
-    enabled: true
-    display-name: "&#FF6B3DЛавовый нагрудник"
-    material: DIAMOND_CHESTPLATE
-    glow: false
-    lore: []
-    recipe: {enabled: false, shape: [], ingredients: {}}
-
-  lava_leggings:
-    kind: ARMOR
-    enabled: true
-    display-name: "&#FF6B3DЛавовые поножи"
-    material: DIAMOND_LEGGINGS
-    glow: false
-    lore: []
-    recipe: {enabled: false, shape: [], ingredients: {}}
-
-  lava_boots:
-    kind: ARMOR
-    enabled: true
-    display-name: "&#FF6B3DЛавовые ботинки"
-    material: DIAMOND_BOOTS
+    display-name: "&#4FD6E8Катана"
+    material: DIAMOND_SWORD
     glow: false
     lore: []
     recipe: {enabled: false, shape: [], ingredients: {}}
