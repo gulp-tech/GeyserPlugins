@@ -176,8 +176,10 @@ items:
         - " S "
       ingredients: {I: GOLD_INGOT, S: STICK}
 
-  # ---------------- Зелья (работают и в запретных зонах) ----------------
-  # amplifier: 0 = уровень I, 2 = уровень III. duration — секунды.
+  # ---------------- Зелья: обычные бутылки с водой ----------------
+  # Стакуются (max-stack-size), пьются как ванильные. Эффекты выдаёт плагин
+  # при выпивании из effects: amplifier: 0 = уровень I, 2 = уровень III,
+  # duration — секунды. Котёл и варочная стойка закрыты (без потерь и дюпов).
 
   pot_berserk:
     kind: POTION
@@ -186,7 +188,7 @@ items:
     material: POTION
     glow: true
     lore: ["&7Сила III + Скорость III"]
-    color: "#FF3D3D"
+    max-stack-size: 16
     effects:
       - {type: STRENGTH, amplifier: 2, duration: 180}
       - {type: SPEED, amplifier: 2, duration: 180}
@@ -202,7 +204,7 @@ items:
     material: POTION
     glow: true
     lore: ["&7Сила II + Скорость I"]
-    color: "#FF9A3D"
+    max-stack-size: 16
     effects:
       - {type: STRENGTH, amplifier: 1, duration: 180}
       - {type: SPEED, amplifier: 0, duration: 180}
@@ -218,7 +220,7 @@ items:
     material: POTION
     glow: true
     lore: ["&7Скорость III + Прыгучесть II"]
-    color: "#55E6FF"
+    max-stack-size: 16
     effects:
       - {type: SPEED, amplifier: 2, duration: 180}
       - {type: JUMP_BOOST, amplifier: 1, duration: 180}
@@ -234,7 +236,7 @@ items:
     material: POTION
     glow: true
     lore: ["&7Сопротивление II + Огнестойкость"]
-    color: "#8FB8FF"
+    max-stack-size: 16
     effects:
       - {type: RESISTANCE, amplifier: 1, duration: 180}
       - {type: FIRE_RESISTANCE, amplifier: 0, duration: 180}

@@ -27,6 +27,10 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemConsumeEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.EquipmentSlot;
+import org.bukkit.event.inventory.BrewerInventory;
+import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
+import org.bukkit.event.inventory.InventoryMoveItemEvent;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.ShapedRecipe;
@@ -299,17 +303,14 @@ public final class ItemsService implements Listener {
                 armorMeta.setTrim(new ArmorTrim(trimMaterial, trimPattern));
             }
         }
-        if (item.kind() == CustomItem.Kind.POTION && meta instanceof PotionMeta) {
-            PotionMeta potion = (PotionMeta) meta;
-            for (CustomItem.EffectDef e : item.effects("effects")) {
-                potion.addCustomEffect(new PotionEffect(e.type(), e.durationSeconds() * 20, e.amplifier()), true);
-            }
-            String colorHex = item.str("color", "#FF5555").replace("#", "");
-            try {
-                potion.setColor(org.bukkit.Color.fromRGB(Integer.parseInt(colorHex, 16)));
-            } catch (NumberFormatException ignored) {
-            }
+        // Стакуемость (конфиг max-stack-size): работает как ванильная бутылка мёда —
+        // игра сама делит и складывает стаки, дюпов через инвентарь нет.
+        int stackSize = (int) item.num("max-stack-size", 1);
+        if (stackSize > 1) {
+            meta.setMaxStackSize(Math.min(64, stackSize));
         }
+        // Зелья — обычные бутылки с водой: без встроенных эффектов и цвета,
+        // эффекты выдаёт onConsumeCustomPotion из конфига при выпивании.
         meta.getPersistentDataContainer().set(idKey, PersistentDataType.STRING, item.id());
         stack.setItemMeta(meta);
         return stack;
@@ -523,6 +524,61 @@ public final class ItemsService implements Listener {
         if (isBanned(event.getPlayer().getLocation())) {
             event.setCancelled(true);
             msg(event.getPlayer(), "banned", item);
+            return;
+        }
+        // Бутылка с водой не несёт ванильных эффектов — выдаём свои из конфига.
+        for (CustomItem.EffectDef e : item.effects("effects")) {
+            event.getPlayer().addPotionEffect(new PotionEffect(e.type(), e.durationSeconds() * 20, e.amplifier()));
+        }
+    }
+
+    /** Бутылку с водой нельзя вылить в котёл: ваниль превратит нашу в пустую бутылку. */
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onCauldronPour(PlayerInteractEvent event) {
+        if (event.getAction() != Action.RIGHT_CLICK_BLOCK || event.getItem() == null) {
+            return;
+        }
+        String id = identify(event.getItem());
+        CustomItem item = id == null ? null : byId(id);
+        if (item == null || item.kind() != CustomItem.Kind.POTION || event.getClickedBlock() == null) {
+            return;
+        }
+        if (event.getClickedBlock().getType().name().contains("CAULDRON")) {
+            event.setCancelled(true);
+            event.setUseInteractedBlock(Event.Result.DENY);
+        }
+    }
+
+    /** Наши предметы нельзя класть в варочную стойку: сварятся и пропадут. */
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onBrewerClick(InventoryClickEvent event) {
+        if (!(event.getInventory().getHolder() instanceof BrewerInventory)) {
+            return;
+        }
+        if (identify(event.getCursor()) == null) {
+            return;
+        }
+        event.setCancelled(true);
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onBrewerDrag(InventoryDragEvent event) {
+        if (!(event.getInventory().getHolder() instanceof BrewerInventory)) {
+            return;
+        }
+        if (identify(event.getOldCursor()) != null) {
+            event.setCancelled(true);
+        }
+    }
+
+    /** Хопперы тоже не должны закидывать наши предметы в варочную стойку. */
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onBrewerHopper(InventoryMoveItemEvent event) {
+        if (!(event.getDestination().getHolder() instanceof BrewerInventory)) {
+            return;
+        }
+        if (identify(event.getItem()) != null) {
+            event.setCancelled(true);
         }
     }
 
