@@ -15,7 +15,7 @@
         "predicate": {
           "type": "server_pdc_string",
           "key": "voiditems:item_id",
-          "fallback_key": "voiditems:item_id",
+          "fallback_key": "faralitems:item_id",
           "value": "dragon_light"
         }
       },
@@ -32,7 +32,7 @@
         "predicate": {
           "type": "server_pdc_string",
           "key": "voiditems:item_id",
-          "fallback_key": "voiditems:item_id",
+          "fallback_key": "faralitems:item_id",
           "value": "katana"
         }
       }
@@ -51,7 +51,7 @@
         "predicate": {
           "type": "server_pdc_string",
           "key": "voiditems:item_id",
-          "fallback_key": "voiditems:item_id",
+          "fallback_key": "faralitems:item_id",
           "value": "monty_hammer"
         }
       }
