@@ -209,6 +209,8 @@ def main():
     ap.add_argument('--rot-order', default=None,
                     help="Euler order for display rotation: 'xyz' (Blockbench) or 'zyx' (Java/JOML). "
                          "Auto-detected from file type.")
+    ap.add_argument('--icon-size', type=int, default=16,
+                    help='Icon size in px (16 = pixel-art snap; >16 = smooth HD icon).')
     args = ap.parse_args()
 
     m, texture = load_model(args.bbmodel)
@@ -216,18 +218,26 @@ def main():
     big = render(m, texture, args.size, rot_order)
     if args.preview:
         big.save(args.preview)
-    from PIL import ImageFilter
-    icon = big.resize((16, 16), Image.BOX)
-    px = icon.load()
-    for yy in range(16):
-        for xx in range(16):
-            r, g, b, a = px[xx, yy]
-            px[xx, yy] = (r, g, b, 255 if a > 16 else 0)
-    r, g, b, a = icon.split()
-    a = a.filter(ImageFilter.MaxFilter(5)).filter(ImageFilter.MinFilter(5))
-    icon = Image.merge('RGBA', (r, g, b, a))
+    if args.icon_size > 16:
+        icon = big.resize((args.icon_size, args.icon_size), Image.LANCZOS)
+        px = icon.load()
+        for yy in range(args.icon_size):
+            for xx in range(args.icon_size):
+                r, g, b, a = px[xx, yy]
+                px[xx, yy] = (r, g, b, 255 if a > 8 else 0)
+    else:
+        from PIL import ImageFilter
+        icon = big.resize((16, 16), Image.BOX)
+        px = icon.load()
+        for yy in range(16):
+            for xx in range(16):
+                r, g, b, a = px[xx, yy]
+                px[xx, yy] = (r, g, b, 255 if a > 16 else 0)
+        r, g, b, a = icon.split()
+        a = a.filter(ImageFilter.MaxFilter(5)).filter(ImageFilter.MinFilter(5))
+        icon = Image.merge('RGBA', (r, g, b, a))
     icon.save(args.out)
-    print(f'OK: {args.out} (16x16)' + (f', preview {args.preview}' if args.preview else ''))
+    print(f'OK: {args.out} ({args.icon_size}x{args.icon_size})' + (f', preview {args.preview}' if args.preview else ''))
 
 
 if __name__ == '__main__':
