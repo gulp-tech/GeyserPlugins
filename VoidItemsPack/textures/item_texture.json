@@ -2,8 +2,17 @@
   "resource_pack_name": "geyser_custom",
   "texture_name": "atlas.items",
   "texture_data": {
+    "algidgleam": {
+      "textures": "textures/item/algidgleam"
+    },
+    "bloodygrief": {
+      "textures": "textures/item/bloodygrief"
+    },
     "dragon_light": {
       "textures": "textures/item/dragon_light"
+    },
+    "faintquasar": {
+      "textures": "textures/item/faintquasar"
     },
     "katana": {
       "textures": "textures/item/katana"

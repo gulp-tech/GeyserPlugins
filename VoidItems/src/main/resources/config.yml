@@ -431,3 +431,34 @@ items:
     glow: false
     lore: []
     recipe: {enabled: false, shape: [], ingredients: {}}
+
+  # --- Набор катан из архива initial-katanas (модели владельца, OptiFine-CIT).
+  # Каждая — новый предмет, ванильные мечи не тронуты. Без чар: ложатся
+  # любые ванильные и кастомные зачарования, ItemEdit работает.
+
+  algidgleam:
+    kind: GEAR
+    enabled: true
+    display-name: "&#8CE8FFAlgid Gleam"
+    material: DIAMOND_SWORD
+    glow: false
+    lore: []
+    recipe: {enabled: false, shape: [], ingredients: {}}
+
+  bloodygrief:
+    kind: GEAR
+    enabled: true
+    display-name: "&#FF5555Bloody Grief"
+    material: DIAMOND_SWORD
+    glow: false
+    lore: []
+    recipe: {enabled: false, shape: [], ingredients: {}}
+
+  faintquasar:
+    kind: GEAR
+    enabled: true
+    display-name: "&#B388FFFaint Quasar"
+    material: DIAMOND_SWORD
+    glow: false
+    lore: []
+    recipe: {enabled: false, shape: [], ingredients: {}}

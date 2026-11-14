@@ -35,6 +35,57 @@
           "fallback_key": "faralitems:item_id",
           "value": "katana"
         }
+      },
+      {
+        "type": "definition",
+        "model": "minecraft:diamond_sword",
+        "bedrock_identifier": "geyser_custom:algidgleam",
+        "bedrock_options": {
+          "icon": "algidgleam",
+          "display_handheld": true,
+          "allow_offhand": true,
+          "creative_category": "items"
+        },
+        "predicate": {
+          "type": "server_pdc_string",
+          "key": "voiditems:item_id",
+          "fallback_key": "faralitems:item_id",
+          "value": "algidgleam"
+        }
+      },
+      {
+        "type": "definition",
+        "model": "minecraft:diamond_sword",
+        "bedrock_identifier": "geyser_custom:bloodygrief",
+        "bedrock_options": {
+          "icon": "bloodygrief",
+          "display_handheld": true,
+          "allow_offhand": true,
+          "creative_category": "items"
+        },
+        "predicate": {
+          "type": "server_pdc_string",
+          "key": "voiditems:item_id",
+          "fallback_key": "faralitems:item_id",
+          "value": "bloodygrief"
+        }
+      },
+      {
+        "type": "definition",
+        "model": "minecraft:diamond_sword",
+        "bedrock_identifier": "geyser_custom:faintquasar",
+        "bedrock_options": {
+          "icon": "faintquasar",
+          "display_handheld": true,
+          "allow_offhand": true,
+          "creative_category": "items"
+        },
+        "predicate": {
+          "type": "server_pdc_string",
+          "key": "voiditems:item_id",
+          "fallback_key": "faralitems:item_id",
+          "value": "faintquasar"
+        }
       }
     ],
     "minecraft:mace": [

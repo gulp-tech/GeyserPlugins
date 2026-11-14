@@ -18,8 +18,47 @@ from PIL import Image, ImageDraw
 
 
 def load_model(path):
+    """Load a Blockbench .bbmodel or a Java/OptiFine item model .json.
+
+    Returns (normalized_model, texture_image): face UVs are in texture pixels,
+    element rotation is a bbmodel-style [x, y, z] Euler around 'origin'.
+    """
+    import io
+    import os
     with open(path, encoding='utf-8') as f:
         m = json.load(f)
+
+    if 'texture_size' in m and isinstance(m.get('textures'), dict):
+        # ---- Java/OptiFine item model
+        tex_ref = m['textures'].get('0') or next(iter(m['textures'].values()))
+        tex_ref = tex_ref.lstrip('./')
+        tex_path = os.path.join(os.path.dirname(path), tex_ref + '.png')
+        texture = Image.open(tex_path).convert('RGBA')
+        tw, th = texture.size
+        if th > tw and th % tw == 0:  # animated: stacked square frames
+            texture = texture.crop((0, 0, tw, tw))
+        sx, sy = m.get('texture_size', [16, 16])[0] / 16.0, m.get('texture_size', [16, 16])[1] / 16.0
+        elements = []
+        for el in m['elements']:
+            rot = el.get('rotation') or {}
+            angle = rot.get('angle', 0) or 0
+            axis = rot.get('axis', 'y')
+            euler = [angle if axis == 'x' else 0,
+                     angle if axis == 'y' else 0,
+                     angle if axis == 'z' else 0]
+            faces = {}
+            for key, f in (el.get('faces') or {}).items():
+                if not f.get('uv'):
+                    continue
+                u1, v1, u2, v2 = f['uv']
+                faces[key] = {'uv': [u1 * sx, v1 * sy, u2 * sx, v2 * sy], 'texture': 0}
+            elements.append({'from': el['from'], 'to': el['to'],
+                             'rotation': euler,
+                             'origin': rot.get('origin') or [8, 8, 8],
+                             'faces': faces})
+        return {'elements': elements, 'display': m.get('display') or {}}, texture
+
+    # ---- Blockbench .bbmodel
     tex = m['textures'][0]
     src = tex.get('source') or tex.get('data') or ''
     if src.startswith('data:'):
@@ -27,7 +66,6 @@ def load_model(path):
     else:
         with open(src, 'rb') as f:
             raw = f.read()
-    import io
     texture = Image.open(io.BytesIO(raw)).convert('RGBA')
     return m, texture
 
@@ -66,7 +104,18 @@ def cube_faces(el):
 SHADE = {'up': 1.0, 'down': 0.55, 'north': 0.8, 'south': 0.8, 'east': 0.62, 'west': 0.62}
 
 
-def build_faces(m):
+def rot_seq(v, rot, order='xyz'):
+    """Apply Euler rotations in the given order ('xyz' = X first; 'zyx' = Z first)."""
+    out = v
+    for ax in order:
+        out = rot_xyz(out,
+                      rot[0] if ax == 'x' else 0,
+                      rot[1] if ax == 'y' else 0,
+                      rot[2] if ax == 'z' else 0)
+    return out
+
+
+def build_faces(m, rot_order='xyz'):
     faces = []
     for el in m['elements']:
         rot = el.get('rotation') or [0, 0, 0]
@@ -78,14 +127,14 @@ def build_faces(m):
             out = []
             for c in corners:
                 v = (c[0] - org[0], c[1] - org[1], c[2] - org[2])
-                v = rot_xyz(v, rot[0], rot[1], rot[2])
+                v = rot_seq(v, rot, rot_order)
                 out.append((v[0] + org[0], v[1] + org[1], v[2] + org[2]))
             faces.append({'key': key, 'corners': out, 'uv': spec['uv']})
     return faces
 
 
-def render(m, texture, size=256):
-    faces = build_faces(m)
+def render(m, texture, size=256, rot_order='xyz'):
+    faces = build_faces(m, rot_order)
     disp = (m.get('display') or {}).get('gui') or {}
     rot = disp.get('rotation') or [30, 225, 0]
     tr = disp.get('translation') or [0, 0, 0]
@@ -93,7 +142,7 @@ def render(m, texture, size=256):
 
     def gui(v):
         v = ((v[0] - 8) * sc[0], (v[1] - 8) * sc[1], (v[2] - 8) * sc[2])
-        v = rot_xyz(v, rot[0], rot[1], rot[2])
+        v = rot_seq(v, rot, rot_order)
         return (v[0] + tr[0], v[1] + tr[1], v[2] + tr[2])
 
     for f in faces:
@@ -157,10 +206,14 @@ def main():
     ap.add_argument('out')
     ap.add_argument('--preview', default=None)
     ap.add_argument('--size', type=int, default=256)
+    ap.add_argument('--rot-order', default=None,
+                    help="Euler order for display rotation: 'xyz' (Blockbench) or 'zyx' (Java/JOML). "
+                         "Auto-detected from file type.")
     args = ap.parse_args()
 
     m, texture = load_model(args.bbmodel)
-    big = render(m, texture, args.size)
+    rot_order = args.rot_order or ('zyx' if args.bbmodel.endswith('.json') else 'xyz')
+    big = render(m, texture, args.size, rot_order)
     if args.preview:
         big.save(args.preview)
     from PIL import ImageFilter
