@@ -583,11 +583,19 @@ public final class ItemsService implements Listener {
             return;
         }
         ItemMeta meta = stack.getItemMeta();
-        if (meta == null || meta.getMaxStackSize() == potionStackMax) {
+        if (meta == null) {
             return;
         }
-        meta.setMaxStackSize(potionStackMax);
-        stack.setItemMeta(meta);
+        if (meta.getMaxStackSize() != potionStackMax) {
+            meta.setMaxStackSize(potionStackMax);
+            stack.setItemMeta(meta);
+        }
+        // Имя важно для Bedrock: без него игрок видит технический id (geyser_custom:...).
+        // Ванильным зельям возвращаем их настоящее название («Зелье лечения II» и т.п.).
+        if (!meta.hasDisplayName()) {
+            meta.displayName(stack.effectiveName());
+            stack.setItemMeta(meta);
+        }
     }
 
     private void normalizeInventory(org.bukkit.inventory.Inventory inventory) {
