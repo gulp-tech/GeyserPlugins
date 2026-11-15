@@ -19,6 +19,18 @@
     },
     "monty_hammer": {
       "textures": "textures/item/monty_hammer"
+    },
+    "pot_berserk": {
+      "textures": "textures/item/pot_berserk"
+    },
+    "pot_runner": {
+      "textures": "textures/item/pot_runner"
+    },
+    "pot_tank": {
+      "textures": "textures/item/pot_tank"
+    },
+    "pot_warrior": {
+      "textures": "textures/item/pot_warrior"
     }
   }
 }

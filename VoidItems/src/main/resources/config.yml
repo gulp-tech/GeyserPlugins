@@ -176,20 +176,20 @@ items:
         - " S "
       ingredients: {I: GOLD_INGOT, S: STICK}
 
-  # ---------------- Зелья: стакуемые бутылки (база — ванильная бутылка мёда) ----------------
-  # Бутылка мёда — единственный напиток, который стакается до 16 в САМОМ Bedrock-клиенте:
-  # перенос, деление и подбор стаков идут по ваниле, без глюков и дюпов. Пьётся как обычно
-  # (бутылка возвращается пустой), эффекты выдаёт плагин из effects: amplifier: 0 = уровень I,
-  # 2 = уровень III, duration — секунды. Котёл и варочная стойка закрыты.
+  # ---------------- Зелья: обычные бутылки с водой, стак до 64 ----------------
+  # Стак 64 держится на двух вещах: max-stack-size тут (сторона сервера) +
+  # components.max_stack_size в configs/Geyser-items-pdc-mapping.json (сторона Bedrock-клиента).
+  # Пьются как ванильные (бутылка возвращается пустой), эффекты выдаёт плагин из effects:
+  # amplifier: 0 = уровень I, 2 = уровень III, duration — секунды. Котёл и варочная стойка закрыты.
 
   pot_berserk:
     kind: POTION
     enabled: true
     display-name: "&#FF5555Зелье ярости"
-    material: HONEY_BOTTLE
+    material: POTION
     glow: true
     lore: ["&7Сила III + Скорость III"]
-    max-stack-size: 16
+    max-stack-size: 64
     effects:
       - {type: STRENGTH, amplifier: 2, duration: 180}
       - {type: SPEED, amplifier: 2, duration: 180}
@@ -202,10 +202,10 @@ items:
     kind: POTION
     enabled: true
     display-name: "&#FF9A3DБоевое зелье"
-    material: HONEY_BOTTLE
+    material: POTION
     glow: true
     lore: ["&7Сила II + Скорость I"]
-    max-stack-size: 16
+    max-stack-size: 64
     effects:
       - {type: STRENGTH, amplifier: 1, duration: 180}
       - {type: SPEED, amplifier: 0, duration: 180}
@@ -218,10 +218,10 @@ items:
     kind: POTION
     enabled: true
     display-name: "&#55E6FFЗелье скорости"
-    material: HONEY_BOTTLE
+    material: POTION
     glow: true
     lore: ["&7Скорость III + Прыгучесть II"]
-    max-stack-size: 16
+    max-stack-size: 64
     effects:
       - {type: SPEED, amplifier: 2, duration: 180}
       - {type: JUMP_BOOST, amplifier: 1, duration: 180}
@@ -234,10 +234,10 @@ items:
     kind: POTION
     enabled: true
     display-name: "&#8FB8FFЗелье защиты"
-    material: HONEY_BOTTLE
+    material: POTION
     glow: true
     lore: ["&7Сопротивление II + Огнестойкость"]
-    max-stack-size: 16
+    max-stack-size: 64
     effects:
       - {type: RESISTANCE, amplifier: 1, duration: 180}
       - {type: FIRE_RESISTANCE, amplifier: 0, duration: 180}
