@@ -586,7 +586,8 @@ public final class ItemsService implements Listener {
         if (meta == null) {
             return;
         }
-        if (meta.getMaxStackSize() != potionStackMax) {
+        // ВАЖНО: getMaxStackSize() падает, пока компонент не задан — сначала hasMaxStackSize().
+        if (!meta.hasMaxStackSize() || meta.getMaxStackSize() != potionStackMax) {
             meta.setMaxStackSize(potionStackMax);
             stack.setItemMeta(meta);
         }
