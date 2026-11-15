@@ -21,16 +21,21 @@ import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockExplodeEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
+import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.event.Event;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemConsumeEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.BrewerInventory;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.inventory.InventoryMoveItemEvent;
+import org.bukkit.event.inventory.BrewEvent;
+import org.bukkit.event.inventory.ClickType;
+import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.ShapedRecipe;
@@ -72,6 +77,8 @@ public final class ItemsService implements Listener {
     private final Map<String, Trap> trapBlocks = new HashMap<>(); // "world:x,y,z" -> трапка
     private final Map<UUID, String> lastUse = new HashMap<>(); // "id@тик" — чтобы один клик не срабатывал дважды
     private final Map<UUID, Long> revealed = new HashMap<>(); // подсвеченные явной пылью: uuid -> конец (мс)
+    private final boolean stackablePotions; // стакуемые зелья (все POTION, включая ванильные)
+    private final int potionStackMax;
 
     private static final class Trap {
         UUID owner;
@@ -91,8 +98,19 @@ public final class ItemsService implements Listener {
         this.worldEdit = new WEHook(plugin.getLogger());
         this.idKey = new NamespacedKey(plugin, "item_id");
         this.spawnerMobKey = new NamespacedKey(plugin, "spawner_mob");
+        this.stackablePotions = plugin.getConfig().getBoolean("stackable-potions.enabled", true);
+        this.potionStackMax = Math.max(1, Math.min(64, plugin.getConfig().getInt("stackable-potions.max-stack-size", 64)));
         load();
         registerRecipes();
+        // Стакуемые зелья: раз в 5 сек приводим max-stack-size зелий к конфигу —
+        // подстраховка на выдачу других плагинов, /give и прочее (без событий).
+        if (stackablePotions && potionStackMax > 1) {
+            Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+                for (Player p : Bukkit.getOnlinePlayers()) {
+                    normalizeInventory(p.getInventory());
+                }
+            }, 100L, 100L);
+        }
         // Своя схематика трапки: plugins/VoidItems/schematics/<файл из конфига trapka.schematic>
         java.io.File schemDir = new java.io.File(plugin.getDataFolder(), "schematics");
         schemDir.mkdirs();
@@ -549,16 +567,127 @@ public final class ItemsService implements Listener {
         }
     }
 
-    /** Наши предметы нельзя класть в варочную стойку: сварятся и пропадут. */
+    // ------------------------------------------------- стакуемые зелья (все, включая ванильные)
+    //
+    // Стак 64 держится на двух слоях: тут (max-stack-size на каждом стаке, сторона сервера)
+    // и в Geyser-маппинге (components.max_stack_size, сторона Bedrock-клиента). Пьётся по
+    // одной бутылке — ванильная механика стака (как мёд). Варка рассчитана на одиночные
+    // бутылки, поэтому стаки зелий в слоты зелий стойки не пускаем.
+
+    private boolean isPotion(ItemStack stack) {
+        return stack != null && stack.getType() == Material.POTION;
+    }
+
+    private void normalizePotion(ItemStack stack) {
+        if (!stackablePotions || potionStackMax <= 1 || !isPotion(stack) || !stack.hasItemMeta()) {
+            return;
+        }
+        ItemMeta meta = stack.getItemMeta();
+        if (meta == null || meta.getMaxStackSize() == potionStackMax) {
+            return;
+        }
+        meta.setMaxStackSize(potionStackMax);
+        stack.setItemMeta(meta);
+    }
+
+    private void normalizeInventory(org.bukkit.inventory.Inventory inventory) {
+        for (int i = 0; i < inventory.getSize(); i++) {
+            ItemStack stack = inventory.getItem(i);
+            if (isPotion(stack)) {
+                normalizePotion(stack);
+                inventory.setItem(i, stack);
+            }
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onPotionPickup(EntityPickupItemEvent event) {
+        org.bukkit.entity.Item dropped = event.getItem();
+        ItemStack stack = dropped.getItemStack();
+        normalizePotion(stack);
+        dropped.setItemStack(stack);
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onInventoryOpenNormalize(InventoryOpenEvent event) {
+        normalizeInventory(event.getInventory());
+        normalizeInventory(event.getPlayer().getInventory());
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onPotionClickNormalize(InventoryClickEvent event) {
+        ItemStack current = event.getCurrentItem();
+        if (current != null) {
+            normalizePotion(current);
+            event.setCurrentItem(current);
+        }
+        ItemStack cursor = event.getCursor();
+        if (cursor != null) {
+            normalizePotion(cursor);
+            event.setCursor(cursor);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onPotionMoveNormalize(InventoryMoveItemEvent event) {
+        ItemStack stack = event.getItem();
+        normalizePotion(stack);
+        event.setItem(stack);
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onPotionBrewNormalize(BrewEvent event) {
+        normalizeInventory(event.getContents());
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onJoinNormalize(PlayerJoinEvent event) {
+        normalizeInventory(event.getPlayer().getInventory());
+    }
+
+    /** Наши предметы и зелья в варочную стойку — только по правилам ниже (иначе варка теряет/варит стаки). */
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onBrewerClick(InventoryClickEvent event) {
         if (!(event.getInventory().getHolder() instanceof BrewerInventory)) {
             return;
         }
-        if (identify(event.getCursor()) == null) {
+        Player player = (Player) event.getWhoClicked();
+        ItemStack current = event.getCurrentItem();
+
+        // Быстрое перемещение (шифт) не даёт точно предсказать слот — для зелий и наших предметов запрещено.
+        if (event.getClick() == ClickType.QUICK_MOVE) {
+            if (identify(current) != null || isPotion(current)) {
+                event.setCancelled(true);
+                if (isPotion(current)) {
+                    msg(player, "brew-split", null);
+                }
+            }
             return;
         }
-        event.setCancelled(true);
+
+        org.bukkit.inventory.Inventory clicked = event.getClickedInventory();
+        if (clicked == null || !(clicked.getHolder() instanceof BrewerInventory)) {
+            return; // клик по инвентарю игрока — слоты стойки не трогает
+        }
+        ItemStack incoming = event.getCursor();
+        if (event.getClick() == ClickType.SWAP && event.getHotbarButton() >= 0) {
+            incoming = player.getInventory().getItem(event.getHotbarButton());
+        }
+        if (identify(incoming) != null) {
+            event.setCancelled(true);
+            return;
+        }
+        if (!isPotion(incoming)) {
+            return;
+        }
+        // Зелья: в слоты 0–2 — только по одной бутылке и только в пустой слот.
+        if (event.getSlot() <= 2) {
+            boolean slotBusy = current != null && current.getType() != Material.AIR;
+            if (incoming.getAmount() > 1 || slotBusy) {
+                event.setCancelled(true);
+                msg(player, "brew-split", null);
+            }
+        }
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -568,16 +697,27 @@ public final class ItemsService implements Listener {
         }
         if (identify(event.getOldCursor()) != null) {
             event.setCancelled(true);
+            return;
+        }
+        if (!isPotion(event.getOldCursor())) {
+            return;
+        }
+        for (int slot : event.getInventorySlots()) {
+            if (slot <= 2) {
+                event.setCancelled(true);
+                msg((Player) event.getWhoClicked(), "brew-split", null);
+                return;
+            }
         }
     }
 
-    /** Хопперы тоже не должны закидывать наши предметы в варочную стойку. */
+    /** Хопперы: наши предметы и зелья — мимо стойки (слоты зелий должны быть не больше одной бутылки). */
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onBrewerHopper(InventoryMoveItemEvent event) {
         if (!(event.getDestination().getHolder() instanceof BrewerInventory)) {
             return;
         }
-        if (identify(event.getItem()) != null) {
+        if (identify(event.getItem()) != null || isPotion(event.getItem())) {
             event.setCancelled(true);
         }
     }

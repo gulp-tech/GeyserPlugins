@@ -187,6 +187,20 @@
         "components": {
           "minecraft:max_stack_size": 64
         }
+      },
+      {
+        "type": "definition",
+        "model": "minecraft:potion",
+        "bedrock_identifier": "geyser_custom:pot_vanilla",
+        "bedrock_options": {
+          "icon": "pot_vanilla",
+          "display_handheld": false,
+          "allow_offhand": true,
+          "creative_category": "items"
+        },
+        "components": {
+          "minecraft:max_stack_size": 64
+        }
       }
     ]
   }

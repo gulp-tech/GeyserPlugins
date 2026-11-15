@@ -29,6 +29,9 @@
     "pot_tank": {
       "textures": "textures/item/pot_tank"
     },
+    "pot_vanilla": {
+      "textures": "textures/item/pot_vanilla"
+    },
     "pot_warrior": {
       "textures": "textures/item/pot_warrior"
     }
