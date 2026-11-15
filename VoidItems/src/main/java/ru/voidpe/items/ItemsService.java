@@ -655,7 +655,7 @@ public final class ItemsService implements Listener {
         ItemStack current = event.getCurrentItem();
 
         // Быстрое перемещение (шифт) не даёт точно предсказать слот — для зелий и наших предметов запрещено.
-        if (event.getClick() == ClickType.QUICK_MOVE) {
+        if (event.getClick() == ClickType.SHIFT_LEFT || event.getClick() == ClickType.SHIFT_RIGHT) {
             if (identify(current) != null || isPotion(current)) {
                 event.setCancelled(true);
                 if (isPotion(current)) {
@@ -670,8 +670,10 @@ public final class ItemsService implements Listener {
             return; // клик по инвентарю игрока — слоты стойки не трогает
         }
         ItemStack incoming = event.getCursor();
-        if (event.getClick() == ClickType.SWAP && event.getHotbarButton() >= 0) {
+        if (event.getClick() == ClickType.NUMBER_KEY && event.getHotbarButton() >= 0) {
             incoming = player.getInventory().getItem(event.getHotbarButton());
+        } else if (event.getClick() == ClickType.SWAP_OFFHAND) {
+            incoming = player.getInventory().getItemInOffHand();
         }
         if (identify(incoming) != null) {
             event.setCancelled(true);
