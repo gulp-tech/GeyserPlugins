@@ -176,16 +176,17 @@ items:
         - " S "
       ingredients: {I: GOLD_INGOT, S: STICK}
 
-  # ---------------- Зелья: обычные бутылки с водой ----------------
-  # Стакуются (max-stack-size), пьются как ванильные. Эффекты выдаёт плагин
-  # при выпивании из effects: amplifier: 0 = уровень I, 2 = уровень III,
-  # duration — секунды. Котёл и варочная стойка закрыты (без потерь и дюпов).
+  # ---------------- Зелья: стакуемые бутылки (база — ванильная бутылка мёда) ----------------
+  # Бутылка мёда — единственный напиток, который стакается до 16 в САМОМ Bedrock-клиенте:
+  # перенос, деление и подбор стаков идут по ваниле, без глюков и дюпов. Пьётся как обычно
+  # (бутылка возвращается пустой), эффекты выдаёт плагин из effects: amplifier: 0 = уровень I,
+  # 2 = уровень III, duration — секунды. Котёл и варочная стойка закрыты.
 
   pot_berserk:
     kind: POTION
     enabled: true
     display-name: "&#FF5555Зелье ярости"
-    material: POTION
+    material: HONEY_BOTTLE
     glow: true
     lore: ["&7Сила III + Скорость III"]
     max-stack-size: 16
@@ -201,7 +202,7 @@ items:
     kind: POTION
     enabled: true
     display-name: "&#FF9A3DБоевое зелье"
-    material: POTION
+    material: HONEY_BOTTLE
     glow: true
     lore: ["&7Сила II + Скорость I"]
     max-stack-size: 16
@@ -217,7 +218,7 @@ items:
     kind: POTION
     enabled: true
     display-name: "&#55E6FFЗелье скорости"
-    material: POTION
+    material: HONEY_BOTTLE
     glow: true
     lore: ["&7Скорость III + Прыгучесть II"]
     max-stack-size: 16
@@ -233,7 +234,7 @@ items:
     kind: POTION
     enabled: true
     display-name: "&#8FB8FFЗелье защиты"
-    material: POTION
+    material: HONEY_BOTTLE
     glow: true
     lore: ["&7Сопротивление II + Огнестойкость"]
     max-stack-size: 16
