@@ -8,51 +8,6 @@
       "chars": [
         ""
       ]
-    },
-    {
-      "type": "bitmap",
-      "file": "minecraft:font/coin.png",
-      "ascent": 10,
-      "height": 13,
-      "chars": [
-        ""
-      ]
-    },
-    {
-      "type": "bitmap",
-      "file": "minecraft:font/sapphire.png",
-      "ascent": 10,
-      "height": 13,
-      "chars": [
-        ""
-      ]
-    },
-    {
-      "type": "bitmap",
-      "file": "minecraft:font/clock.png",
-      "ascent": 10,
-      "height": 13,
-      "chars": [
-        ""
-      ]
-    },
-    {
-      "type": "bitmap",
-      "file": "minecraft:font/sword.png",
-      "ascent": 10,
-      "height": 13,
-      "chars": [
-        ""
-      ]
-    },
-    {
-      "type": "bitmap",
-      "file": "minecraft:font/ping.png",
-      "ascent": 10,
-      "height": 13,
-      "chars": [
-        ""
-      ]
     }
   ]
 }

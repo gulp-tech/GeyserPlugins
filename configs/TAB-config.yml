@@ -68,16 +68,18 @@ scoreboard:
   delay-on-join-milliseconds: 1000
   scoreboards:
     voidpe:
-      title: "\uE100"
+      title: ''
       lines:
+        - "\uE100"
+        - ''
         - '&fИмя: &#FFA63D%player%'
         - '&fДонат: %condition:voidpe_rank%'
         - '&fТитул: %condition:voidpe_title%'
-        - "&fМонеты: \uE101 &#FFD93D%vault_eco_balance_fixed%"
-        - "&fОсколки: \uE102 &#FFD93D%playerpoints_points%"
+        - '&fМонеты: &#FFD93D%vault_eco_balance_fixed%'
+        - '&fОсколки: &#FFD93D%playerpoints_points%'
         - ''
-        - "&fУ/С: \uE104 &#C86BFF%statistic_player_kills%&f/&#FF6B6B%statistic_deaths%"
-        - "&fПинг: \uE105 &#7CFC00%purpurbedrock_ping%&f мс"
+        - '&fУ/С: &#C86BFF%statistic_player_kills%&f/&#FF6B6B%statistic_deaths%'
+        - '&fПинг: &#7CFC00%purpurbedrock_ping%&f мс'
 
 layout:
   enabled: false

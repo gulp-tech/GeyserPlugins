@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Собирает VoidSidebar.mcpack из исходников VoidSidebarPack/ (шрифты скорборда)."""
+"""Собирает VoidSidebarLogo.mcpack из исходников VoidSidebarPack/ (лого скорборда)."""
 import json
 import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / 'VoidSidebarPack'
-OUT = ROOT / 'VoidSidebar.mcpack'
+OUT = ROOT / 'VoidSidebarLogo.mcpack'
 
 REQUIRED = ['manifest.json', 'pack_icon.png', 'font/default.json']
 
