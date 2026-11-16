@@ -70,8 +70,6 @@ scoreboard:
     voidpe:
       title: "\uE201"
       lines:
-        - "\uE201"
-        - ''
         - '&fИмя: &#FFA63D%player%'
         - '&fДонат: %condition:voidpe_rank%'
         - '&fТитул: %condition:voidpe_title%'
