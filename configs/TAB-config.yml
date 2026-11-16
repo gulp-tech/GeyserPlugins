@@ -1,4 +1,5 @@
-# TAB для VoidPE: Purpurbedrock, только Bedrock. Ресурспак не нужен.
+# TAB для VoidPE: Purpurbedrock, только Bedrock.
+# Для глифов сайдбара (логотип/иконки) нужен VoidSidebar.mcpack в папке packs у Geyser.
 # Не запускайте одновременно с VoidTab: оба управляют скорбордом и никами.
 # Плейсхолдеры %purpurbedrock_*% предоставляются ядром; часть остальных
 # требует PlaceholderAPI и соответствующих расширений.
@@ -67,18 +68,18 @@ scoreboard:
   delay-on-join-milliseconds: 1000
   scoreboards:
     voidpe:
-      title: '&b&lVoidPE'
+      title: "\uE100"
       lines:
         - '&fИмя: &#FFA63D%player%'
         - '&fДонат: %condition:voidpe_rank%'
         - '&fТитул: %condition:voidpe_title%'
-        - '&fМонеты: &#FFD93D%vault_eco_balance_fixed%'
-        - '&fОсколки: &#54C8FF%playerpoints_points%'
+        - "&fМонеты: \uE101 &#FFD93D%vault_eco_balance_fixed%"
+        - "&fОсколки: \uE102 &#54C8FF%playerpoints_points%"
         - ''
-        - '&fПинг: &#7CFC00%purpurbedrock_ping%&f мс'
+        - "&fУ/С: \uE104 &#C86BFF%statistic_player_kills%&f/&#FF6B6B%statistic_deaths%"
+        - "&fВ игре: \uE103 &#FFD93D%statistic_hours_played%ч"
+        - "&fПинг: \uE105 &#7CFC00%purpurbedrock_ping%&f мс"
         - '&fВерсия: &#FFA63D%purpurbedrock_version%'
-        - '&fУ/С: &#C86BFF%statistic_player_kills%&f/&#FF6B6B%statistic_deaths%'
-        - '&fВ игре: &#FFD93D%statistic_hours_played%ч'
 
 layout:
   enabled: false
