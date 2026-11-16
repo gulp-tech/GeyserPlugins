@@ -3,10 +3,10 @@
     {
       "type": "bitmap",
       "file": "minecraft:font/logo.png",
-      "ascent": 18,
-      "height": 20,
+      "ascent": 13,
+      "height": 15,
       "chars": [
-        ""
+        ""
       ]
     }
   ]

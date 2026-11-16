@@ -3,7 +3,7 @@
   "header": {
     "description": "VoidPE: \u043b\u043e\u0433\u043e\u0442\u0438\u043f \u0438 \u0438\u043a\u043e\u043d\u043a\u0438 \u0441\u043a\u043e\u0440\u0431\u043e\u0440\u0434\u0430 (\u0448\u0440\u0438\u0444\u0442\u043e\u0432\u044b\u0435 \u0433\u043b\u0438\u0444\u044b). \u0421\u0442\u0430\u0432\u0438\u0442\u0441\u044f \u043d\u0430 Geyser (\u043f\u0430\u043f\u043a\u0430 packs).",
     "name": "VoidPE Sidebar Logo",
-    "uuid": "b8c909eb-1cca-468b-8dff-10c575079329",
+    "uuid": "31b63ebd-5bbb-4af0-99a4-8189308c4690",
     "version": [
       1,
       0,
@@ -19,7 +19,7 @@
     {
       "description": "VoidPE Sidebar Logo",
       "type": "resources",
-      "uuid": "fbe495e5-719a-4013-a68f-c61e9d58b180",
+      "uuid": "ee7909cc-1619-4c99-81a3-cdf2376a3bf5",
       "version": [
         1,
         0,
