@@ -3,8 +3,8 @@
     {
       "type": "bitmap",
       "file": "minecraft:font/logo.png",
-      "ascent": 22,
-      "height": 24,
+      "ascent": 18,
+      "height": 20,
       "chars": [
         ""
       ]
@@ -12,8 +12,8 @@
     {
       "type": "bitmap",
       "file": "minecraft:font/coin.png",
-      "ascent": 7,
-      "height": 9,
+      "ascent": 10,
+      "height": 13,
       "chars": [
         ""
       ]
@@ -21,8 +21,8 @@
     {
       "type": "bitmap",
       "file": "minecraft:font/sapphire.png",
-      "ascent": 7,
-      "height": 9,
+      "ascent": 10,
+      "height": 13,
       "chars": [
         ""
       ]
@@ -30,8 +30,8 @@
     {
       "type": "bitmap",
       "file": "minecraft:font/clock.png",
-      "ascent": 7,
-      "height": 9,
+      "ascent": 10,
+      "height": 13,
       "chars": [
         ""
       ]
@@ -39,8 +39,8 @@
     {
       "type": "bitmap",
       "file": "minecraft:font/sword.png",
-      "ascent": 7,
-      "height": 9,
+      "ascent": 10,
+      "height": 13,
       "chars": [
         ""
       ]
@@ -48,8 +48,8 @@
     {
       "type": "bitmap",
       "file": "minecraft:font/ping.png",
-      "ascent": 7,
-      "height": 9,
+      "ascent": 10,
+      "height": 13,
       "chars": [
         ""
       ]
