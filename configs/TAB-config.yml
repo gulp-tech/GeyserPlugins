@@ -74,12 +74,10 @@ scoreboard:
         - '&fДонат: %condition:voidpe_rank%'
         - '&fТитул: %condition:voidpe_title%'
         - "&fМонеты: \uE101 &#FFD93D%vault_eco_balance_fixed%"
-        - "&fОсколки: \uE102 &#54C8FF%playerpoints_points%"
+        - "&fОсколки: \uE102 &#FFD93D%playerpoints_points%"
         - ''
         - "&fУ/С: \uE104 &#C86BFF%statistic_player_kills%&f/&#FF6B6B%statistic_deaths%"
-        - "&fВ игре: \uE103 &#FFD93D%statistic_hours_played%ч"
         - "&fПинг: \uE105 &#7CFC00%purpurbedrock_ping%&f мс"
-        - '&fВерсия: &#FFA63D%purpurbedrock_version%'
 
 layout:
   enabled: false
