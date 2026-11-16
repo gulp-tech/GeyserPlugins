@@ -8,7 +8,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / 'VoidSidebarPack'
 OUT = ROOT / 'VoidSidebarLogo.mcpack'
 
-REQUIRED = ['manifest.json', 'pack_icon.png', 'font/default.json']
+REQUIRED = ['manifest.json', 'pack_icon.png', 'font/glyph_E2.png']
 
 
 def main() -> int:
@@ -23,16 +23,19 @@ def main() -> int:
             print(f'manifest.json: нет раздела {key}')
             return 1
 
-    font = json.loads((SRC / 'font/default.json').read_text(encoding='utf-8'))
-    providers = font.get('providers', [])
-    if not providers:
-        print('font/default.json: нет провайдеров')
+    # глиф-страница Bedrock: квадратная PNG, кратная сетке 16x16 ячеек
+    from struct import unpack
+    tex = SRC / 'font' / 'glyph_E2.png'
+    with tex.open('rb') as fh:
+        head = fh.read(24)
+    if head[:8] != b'\x89PNG\r\n\x1a\n':
+        print('glyph_E2.png: не PNG')
         return 1
-    for provider in providers:
-        tex = SRC / provider['file'].split(':', 1)[-1]
-        if not tex.is_file():
-            print('Нет текстуры глифа:', provider['file'])
-            return 1
+    w, h = unpack('>II', head[16:24])
+    if w != h or w % 16:
+        print(f'glyph_E2.png: размер {w}x{h}, нужен квадрат, кратный 16')
+        return 1
+    providers = 256
 
     files = sorted(p for p in SRC.rglob('*') if p.is_file())
     with zipfile.ZipFile(OUT, 'w', zipfile.ZIP_DEFLATED) as z:
@@ -41,7 +44,7 @@ def main() -> int:
 
     with zipfile.ZipFile(OUT) as z:
         names = z.namelist()
-    print(f'OK: {OUT.name} — {len(names)} файлов, глифов: {len(providers)}')
+    print(f'OK: {OUT.name} — {len(names)} файлов, страница глифов: {w}x{h} ({providers} ячеек)')
     return 0
 
 
