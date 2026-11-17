@@ -73,12 +73,9 @@ scoreboard:
         - "\uE201"
         - '&fИмя: &#FFA63D%player%'
         - '&fДонат: %condition:voidpe_rank%'
-        - '&fТитул: %condition:voidpe_title%'
         - '&fМонеты: &#FFD93D%vault_eco_balance_fixed%'
         - '&fОсколки: &#FFD93D%playerpoints_points%'
-        - ''
         - '&fУ/С: &#C86BFF%statistic_player_kills%&f/&#FF6B6B%statistic_deaths%'
-        - '&fПинг: &#7CFC00%purpurbedrock_ping%&f мс'
 
 layout:
   enabled: false
