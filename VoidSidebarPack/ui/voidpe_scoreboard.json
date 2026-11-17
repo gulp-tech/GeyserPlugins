@@ -28,10 +28,10 @@
     "type": "label",
     "layer": 2,
     "size": [
-      "default",
-      8
+      0,
+      0
     ],
-    "font_scale_factor": 0.85,
+    "alpha": 0,
     "text": "#player_score_sidebar",
     "anchor_from": "top_right",
     "anchor_to": "top_right",
@@ -47,30 +47,7 @@
     ]
   },
   "scoreboard_sidebar/main/displayed_objective": {
-    "type": "label",
-    "size": [
-      "default",
-      8
-    ],
-    "max_size": [
-      170,
-      8
-    ],
-    "font_scale_factor": 0.85,
-    "text": "#objective_sidebar_name",
-    "anchor_from": "top_middle",
-    "anchor_to": "top_middle",
-    "text_alignment": "center",
-    "locked_alpha": 1.0,
-    "layer": 2,
-    "color": "$objective_title_color",
-    "localize": false,
-    "bindings": [
-      {
-        "binding_name": "#objective_sidebar_name",
-        "binding_type": "global"
-      }
-    ]
+    "ignored": true
   },
   "scoreboard_sidebar/main/lists/horizontal_padding": {
     "type": "panel",
