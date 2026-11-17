@@ -12,7 +12,7 @@
       100,
       8
     ],
-    "font_scale_factor": 0.65,
+    "font_scale_factor": 0.7,
     "locked_alpha": 1.0,
     "color": "$player_name_color",
     "localize": false,
@@ -31,7 +31,7 @@
       "default",
       8
     ],
-    "font_scale_factor": 0.65,
+    "font_scale_factor": 0.7,
     "text": "#player_score_sidebar",
     "anchor_from": "top_right",
     "anchor_to": "top_right",
@@ -56,7 +56,7 @@
       170,
       8
     ],
-    "font_scale_factor": 0.65,
+    "font_scale_factor": 0.7,
     "text": "#objective_sidebar_name",
     "anchor_from": "top_middle",
     "anchor_to": "top_middle",
