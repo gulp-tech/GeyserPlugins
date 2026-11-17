@@ -78,5 +78,8 @@
       6,
       "100%c"
     ]
+  },
+  "scoreboard_sidebar/displayed_objective_background": {
+    "ignored": true
   }
 }
