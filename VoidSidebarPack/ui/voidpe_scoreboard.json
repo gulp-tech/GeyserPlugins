@@ -1,7 +1,0 @@
-{
-  "namespace": "scoreboard",
-
-  "scoreboard_sidebar/main": {
-    "size": [ 126, "100%c" ]
-  }
-}
