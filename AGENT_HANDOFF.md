@@ -106,5 +106,24 @@
 
 *Файл обновлён после коммита `17d5c22`. Если правишь этот файл — пиши частями (одна большая запись уже обрезалась и теряла хвост, коммит c283283).*
 
+## 13. Музыка спавна (VoidMusic 1.0.0 + VoidMusicPack v1.0.0, тег v1.73.0)
+
+- Задача: «когда игрок на спавне находится (мир world) у него могла заиграть музыка». Трек = mp3 из ветки
+  «Александр Пистолетов - Я российский новый пират (hitmo.net).mp3» (в корне ветки; ikson-christmas.mp3 — НЕ тот).
+- Плагин `VoidMusic/` (Maven, Purpur API 26.2): игрок в мире `world` (config.yml) слышит трек сразу при входе,
+  петля каждые `loop-seconds: 220` (= длительность трека 3:40), при выходе из мира/с сервера — `stopSound`.
+  Петля per-player (Map<UUID,BukkitTask>), звук `voidpe:spawn_music`.
+- Пак `artifacts/VoidMusicPack-v1.0.0.mcpack` (исходники `VoidMusicPack/`): mp3 → ogg vorbis q4 (Bedrock играет
+  ТОЛЬКО ogg!), stream:true. sound_definitions объявляет оба имени (voidpe:spawn_music / voidpe.spawn_music) —
+  страховка: Geyser прокидывает кастомные имена звуков как есть (SoundUtils: срезается только «minecraft:»).
+- Как собирать дальше: javac в песочнице нет (jdk4py = только JRE). Maven-модули собирает GitHub Actions
+  (build.yml на каждый push; release.yml по тегу v*). Артефакты build.yml с песочницы НЕ скачать (Azure Blob
+  заблокирован) — jar берётся из релиза: `git tag vX.Y.Z && git push origin vX.Y.Z` → ассет
+  `https://github.com/gulp-tech/GeyserPlugins/releases/download/<tag>/VoidMusic-1.0.0.jar`.
+  Шаг «Собрать плагин VoidMusic» добавлен в ОБА workflow.
+- Установка: jar → plugins/, mcpack → plugins/Geyser-Spigot/packs/ (старый удалить), включить в «Глобальных
+  ресурсах», РЕСТАРТ сервера. Проверки (не проверено в игре): играет при входе; через 3:40 повтор; тишина
+  при выходе из мира. Если тихо — лог (строка «VoidMusic включён: ...») + имя звука.
+
 
 
