@@ -6,7 +6,7 @@
 
     <groupId>ru.voidpe</groupId>
     <artifactId>VoidMusic</artifactId>
-    <version>1.0.0</version>
+    <version>1.1.0</version>
     <packaging>jar</packaging>
     <name>VoidMusic</name>
     <description>Музыка на спавне для Bedrock-сервера VoidPE: игрок слышит трек, пока находится в мире world. Звук идёт из VoidMusicPack.mcpack (Geyser packs). Всё настраивается в config.yml.</description>
