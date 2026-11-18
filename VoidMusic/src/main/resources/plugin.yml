@@ -1,0 +1,6 @@
+name: VoidMusic
+version: '1.0.0'
+main: ru.voidpe.music.VoidMusic
+api-version: '1.20'
+author: VoidPE
+description: Музыка для игроков в мире спавна (world). Трек из VoidMusicPack.mcpack.
