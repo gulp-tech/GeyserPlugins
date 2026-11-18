@@ -1,0 +1,128 @@
+{
+  "format_version": 2,
+  "items": {
+    "minecraft:diamond_sword": [
+      {
+        "type": "definition",
+        "model": "minecraft:diamond_sword",
+        "bedrock_identifier": "geyser_custom:dragon_light",
+        "bedrock_options": {
+          "icon": "dragon_light",
+          "display_handheld": true,
+          "allow_offhand": true,
+          "creative_category": "items"
+        },
+        "predicate": {
+          "type": "server_pdc_string",
+          "key": "voiditems:item_id",
+          "fallback_key": "faralitems:item_id",
+          "value": "dragon_light"
+        }
+      },
+      {
+        "type": "definition",
+        "model": "minecraft:diamond_sword",
+        "bedrock_identifier": "geyser_custom:katana",
+        "bedrock_options": {
+          "icon": "katana",
+          "display_handheld": true,
+          "allow_offhand": true,
+          "creative_category": "items"
+        },
+        "predicate": {
+          "type": "server_pdc_string",
+          "key": "voiditems:item_id",
+          "fallback_key": "faralitems:item_id",
+          "value": "katana"
+        }
+      },
+      {
+        "type": "definition",
+        "model": "minecraft:diamond_sword",
+        "bedrock_identifier": "geyser_custom:algidgleam",
+        "bedrock_options": {
+          "icon": "algidgleam",
+          "display_handheld": true,
+          "allow_offhand": true,
+          "creative_category": "items"
+        },
+        "predicate": {
+          "type": "server_pdc_string",
+          "key": "voiditems:item_id",
+          "fallback_key": "faralitems:item_id",
+          "value": "algidgleam"
+        }
+      },
+      {
+        "type": "definition",
+        "model": "minecraft:diamond_sword",
+        "bedrock_identifier": "geyser_custom:bloodygrief",
+        "bedrock_options": {
+          "icon": "bloodygrief",
+          "display_handheld": true,
+          "allow_offhand": true,
+          "creative_category": "items"
+        },
+        "predicate": {
+          "type": "server_pdc_string",
+          "key": "voiditems:item_id",
+          "fallback_key": "faralitems:item_id",
+          "value": "bloodygrief"
+        }
+      },
+      {
+        "type": "definition",
+        "model": "minecraft:diamond_sword",
+        "bedrock_identifier": "geyser_custom:faintquasar",
+        "bedrock_options": {
+          "icon": "faintquasar",
+          "display_handheld": true,
+          "allow_offhand": true,
+          "creative_category": "items"
+        },
+        "predicate": {
+          "type": "server_pdc_string",
+          "key": "voiditems:item_id",
+          "fallback_key": "faralitems:item_id",
+          "value": "faintquasar"
+        }
+      }
+    ],
+    "minecraft:mace": [
+      {
+        "type": "definition",
+        "model": "minecraft:mace",
+        "bedrock_identifier": "geyser_custom:monty_hammer",
+        "bedrock_options": {
+          "icon": "monty_hammer",
+          "display_handheld": true,
+          "allow_offhand": true,
+          "creative_category": "items"
+        },
+        "predicate": {
+          "type": "server_pdc_string",
+          "key": "voiditems:item_id",
+          "fallback_key": "faralitems:item_id",
+          "value": "monty_hammer"
+        }
+      }
+    ],
+    "minecraft:potion": [
+      {
+        "type": "definition",
+        "model": "minecraft:potion",
+        "display_name": "Зелье",
+        "bedrock_identifier": "geyser_custom:pot_vanilla",
+        "bedrock_options": {
+          "icon": "potion_bottle_drinkable",
+          "display_handheld": false,
+          "allow_offhand": true,
+          "creative_category": "items"
+        },
+        "components": {
+          "minecraft:max_stack_size": 64
+        }
+      }
+    ]
+  }
+}
