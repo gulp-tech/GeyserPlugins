@@ -47,7 +47,15 @@
     ]
   },
   "scoreboard_sidebar/main/displayed_objective": {
-    "ignored": true
+    "ignored": true,
+    "visible": false,
+    "type": "label",
+    "text": "",
+    "size": [
+      0,
+      0
+    ],
+    "alpha": 0
   },
   "scoreboard_sidebar/main/lists/horizontal_padding": {
     "type": "panel",
@@ -58,5 +66,27 @@
   },
   "scoreboard_sidebar/displayed_objective_background": {
     "ignored": true
+  },
+  "scoreboard_sidebar/main/controls/displayed_objective": {
+    "ignored": true,
+    "visible": false,
+    "type": "label",
+    "text": "",
+    "size": [
+      0,
+      0
+    ],
+    "alpha": 0
+  },
+  "scoreboard_sidebar/controls/main/controls/displayed_objective": {
+    "ignored": true,
+    "visible": false,
+    "type": "label",
+    "text": "",
+    "size": [
+      0,
+      0
+    ],
+    "alpha": 0
   }
 }
