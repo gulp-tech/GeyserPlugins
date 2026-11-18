@@ -315,6 +315,20 @@ jobs:
             exit 1
           fi
 
+      - name: Собрать плагин VoidMusic
+        working-directory: VoidMusic
+        run: |
+          build() { mvn -B -DskipTests "$@" package > mvn.log 2>&1; }
+          if ! build -Dpurpur.version="$PURPUR_VERSION"; then
+            grep -E "\[ERROR\]|BUILD FAILURE|Could not resolve|Failed to read" mvn.log | head -20 | sed 's/%/%25/g; s/^/::warning::/' || true
+            echo "Purpur API недоступна — собираем с Paper API (на Purpur работает так же)"
+            if ! build -Dapi.groupId=io.papermc.paper -Dapi.artifactId=paper-api -Dpurpur.version=26.2-R0.1-SNAPSHOT; then
+              grep -E "\[ERROR\]|BUILD FAILURE|Could not resolve|Failed to read" mvn.log | head -25 | sed 's/%/%25/g; s/^/::error::/' || true
+              cat mvn.log
+              exit 1
+            fi
+          fi
+
       - name: Проверить и собрать Bedrock resource pack
         run: |
           python3 tools/test_voidresource_pack.py
@@ -339,13 +353,14 @@ jobs:
           RTZ=$(ls VoidRtpZone/target/VoidRtpZone-*.jar | head -1)
           NV=$(ls VoidNV/target/VoidNV-*.jar | head -1)
           SHU=$(ls VoidShulker/target/VoidShulker-*.jar | head -1)
+          MUS=$(ls VoidMusic/target/VoidMusic-*.jar | head -1)
           HTN=$(ls HyperTNT/target/HyperTNT-*.jar | head -1)
           ANV=$(ls VoidAnvilExtension/build/libs/VoidAnvilExtension-*.jar | head -1)
           VVE=$(ls VoidVersionsExtension/build/libs/VoidVersionsExtension-*.jar | head -1)
           VCE=$(ls VoidCommandsExtension/build/libs/VoidCommandsExtension-*.jar | head -1)
           python3 tools/package_hypertnt_configs.py "$RUNNER_TEMP/VoidPE-HyperTNT-safe-configs.zip"
           echo "Файлы релиза: $JAR + $TAL + $ITM (ресурспак убран: он вызывал лаги)"
-          gh release create "${{ inputs.tag || github.ref_name }}" "$PVP" "$JAR" "$TAL" "$ITM" "$ENC" "$CAS" "$CLN" "$DRP" "$CMB" "$VAC" "$AUS" "$WCT" "$RTZ" "$NV" "$SHU" "$HTN" "$ANV" "$VVE" "$VCE" VoidResourcePack.mcpack VoidSpheres.mcpack "$RUNNER_TEMP/VoidPE-HyperTNT-safe-configs.zip" \
+          gh release create "${{ inputs.tag || github.ref_name }}" "$PVP" "$JAR" "$TAL" "$ITM" "$ENC" "$CAS" "$CLN" "$DRP" "$CMB" "$VAC" "$AUS" "$WCT" "$RTZ" "$NV" "$SHU" "$MUS" "$HTN" "$ANV" "$VVE" "$VCE" VoidResourcePack.mcpack VoidSpheres.mcpack "$RUNNER_TEMP/VoidPE-HyperTNT-safe-configs.zip" \
             --target "$GITHUB_SHA" \
             --title "VoidPE ${{ inputs.tag || github.ref_name }}" \
             --notes "VoidCommandsExtension 1.0.0: настоящие per-player Bukkit tab-completion для аргументов Bedrock-команд, включая имена домов /home; списки обновляются после команд и без перезахода. VoidResourcePack 1.18.1: скрывает красные числа sidebar TAB через коллекцию и сам score label, сохраняя строки и их порядок. Для этой задачи установите расширение в plugins/Geyser-Spigot/extensions и замените пак в plugins/Geyser-Spigot/packs, затем перезапустите сервер; TAB 6.2.1 можно оставить. VoidWardenCity 1.4.3: защита городских сундуков от застройки и разрушения. VoidShulker 1.0.5: исправлен дюп гонки «тап поставил + быстро закрыл» (призрачные копии удаляются); свободное размещение в любом слоте. VoidSpheres.mcpack — только для сфер."
