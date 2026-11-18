@@ -1,0 +1,599 @@
+{
+  "format_version": 2,
+  "items": {
+    "minecraft:fishing_rod": [
+      {
+        "type": "legacy",
+        "custom_model_data": 27101,
+        "bedrock_identifier": "geyserevent:copper_luck_rod",
+        "display_name": "Медная удочка удачи",
+        "bedrock_options": {
+          "icon": "copper_luck_rod",
+          "display_handheld": true
+        }
+      },
+      {
+        "type": "legacy",
+        "custom_model_data": 27102,
+        "bedrock_identifier": "geyserevent:golden_luck_rod",
+        "display_name": "Золотая удочка удачи",
+        "bedrock_options": {
+          "icon": "golden_luck_rod",
+          "display_handheld": true
+        }
+      },
+      {
+        "type": "legacy",
+        "custom_model_data": 27103,
+        "bedrock_identifier": "geyserevent:crystal_luck_rod",
+        "display_name": "Кристальная удочка удачи",
+        "bedrock_options": {
+          "icon": "crystal_luck_rod",
+          "display_handheld": true
+        }
+      }
+    ],
+    "minecraft:diamond_sword": [
+      {
+        "type": "definition",
+        "model": "minecraft:diamond_sword",
+        "bedrock_identifier": "geyser_custom:dragon_light",
+        "bedrock_options": {
+          "icon": "dragon_light",
+          "display_handheld": true,
+          "allow_offhand": true,
+          "creative_category": "items"
+        },
+        "predicate": {
+          "type": "server_pdc_string",
+          "key": "voiditems:item_id",
+          "fallback_key": "faralitems:item_id",
+          "value": "dragon_light"
+        }
+      },
+      {
+        "type": "definition",
+        "model": "minecraft:diamond_sword",
+        "bedrock_identifier": "geyser_custom:katana",
+        "bedrock_options": {
+          "icon": "katana",
+          "display_handheld": true,
+          "allow_offhand": true,
+          "creative_category": "items"
+        },
+        "predicate": {
+          "type": "server_pdc_string",
+          "key": "voiditems:item_id",
+          "fallback_key": "faralitems:item_id",
+          "value": "katana"
+        }
+      },
+      {
+        "type": "definition",
+        "model": "minecraft:diamond_sword",
+        "bedrock_identifier": "geyser_custom:algidgleam",
+        "bedrock_options": {
+          "icon": "algidgleam",
+          "display_handheld": true,
+          "allow_offhand": true,
+          "creative_category": "items"
+        },
+        "predicate": {
+          "type": "server_pdc_string",
+          "key": "voiditems:item_id",
+          "fallback_key": "faralitems:item_id",
+          "value": "algidgleam"
+        }
+      },
+      {
+        "type": "definition",
+        "model": "minecraft:diamond_sword",
+        "bedrock_identifier": "geyser_custom:bloodygrief",
+        "bedrock_options": {
+          "icon": "bloodygrief",
+          "display_handheld": true,
+          "allow_offhand": true,
+          "creative_category": "items"
+        },
+        "predicate": {
+          "type": "server_pdc_string",
+          "key": "voiditems:item_id",
+          "fallback_key": "faralitems:item_id",
+          "value": "bloodygrief"
+        }
+      },
+      {
+        "type": "definition",
+        "model": "minecraft:diamond_sword",
+        "bedrock_identifier": "geyser_custom:faintquasar",
+        "bedrock_options": {
+          "icon": "faintquasar",
+          "display_handheld": true,
+          "allow_offhand": true,
+          "creative_category": "items"
+        },
+        "predicate": {
+          "type": "server_pdc_string",
+          "key": "voiditems:item_id",
+          "fallback_key": "faralitems:item_id",
+          "value": "faintquasar"
+        }
+      }
+    ],
+    "minecraft:mace": [
+      {
+        "type": "definition",
+        "model": "minecraft:mace",
+        "bedrock_identifier": "geyser_custom:monty_hammer",
+        "bedrock_options": {
+          "icon": "monty_hammer",
+          "display_handheld": true,
+          "allow_offhand": true,
+          "creative_category": "items"
+        },
+        "predicate": {
+          "type": "server_pdc_string",
+          "key": "voiditems:item_id",
+          "fallback_key": "faralitems:item_id",
+          "value": "monty_hammer"
+        }
+      }
+    ],
+    "minecraft:potion": [
+      {
+        "type": "definition",
+        "model": "minecraft:potion",
+        "display_name": "Зелье",
+        "bedrock_identifier": "geyser_custom:pot_vanilla",
+        "bedrock_options": {
+          "icon": "potion_bottle_drinkable",
+          "display_handheld": false,
+          "allow_offhand": true,
+          "creative_category": "items"
+        },
+        "components": {
+          "minecraft:max_stack_size": 64
+        }
+      }
+    ],
+    "minecraft:paper": [
+      {
+        "type": "definition",
+        "model": "voidpe:pane_black",
+        "bedrock_identifier": "geyser_custom:pane_black",
+        "bedrock_options": {
+          "icon": "pane_black",
+          "allow_offhand": false,
+          "display_handheld": false,
+          "creative_category": "items"
+        }
+      },
+      {
+        "type": "definition",
+        "model": "voidpe:pane_yellow",
+        "bedrock_identifier": "geyser_custom:pane_yellow",
+        "bedrock_options": {
+          "icon": "pane_yellow",
+          "allow_offhand": false,
+          "display_handheld": false,
+          "creative_category": "items"
+        }
+      },
+      {
+        "type": "definition",
+        "model": "voidspheres:sphere1",
+        "bedrock_identifier": "geyser_custom:sphere1",
+        "bedrock_options": {
+          "icon": "sphere1",
+          "allow_offhand": true,
+          "display_handheld": true,
+          "creative_category": "items"
+        },
+        "predicate": {
+          "type": "server_pdc_string",
+          "key": "voidtalismans:talisman_id",
+          "fallback_key": "faraltalismans:talisman_id",
+          "value": "sphere1"
+        }
+      },
+      {
+        "type": "definition",
+        "model": "voidspheres:sphere1",
+        "bedrock_identifier": "geyser_custom:sphere1_menu",
+        "bedrock_options": {
+          "icon": "sphere1",
+          "creative_category": "items"
+        }
+      },
+      {
+        "type": "definition",
+        "model": "voidspheres:sphere2",
+        "bedrock_identifier": "geyser_custom:sphere2",
+        "bedrock_options": {
+          "icon": "sphere2",
+          "allow_offhand": true,
+          "display_handheld": true,
+          "creative_category": "items"
+        },
+        "predicate": {
+          "type": "server_pdc_string",
+          "key": "voidtalismans:talisman_id",
+          "fallback_key": "faraltalismans:talisman_id",
+          "value": "sphere2"
+        }
+      },
+      {
+        "type": "definition",
+        "model": "voidspheres:sphere2",
+        "bedrock_identifier": "geyser_custom:sphere2_menu",
+        "bedrock_options": {
+          "icon": "sphere2",
+          "creative_category": "items"
+        }
+      },
+      {
+        "type": "definition",
+        "model": "voidspheres:sphere3",
+        "bedrock_identifier": "geyser_custom:sphere3",
+        "bedrock_options": {
+          "icon": "sphere3",
+          "allow_offhand": true,
+          "display_handheld": true,
+          "creative_category": "items"
+        },
+        "predicate": {
+          "type": "server_pdc_string",
+          "key": "voidtalismans:talisman_id",
+          "fallback_key": "faraltalismans:talisman_id",
+          "value": "sphere3"
+        }
+      },
+      {
+        "type": "definition",
+        "model": "voidspheres:sphere3",
+        "bedrock_identifier": "geyser_custom:sphere3_menu",
+        "bedrock_options": {
+          "icon": "sphere3",
+          "creative_category": "items"
+        }
+      },
+      {
+        "type": "definition",
+        "model": "voidspheres:sphere4",
+        "bedrock_identifier": "geyser_custom:sphere4",
+        "bedrock_options": {
+          "icon": "sphere4",
+          "allow_offhand": true,
+          "display_handheld": true,
+          "creative_category": "items"
+        },
+        "predicate": {
+          "type": "server_pdc_string",
+          "key": "voidtalismans:talisman_id",
+          "fallback_key": "faraltalismans:talisman_id",
+          "value": "sphere4"
+        }
+      },
+      {
+        "type": "definition",
+        "model": "voidspheres:sphere4",
+        "bedrock_identifier": "geyser_custom:sphere4_menu",
+        "bedrock_options": {
+          "icon": "sphere4",
+          "creative_category": "items"
+        }
+      },
+      {
+        "type": "definition",
+        "model": "voidtalismans:menu_icon",
+        "bedrock_identifier": "geyser_custom:talisman_menu",
+        "bedrock_options": {
+          "icon": "talisman_menu",
+          "creative_category": "items"
+        }
+      }
+    ],
+    "minecraft:totem_of_undying": [
+      {
+        "type": "definition",
+        "model": "minecraft:totem_of_undying",
+        "bedrock_identifier": "geyser_custom:talisman_crusher",
+        "bedrock_options": {
+          "icon": "talisman_crusher",
+          "allow_offhand": true,
+          "creative_category": "items"
+        },
+        "predicate": {
+          "type": "server_pdc_string",
+          "key": "voidtalismans:talisman_id",
+          "fallback_key": "faraltalismans:talisman_id",
+          "value": "crusher"
+        }
+      },
+      {
+        "type": "definition",
+        "model": "minecraft:totem_of_undying",
+        "bedrock_identifier": "geyser_custom:talisman_punisher",
+        "bedrock_options": {
+          "icon": "talisman_punisher",
+          "allow_offhand": true,
+          "creative_category": "items"
+        },
+        "predicate": {
+          "type": "server_pdc_string",
+          "key": "voidtalismans:talisman_id",
+          "fallback_key": "faraltalismans:talisman_id",
+          "value": "punisher"
+        }
+      },
+      {
+        "type": "definition",
+        "model": "minecraft:totem_of_undying",
+        "bedrock_identifier": "geyser_custom:talisman_absolut",
+        "bedrock_options": {
+          "icon": "talisman_absolut",
+          "allow_offhand": true,
+          "creative_category": "items"
+        },
+        "predicate": {
+          "type": "server_pdc_string",
+          "key": "voidtalismans:talisman_id",
+          "fallback_key": "faraltalismans:talisman_id",
+          "value": "absolut"
+        }
+      },
+      {
+        "type": "definition",
+        "model": "minecraft:totem_of_undying",
+        "bedrock_identifier": "geyser_custom:talisman_cobra",
+        "bedrock_options": {
+          "icon": "talisman_cobra",
+          "allow_offhand": true,
+          "creative_category": "items"
+        },
+        "predicate": {
+          "type": "server_pdc_string",
+          "key": "voidtalismans:talisman_id",
+          "fallback_key": "faraltalismans:talisman_id",
+          "value": "cobra"
+        }
+      },
+      {
+        "type": "definition",
+        "model": "minecraft:totem_of_undying",
+        "bedrock_identifier": "geyser_custom:talisman_echidna",
+        "bedrock_options": {
+          "icon": "talisman_echidna",
+          "allow_offhand": true,
+          "creative_category": "items"
+        },
+        "predicate": {
+          "type": "server_pdc_string",
+          "key": "voidtalismans:talisman_id",
+          "fallback_key": "faraltalismans:talisman_id",
+          "value": "echidna"
+        }
+      },
+      {
+        "type": "definition",
+        "model": "minecraft:totem_of_undying",
+        "bedrock_identifier": "geyser_custom:talisman_grani",
+        "bedrock_options": {
+          "icon": "talisman_grani",
+          "allow_offhand": true,
+          "creative_category": "items"
+        },
+        "predicate": {
+          "type": "server_pdc_string",
+          "key": "voidtalismans:talisman_id",
+          "fallback_key": "faraltalismans:talisman_id",
+          "value": "grani"
+        }
+      },
+      {
+        "type": "definition",
+        "model": "minecraft:totem_of_undying",
+        "bedrock_identifier": "geyser_custom:talisman_satan",
+        "bedrock_options": {
+          "icon": "talisman_satan",
+          "allow_offhand": true,
+          "creative_category": "items"
+        },
+        "predicate": {
+          "type": "server_pdc_string",
+          "key": "voidtalismans:talisman_id",
+          "fallback_key": "faraltalismans:talisman_id",
+          "value": "satan"
+        }
+      },
+      {
+        "type": "definition",
+        "model": "minecraft:totem_of_undying",
+        "bedrock_identifier": "geyser_custom:talisman_sources",
+        "bedrock_options": {
+          "icon": "talisman_sources",
+          "allow_offhand": true,
+          "creative_category": "items"
+        },
+        "predicate": {
+          "type": "server_pdc_string",
+          "key": "voidtalismans:talisman_id",
+          "fallback_key": "faraltalismans:talisman_id",
+          "value": "sources"
+        }
+      },
+      {
+        "type": "definition",
+        "model": "minecraft:totem_of_undying",
+        "bedrock_identifier": "geyser_custom:talisman_triton",
+        "bedrock_options": {
+          "icon": "talisman_triton",
+          "allow_offhand": true,
+          "creative_category": "items"
+        },
+        "predicate": {
+          "type": "server_pdc_string",
+          "key": "voidtalismans:talisman_id",
+          "fallback_key": "faraltalismans:talisman_id",
+          "value": "triton"
+        }
+      },
+      {
+        "type": "definition",
+        "model": "minecraft:totem_of_undying",
+        "bedrock_identifier": "geyser_custom:talisman_phoenix",
+        "bedrock_options": {
+          "icon": "talisman_phoenix",
+          "allow_offhand": true,
+          "creative_category": "items"
+        },
+        "predicate": {
+          "type": "server_pdc_string",
+          "key": "voidtalismans:talisman_id",
+          "fallback_key": "faraltalismans:talisman_id",
+          "value": "phoenix"
+        }
+      },
+      {
+        "type": "definition",
+        "model": "minecraft:totem_of_undying",
+        "bedrock_identifier": "geyser_custom:talisman_vepr",
+        "bedrock_options": {
+          "icon": "talisman_vepr",
+          "allow_offhand": true,
+          "creative_category": "items"
+        },
+        "predicate": {
+          "type": "server_pdc_string",
+          "key": "voidtalismans:talisman_id",
+          "fallback_key": "faraltalismans:talisman_id",
+          "value": "vepr"
+        }
+      },
+      {
+        "type": "definition",
+        "model": "minecraft:totem_of_undying",
+        "bedrock_identifier": "geyser_custom:talisman_harmony",
+        "bedrock_options": {
+          "icon": "talisman_harmony",
+          "allow_offhand": true,
+          "creative_category": "items"
+        },
+        "predicate": {
+          "type": "server_pdc_string",
+          "key": "voidtalismans:talisman_id",
+          "fallback_key": "faraltalismans:talisman_id",
+          "value": "harmony"
+        }
+      },
+      {
+        "type": "definition",
+        "model": "voidtalismans:menu_crusher",
+        "bedrock_identifier": "geyser_custom:talisman_menu_crusher",
+        "bedrock_options": {
+          "icon": "talisman_crusher",
+          "creative_category": "items"
+        }
+      },
+      {
+        "type": "definition",
+        "model": "voidtalismans:menu_punisher",
+        "bedrock_identifier": "geyser_custom:talisman_menu_punisher",
+        "bedrock_options": {
+          "icon": "talisman_punisher",
+          "creative_category": "items"
+        }
+      },
+      {
+        "type": "definition",
+        "model": "voidtalismans:menu_cobra",
+        "bedrock_identifier": "geyser_custom:talisman_menu_cobra",
+        "bedrock_options": {
+          "icon": "talisman_cobra",
+          "creative_category": "items"
+        }
+      },
+      {
+        "type": "definition",
+        "model": "voidtalismans:menu_echidna",
+        "bedrock_identifier": "geyser_custom:talisman_menu_echidna",
+        "bedrock_options": {
+          "icon": "talisman_echidna",
+          "creative_category": "items"
+        }
+      },
+      {
+        "type": "definition",
+        "model": "voidtalismans:menu_grani",
+        "bedrock_identifier": "geyser_custom:talisman_menu_grani",
+        "bedrock_options": {
+          "icon": "talisman_grani",
+          "creative_category": "items"
+        }
+      },
+      {
+        "type": "definition",
+        "model": "voidtalismans:menu_vepr",
+        "bedrock_identifier": "geyser_custom:talisman_menu_vepr",
+        "bedrock_options": {
+          "icon": "talisman_vepr",
+          "creative_category": "items"
+        }
+      },
+      {
+        "type": "definition",
+        "model": "voidtalismans:menu_harmony",
+        "bedrock_identifier": "geyser_custom:talisman_menu_harmony",
+        "bedrock_options": {
+          "icon": "talisman_harmony",
+          "creative_category": "items"
+        }
+      },
+      {
+        "type": "definition",
+        "model": "voidtalismans:menu_phoenix",
+        "bedrock_identifier": "geyser_custom:talisman_menu_phoenix",
+        "bedrock_options": {
+          "icon": "talisman_phoenix",
+          "creative_category": "items"
+        }
+      },
+      {
+        "type": "definition",
+        "model": "voidtalismans:menu_sources",
+        "bedrock_identifier": "geyser_custom:talisman_menu_sources",
+        "bedrock_options": {
+          "icon": "talisman_sources",
+          "creative_category": "items"
+        }
+      },
+      {
+        "type": "definition",
+        "model": "voidtalismans:menu_triton",
+        "bedrock_identifier": "geyser_custom:talisman_menu_triton",
+        "bedrock_options": {
+          "icon": "talisman_triton",
+          "creative_category": "items"
+        }
+      },
+      {
+        "type": "definition",
+        "model": "voidtalismans:menu_satan",
+        "bedrock_identifier": "geyser_custom:talisman_menu_satan",
+        "bedrock_options": {
+          "icon": "talisman_satan",
+          "creative_category": "items"
+        }
+      },
+      {
+        "type": "definition",
+        "model": "voidtalismans:menu_absolut",
+        "bedrock_identifier": "geyser_custom:talisman_menu_absolut",
+        "bedrock_options": {
+          "icon": "talisman_absolut",
+          "creative_category": "items"
+        }
+      }
+    ]
+  }
+}

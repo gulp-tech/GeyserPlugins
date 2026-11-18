@@ -128,3 +128,20 @@
 
 
 
+
+## 14. Оптимизация Geyser-маппингов (custom_mappings)
+
+- Пользователь залил в origin/main свои маппинги (7 json). Оптимизированы в 2 файла:
+  `custom_mappings/Geyser-voidpe-mapping.json` (слияние 5 Geyser-*-mapping.json в один, 45 определений)
+  и `custom_mappings/migrated-custom-skulls.json` (байт-в-байт, дублей нет — данные не тронуты).
+- Эквивалентность проверена программно: для каждого базового предмета списки определений идентичны
+  (содержимое+порядок): fishing_rod 3, diamond_sword 5, mace 1, potion 1 (catch-all, max_stack 64),
+  paper 11 (panes 2 + spheres 8 + talisman_menu 1), totem_of_undying 24 (12 талисманов + 12 меню).
+- Удалено из установки: `spheres-pdc-mapping-test.json` (тестовый дубль sphere1-2 — двойная регистрация
+  geyser_custom:*), `custom-items.json` (пустой, format_version 1).
+- Формат Geyser custom_mappings v2: `type: legacy` (custom_model_data) / `type: definition` (model +
+  predicate server_pdc_string voiditems:item_id / voidtalismans:talisman_id c fallback faral*).
+  ВАЖНО: файлы грузятся мультимапой (определения ВСЕХ файлов складываются, не перезаписываются) —
+  слияние безопасно; поле `model` обязательно; кросс-дубли = двойная регистрация.
+  Папка маппингов: `<configFolder>/custom_mappings` (Geyser-Spigot: plugins/Geyser-Spigot/custom_mappings).
+  Маппинги читаются ТОЛЬКО при старте — нужен рестарт.
