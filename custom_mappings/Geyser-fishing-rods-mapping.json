@@ -1,0 +1,37 @@
+{
+  "format_version": 2,
+  "items": {
+    "minecraft:fishing_rod": [
+      {
+        "type": "legacy",
+        "custom_model_data": 27101,
+        "bedrock_identifier": "geyserevent:copper_luck_rod",
+        "display_name": "Медная удочка удачи",
+        "bedrock_options": {
+          "icon": "copper_luck_rod",
+          "display_handheld": true
+        }
+      },
+      {
+        "type": "legacy",
+        "custom_model_data": 27102,
+        "bedrock_identifier": "geyserevent:golden_luck_rod",
+        "display_name": "Золотая удочка удачи",
+        "bedrock_options": {
+          "icon": "golden_luck_rod",
+          "display_handheld": true
+        }
+      },
+      {
+        "type": "legacy",
+        "custom_model_data": 27103,
+        "bedrock_identifier": "geyserevent:crystal_luck_rod",
+        "display_name": "Кристальная удочка удачи",
+        "bedrock_options": {
+          "icon": "crystal_luck_rod",
+          "display_handheld": true
+        }
+      }
+    ]
+  }
+}
