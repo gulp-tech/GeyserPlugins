@@ -4,5 +4,6 @@ main: ru.voidpe.geyser.commands.VoidCommandsExtension
 version: ${version}
 api: ${api}
 authors: [${author}]
-# Поле description больше не поддерживается Geyser 2.12+ (GeyserExtensionDescription$Source
-# не имеет такого свойства) — строка description ломала загрузку расширения целиком.
+# Поле description больше не поддерживается Geyser 2.12+: класс описания расширения
+# (Source внутри GeyserExtensionDescription) не имеет такого свойства, и строка
+# description ломала загрузку расширения целиком.
