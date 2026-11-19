@@ -1,0 +1,27 @@
+{
+  "format_version": 2,
+  "items": {
+    "minecraft:stick": [
+      {
+        "type": "legacy",
+        "custom_model_data": 28001,
+        "bedrock_identifier": "geyserevent:alien_display",
+        "display_name": "Alien",
+        "bedrock_options": {
+          "icon": "alien_display",
+          "display_handheld": true
+        }
+      },
+      {
+        "type": "legacy",
+        "custom_model_data": 28002,
+        "bedrock_identifier": "geyserevent:nave_display",
+        "display_name": "UFO",
+        "bedrock_options": {
+          "icon": "nave_display",
+          "display_handheld": true
+        }
+      }
+    ]
+  }
+}
