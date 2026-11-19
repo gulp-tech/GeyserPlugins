@@ -578,32 +578,42 @@ public final class ItemsService implements Listener {
         return stack != null && stack.getType() == Material.POTION;
     }
 
-    private void normalizePotion(ItemStack stack) {
+    /**
+     * Возвращает true, только если стак реально изменился.
+     * ВАЖНО для Bedrock/Geyser: раньше мы перезаписывали слоты инвентаря без
+     * изменений (таймер раз в 5 сек + каждый клик), из-за чего в выживании
+     * появлялись «фантомные» предметы и ломалось перетаскивание.
+     */
+    private boolean normalizePotion(ItemStack stack) {
         if (!stackablePotions || potionStackMax <= 1 || !isPotion(stack) || !stack.hasItemMeta()) {
-            return;
+            return false;
         }
         ItemMeta meta = stack.getItemMeta();
         if (meta == null) {
-            return;
+            return false;
         }
+        boolean changed = false;
         // ВАЖНО: getMaxStackSize() падает, пока компонент не задан — сначала hasMaxStackSize().
         if (!meta.hasMaxStackSize() || meta.getMaxStackSize() != potionStackMax) {
             meta.setMaxStackSize(potionStackMax);
-            stack.setItemMeta(meta);
+            changed = true;
         }
         // Имя важно для Bedrock: без него игрок видит технический id (geyser_custom:...).
         // Ванильным зельям возвращаем их настоящее название («Зелье лечения II» и т.п.).
         if (!meta.hasDisplayName()) {
             meta.displayName(stack.effectiveName());
+            changed = true;
+        }
+        if (changed) {
             stack.setItemMeta(meta);
         }
+        return changed;
     }
 
     private void normalizeInventory(org.bukkit.inventory.Inventory inventory) {
         for (int i = 0; i < inventory.getSize(); i++) {
             ItemStack stack = inventory.getItem(i);
-            if (isPotion(stack)) {
-                normalizePotion(stack);
+            if (normalizePotion(stack)) {
                 inventory.setItem(i, stack);
             }
         }
@@ -613,8 +623,9 @@ public final class ItemsService implements Listener {
     public void onPotionPickup(EntityPickupItemEvent event) {
         org.bukkit.entity.Item dropped = event.getItem();
         ItemStack stack = dropped.getItemStack();
-        normalizePotion(stack);
-        dropped.setItemStack(stack);
+        if (normalizePotion(stack)) {
+            dropped.setItemStack(stack);
+        }
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -626,13 +637,11 @@ public final class ItemsService implements Listener {
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onPotionClickNormalize(InventoryClickEvent event) {
         ItemStack current = event.getCurrentItem();
-        if (current != null) {
-            normalizePotion(current);
+        if (current != null && normalizePotion(current)) {
             event.setCurrentItem(current);
         }
         ItemStack cursor = event.getCursor();
-        if (cursor != null) {
-            normalizePotion(cursor);
+        if (cursor != null && normalizePotion(cursor)) {
             event.setCursor(cursor);
         }
     }
@@ -640,8 +649,9 @@ public final class ItemsService implements Listener {
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onPotionMoveNormalize(InventoryMoveItemEvent event) {
         ItemStack stack = event.getItem();
-        normalizePotion(stack);
-        event.setItem(stack);
+        if (normalizePotion(stack)) {
+            event.setItem(stack);
+        }
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
