@@ -186,8 +186,9 @@ public final class TalismanService {
         }
         meta.lore(lore);
         if (talisman.glow()) {
-            meta.addEnchant(Enchantment.UNBREAKING, 1, true);
-            meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+            // глинт через override, без настоящего зачарования:
+            // на Bedrock предмет светится, но «Неразрушимость I» в тултипе не пишется
+            meta.setEnchantmentGlintOverride(true);
         }
         meta.getPersistentDataContainer().set(idKey, PersistentDataType.STRING, talisman.id());
         item.setItemMeta(meta);
