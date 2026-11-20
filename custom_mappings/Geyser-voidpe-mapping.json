@@ -232,7 +232,7 @@
         "model": "voidtalismans:menu_icon",
         "bedrock_identifier": "geyser_custom:talisman_menu",
         "bedrock_options": {
-          "icon": "talisman_menu",
+          "icon": "vt_talisman_menu",
           "creative_category": "items"
         }
       }
@@ -243,7 +243,7 @@
         "model": "voidtalismans:talisman_crusher",
         "bedrock_identifier": "geyser_custom:talisman_crusher",
         "bedrock_options": {
-          "icon": "talisman_crusher",
+          "icon": "vt_talisman_crusher",
           "allow_offhand": true,
           "creative_category": "items"
         }
@@ -253,7 +253,7 @@
         "model": "voidtalismans:talisman_punisher",
         "bedrock_identifier": "geyser_custom:talisman_punisher",
         "bedrock_options": {
-          "icon": "talisman_punisher",
+          "icon": "vt_talisman_punisher",
           "allow_offhand": true,
           "creative_category": "items"
         }
@@ -263,7 +263,7 @@
         "model": "voidtalismans:talisman_absolut",
         "bedrock_identifier": "geyser_custom:talisman_absolut",
         "bedrock_options": {
-          "icon": "talisman_absolut",
+          "icon": "vt_talisman_absolut",
           "allow_offhand": true,
           "creative_category": "items"
         }
@@ -273,7 +273,7 @@
         "model": "voidtalismans:talisman_cobra",
         "bedrock_identifier": "geyser_custom:talisman_cobra",
         "bedrock_options": {
-          "icon": "talisman_cobra",
+          "icon": "vt_talisman_cobra",
           "allow_offhand": true,
           "creative_category": "items"
         }
@@ -283,7 +283,7 @@
         "model": "voidtalismans:talisman_echidna",
         "bedrock_identifier": "geyser_custom:talisman_echidna",
         "bedrock_options": {
-          "icon": "talisman_echidna",
+          "icon": "vt_talisman_echidna",
           "allow_offhand": true,
           "creative_category": "items"
         }
@@ -293,7 +293,7 @@
         "model": "voidtalismans:talisman_grani",
         "bedrock_identifier": "geyser_custom:talisman_grani",
         "bedrock_options": {
-          "icon": "talisman_grani",
+          "icon": "vt_talisman_grani",
           "allow_offhand": true,
           "creative_category": "items"
         }
@@ -303,7 +303,7 @@
         "model": "voidtalismans:talisman_satan",
         "bedrock_identifier": "geyser_custom:talisman_satan",
         "bedrock_options": {
-          "icon": "talisman_satan",
+          "icon": "vt_talisman_satan",
           "allow_offhand": true,
           "creative_category": "items"
         }
@@ -313,7 +313,7 @@
         "model": "voidtalismans:talisman_sources",
         "bedrock_identifier": "geyser_custom:talisman_sources",
         "bedrock_options": {
-          "icon": "talisman_sources",
+          "icon": "vt_talisman_sources",
           "allow_offhand": true,
           "creative_category": "items"
         }
@@ -323,7 +323,7 @@
         "model": "voidtalismans:talisman_triton",
         "bedrock_identifier": "geyser_custom:talisman_triton",
         "bedrock_options": {
-          "icon": "talisman_triton",
+          "icon": "vt_talisman_triton",
           "allow_offhand": true,
           "creative_category": "items"
         }
@@ -333,7 +333,7 @@
         "model": "voidtalismans:talisman_phoenix",
         "bedrock_identifier": "geyser_custom:talisman_phoenix",
         "bedrock_options": {
-          "icon": "talisman_phoenix",
+          "icon": "vt_talisman_phoenix",
           "allow_offhand": true,
           "creative_category": "items"
         }
@@ -343,7 +343,7 @@
         "model": "voidtalismans:talisman_vepr",
         "bedrock_identifier": "geyser_custom:talisman_vepr",
         "bedrock_options": {
-          "icon": "talisman_vepr",
+          "icon": "vt_talisman_vepr",
           "allow_offhand": true,
           "creative_category": "items"
         }
@@ -353,7 +353,7 @@
         "model": "voidtalismans:talisman_harmony",
         "bedrock_identifier": "geyser_custom:talisman_harmony",
         "bedrock_options": {
-          "icon": "talisman_harmony",
+          "icon": "vt_talisman_harmony",
           "allow_offhand": true,
           "creative_category": "items"
         }
@@ -363,7 +363,7 @@
         "model": "voidtalismans:menu_crusher",
         "bedrock_identifier": "geyser_custom:talisman_menu_crusher",
         "bedrock_options": {
-          "icon": "talisman_crusher",
+          "icon": "vt_talisman_crusher",
           "creative_category": "items"
         }
       },
@@ -372,7 +372,7 @@
         "model": "voidtalismans:menu_punisher",
         "bedrock_identifier": "geyser_custom:talisman_menu_punisher",
         "bedrock_options": {
-          "icon": "talisman_punisher",
+          "icon": "vt_talisman_punisher",
           "creative_category": "items"
         }
       },
@@ -381,7 +381,7 @@
         "model": "voidtalismans:menu_cobra",
         "bedrock_identifier": "geyser_custom:talisman_menu_cobra",
         "bedrock_options": {
-          "icon": "talisman_cobra",
+          "icon": "vt_talisman_cobra",
           "creative_category": "items"
         }
       },
@@ -390,7 +390,7 @@
         "model": "voidtalismans:menu_echidna",
         "bedrock_identifier": "geyser_custom:talisman_menu_echidna",
         "bedrock_options": {
-          "icon": "talisman_echidna",
+          "icon": "vt_talisman_echidna",
           "creative_category": "items"
         }
       },
@@ -399,7 +399,7 @@
         "model": "voidtalismans:menu_grani",
         "bedrock_identifier": "geyser_custom:talisman_menu_grani",
         "bedrock_options": {
-          "icon": "talisman_grani",
+          "icon": "vt_talisman_grani",
           "creative_category": "items"
         }
       },
@@ -408,7 +408,7 @@
         "model": "voidtalismans:menu_vepr",
         "bedrock_identifier": "geyser_custom:talisman_menu_vepr",
         "bedrock_options": {
-          "icon": "talisman_vepr",
+          "icon": "vt_talisman_vepr",
           "creative_category": "items"
         }
       },
@@ -417,7 +417,7 @@
         "model": "voidtalismans:menu_harmony",
         "bedrock_identifier": "geyser_custom:talisman_menu_harmony",
         "bedrock_options": {
-          "icon": "talisman_harmony",
+          "icon": "vt_talisman_harmony",
           "creative_category": "items"
         }
       },
@@ -426,7 +426,7 @@
         "model": "voidtalismans:menu_phoenix",
         "bedrock_identifier": "geyser_custom:talisman_menu_phoenix",
         "bedrock_options": {
-          "icon": "talisman_phoenix",
+          "icon": "vt_talisman_phoenix",
           "creative_category": "items"
         }
       },
@@ -435,7 +435,7 @@
         "model": "voidtalismans:menu_sources",
         "bedrock_identifier": "geyser_custom:talisman_menu_sources",
         "bedrock_options": {
-          "icon": "talisman_sources",
+          "icon": "vt_talisman_sources",
           "creative_category": "items"
         }
       },
@@ -444,7 +444,7 @@
         "model": "voidtalismans:menu_triton",
         "bedrock_identifier": "geyser_custom:talisman_menu_triton",
         "bedrock_options": {
-          "icon": "talisman_triton",
+          "icon": "vt_talisman_triton",
           "creative_category": "items"
         }
       },
@@ -453,7 +453,7 @@
         "model": "voidtalismans:menu_satan",
         "bedrock_identifier": "geyser_custom:talisman_menu_satan",
         "bedrock_options": {
-          "icon": "talisman_satan",
+          "icon": "vt_talisman_satan",
           "creative_category": "items"
         }
       },
@@ -462,7 +462,7 @@
         "model": "voidtalismans:menu_absolut",
         "bedrock_identifier": "geyser_custom:talisman_menu_absolut",
         "bedrock_options": {
-          "icon": "talisman_absolut",
+          "icon": "vt_talisman_absolut",
           "creative_category": "items"
         }
       }

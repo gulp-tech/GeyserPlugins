@@ -114,9 +114,18 @@ public final class TalismanService {
                     plugin.getConfig().getString(path + ".permission", ""),
                     effects, attributes, recipe,
                     plugin.getConfig().getInt(path + ".custom-model-data", 0),
-                    plugin.getConfig().getString(path + ".item-model", "")));
+                    modelOrDefault(plugin.getConfig().getString(path + ".item-model", ""), id)));
         }
         plugin.getLogger().info("Загружено талисманов: " + talismans.size());
+    }
+
+    /** item-model обязан стоять всегда — иначе предмет не матчится в Geyser-мапинге и остаётся ванильным.
+     *  Конфиг со строкой item-model главнее; если строки нет — строим из id. */
+    private String modelOrDefault(String configured, String id) {
+        if (configured != null && !configured.isBlank()) {
+            return configured;
+        }
+        return id.startsWith("sphere") ? "voidspheres:" + id : "voidtalismans:talisman_" + id;
     }
 
     private PotionEffectType potionType(String name) {
