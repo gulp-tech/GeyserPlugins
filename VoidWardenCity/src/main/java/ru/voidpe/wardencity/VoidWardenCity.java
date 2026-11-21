@@ -78,6 +78,8 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
     private String regionStatus = "регион ещё не проверен";
     /** Время последнего наполнения сундука: "world;x;y;z" -> millis. */
     private final Map<String, Long> chestRefills = new HashMap<>();
+    /** Сундуки, поставленные игроками в городе — им лут НЕ выдаётся (баг: стак сундуков = ферма лута). */
+    private final java.util.Set<String> playerChests = new java.util.HashSet<>();
     /** Кулдауны телепорта игроков. */
     private final Map<UUID, Long> tpCooldowns = new HashMap<>();
     /** Идущие прогревы телепорта (/wcity): игрок -> задача. */
@@ -375,6 +377,9 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
             return;
         }
         String key = key(loc);
+        if (playerChests.contains(key)) {
+            return;
+        }
         long now = System.currentTimeMillis();
         long cooldown = currentRefillMillis();
         Long last = chestRefills.get(key);
@@ -424,6 +429,9 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
                     continue;
                 }
                 String key = key(chest.getLocation());
+                if (playerChests.contains(key)) {
+                    continue;
+                }
                 Long last = chestRefills.get(key);
                 if (force || last == null || now - last >= cooldown) {
                     refill(chest.getBlockInventory(), null);
@@ -643,12 +651,18 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
                 chestRefills.put(k, data.getLong("chests." + k));
             }
         }
+        if (data.isConfigurationSection("player-placed")) {
+            playerChests.addAll(data.getConfigurationSection("player-placed").getKeys(false));
+        }
     }
 
     private void saveChestData() {
         YamlConfiguration data = new YamlConfiguration();
         for (Map.Entry<String, Long> e : chestRefills.entrySet()) {
             data.set("chests." + e.getKey(), e.getValue());
+        }
+        for (String k : playerChests) {
+            data.set("player-placed." + k, true);
         }
         try {
             data.save(chestFile());
@@ -1228,6 +1242,10 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
                 && !event.getPlayer().hasPermission("voidwardencity.admin")) {
             event.setCancelled(true);
             send(event.getPlayer(), msg("protected"));
+            return;
+        }
+        if (playerChests.remove(key(event.getBlock().getLocation()))) {
+            saveChestData();
         }
     }
 
@@ -1292,6 +1310,13 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
                 && !event.getPlayer().hasPermission("voidwardencity.admin")) {
             event.setCancelled(true);
             send(event.getPlayer(), msg("protected"));
+            return;
+        }
+        // сундук, поставленный игроком, не должен давать лут
+        if (inCity(event.getBlock().getLocation())
+                && event.getBlock().getState() instanceof org.bukkit.block.Chest) {
+            playerChests.add(key(event.getBlock().getLocation()));
+            saveChestData();
         }
     }
 
