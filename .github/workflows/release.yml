@@ -364,3 +364,13 @@ jobs:
             --target "$GITHUB_SHA" \
             --title "VoidPE ${{ inputs.tag || github.ref_name }}" \
             --notes "VoidCommandsExtension 1.0.0: настоящие per-player Bukkit tab-completion для аргументов Bedrock-команд, включая имена домов /home; списки обновляются после команд и без перезахода. VoidResourcePack 1.18.1: скрывает красные числа sidebar TAB через коллекцию и сам score label, сохраняя строки и их порядок. Для этой задачи установите расширение в plugins/Geyser-Spigot/extensions и замените пак в plugins/Geyser-Spigot/packs, затем перезапустите сервер; TAB 6.2.1 можно оставить. VoidWardenCity 1.4.3: защита городских сундуков от застройки и разрушения. VoidShulker 1.0.5: исправлен дюп гонки «тап поставил + быстро закрыл» (призрачные копии удаляются); свободное размещение в любом слоте. VoidSpheres.mcpack — только для сфер."
+
+      - name: jar в ветку (dist/) — доступ через git
+        run: |
+          mkdir -p dist
+          cp VoidPvP/target/VoidPvP-*.jar VoidTab/target/VoidTab-*.jar VoidTalismans/target/VoidTalismans-*.jar VoidItems/target/VoidItems-*.jar VoidEnchants/target/VoidEnchants-*.jar VoidCases/target/VoidCases-*.jar VoidClans/target/VoidClans-*.jar VoidDrops/target/VoidDrops-*.jar VoidCombat/target/VoidCombat-*.jar VoidAntiCheat/target/VoidAntiCheat-*.jar VoidAuthSpawn/target/VoidAuthSpawn-*.jar VoidWardenCity/target/VoidWardenCity-*.jar VoidRtpZone/target/VoidRtpZone-*.jar VoidNV/target/VoidNV-*.jar VoidShulker/target/VoidShulker-*.jar VoidMusic/target/VoidMusic-*.jar HyperTNT/target/HyperTNT-*.jar VoidAnvilExtension/build/libs/VoidAnvilExtension-*.jar VoidVersionsExtension/build/libs/VoidVersionsExtension-*.jar VoidCommandsExtension/build/libs/VoidCommandsExtension-*.jar dist/
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add -f dist
+          git commit -m "dist: jar из сборки ${{ inputs.tag || github.ref_name }}" || echo "нечего коммитить"
+          git push origin HEAD:refs/heads/arena/41da8305-geyserplugins || echo "push пропущен"
