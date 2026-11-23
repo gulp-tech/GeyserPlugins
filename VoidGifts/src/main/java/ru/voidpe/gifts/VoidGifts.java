@@ -1,6 +1,6 @@
 package ru.voidpe.gifts;
 
-import net.md_5.bungee.api.ChatColor;
+import org.bukkit.ChatColor;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -300,27 +300,15 @@ public final class VoidGifts extends JavaPlugin implements Listener, CommandExec
     }
 
     /**
-     * Текстура головы: основной путь — legacy org.bukkit.profile API (везде с 1.16),
-     * запасной — com.destroystokyo.paper.profile через рефлексию.
-     * textureValue — base64 "Value" из базы голов; оттуда достаём URL скина.
+     * Текстура головы: полностью через рефлексию, чтобы компиляция не зависела
+     * от того, какие profile-API оставлены в конкретной версии сервера.
+     * Путь 1 — com.destroystokyo.paper.profile (Paper); путь 2 — legacy org.bukkit.profile.
      */
     private void applyTexture(SkullMeta meta, String type, String textureValue) {
         UUID id = UUID.nameUUIDFromBytes(("voidgifts:" + type).getBytes());
         String url = skinUrlFromValue(textureValue);
-        if (url == null) {
-            getLogger().warning("Текстура подарка «" + type + "»: не удалось разобрать Value (base64/url) — голова без текстуры");
-            return;
-        }
-        try {
-            org.bukkit.profile.PlayerProfile profile = Bukkit.createPlayerProfile(id, "gift");
-            org.bukkit.profile.PlayerTextures textures = profile.getTextures();
-            textures.setSkin(new java.net.URL(url));
-            profile.setTextures(textures);
-            meta.setOwnerProfile(profile);
-            return;
-        } catch (Throwable legacy) {
-            getLogger().warning("Legacy-путь текстуры не сработал (" + legacy + "), пробую Paper-API через рефлексию");
-        }
+        boolean done = false;
+        // Путь 1: Paper destroystokyo
         try {
             Object profile = Bukkit.class.getMethod("createProfile", UUID.class, String.class).invoke(null, id, "gift");
             Class<?> paperProfile = Class.forName("com.destroystokyo.paper.profile.PlayerProfile");
@@ -328,8 +316,27 @@ public final class VoidGifts extends JavaPlugin implements Listener, CommandExec
             Object prop = propClass.getConstructor(String.class, String.class).newInstance("textures", textureValue);
             paperProfile.getMethod("setProperty", propClass).invoke(profile, prop);
             SkullMeta.class.getMethod("setPlayerProfile", paperProfile).invoke(meta, profile);
+            done = true;
         } catch (Throwable t) {
-            getLogger().warning("Не удалось применить текстуру головы (тип " + type + "): " + t);
+            getLogger().warning("Paper-путь текстуры не сработал (" + t + "), пробую legacy API");
+        }
+        // Путь 2: legacy Bukkit profile API
+        if (!done && url != null) {
+            try {
+                Class<?> bpp = Class.forName("org.bukkit.profile.PlayerProfile");
+                Class<?> texClass = Class.forName("org.bukkit.profile.PlayerTextures");
+                Object profile = Bukkit.class.getMethod("createPlayerProfile", UUID.class, String.class).invoke(null, id, "gift");
+                Object textures = bpp.getMethod("getTextures").invoke(profile);
+                texClass.getMethod("setSkin", java.net.URL.class).invoke(textures, new java.net.URL(url));
+                bpp.getMethod("setTextures", texClass).invoke(profile, textures);
+                SkullMeta.class.getMethod("setOwnerProfile", bpp).invoke(meta, profile);
+                done = true;
+            } catch (Throwable t) {
+                getLogger().warning("Legacy-путь текстуры тоже не сработал: " + t);
+            }
+        }
+        if (!done) {
+            getLogger().warning("Не удалось применить текстуру головы (тип " + type + ") — голова выдана без текстуры");
         }
     }
 
