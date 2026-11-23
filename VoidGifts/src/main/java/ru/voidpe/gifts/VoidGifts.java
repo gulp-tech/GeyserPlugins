@@ -92,7 +92,8 @@ public final class VoidGifts extends JavaPlugin implements Listener, CommandExec
         getCommand("gift").setExecutor(this);
         getServer().getPluginManager().registerEvents(this, this);
         rescanSoundsAndRebuildPack();
-        getLogger().info("VoidGifts включён: типов=" + giftTypes().size() + ", звуков=" + sounds.size()
+        ConfigurationSection gTypes = giftTypes();
+        getLogger().info("VoidGifts включён: типов=" + (gTypes == null ? 0 : gTypes.getKeys(false).size()) + ", звуков=" + sounds.size()
                 + ", размещено подарков=" + placed.size());
     }
 
