@@ -1,0 +1,20 @@
+name: VoidGifts
+version: '1.0.0'
+main: ru.voidpe.gifts.VoidGifts
+api-version: '1.20'
+author: VoidPE
+description: Подарки-головы — нажатие выдаёт награду из gifts.yml, случайная музыка из папки music только нажавшему.
+
+commands:
+  gift:
+    description: 'Управление подарками'
+    usage: '/gift <create <тип> [кол-во] | give <игрок> <тип> [кол-во] | list | reload>'
+    aliases: [voidgifts]
+
+permissions:
+  voidgifts.admin:
+    description: 'Выдавать головы подарков, /gift reload'
+    default: op
+  voidgifts.open:
+    description: 'Открывать подарки нажатием'
+    default: true
