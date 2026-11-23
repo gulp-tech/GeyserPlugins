@@ -52,7 +52,7 @@ import java.util.zip.ZipOutputStream;
 public final class VoidGifts extends JavaPlugin implements Listener, CommandExecutor {
 
     private static final String DEFAULT_TEXTURE =
-            "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNzU0MTlmY2U1MDZhNDk1MzQzYTFkMzY4YTcxZDIyNDEzZjA4YzZkNjdjYjk1MWQ2NTZjZDAzZjgwYjRkM2QzIn19fQ==";
+            "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNWM4NmUzNjFlN2EzMzE5YzQyMGExNTg5MDNkZWRkY2E0YmEyYmNhMjU4NWM1YWVlYzQwYzgxOTVjNGJhOGEyMyJ9fX0=";
 
     private org.bukkit.NamespacedKey typeKey;
 

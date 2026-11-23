@@ -1467,3 +1467,6 @@ skin-hashes:
 
   # VoidPE подарок (purple present, minecraft-heads 2477) — текстура головы VoidGifts
   - "75419fce506a495343a1d368a71d22413f08c6d67cb951d656cd03f80b4d3d3"
+
+  # VoidPE подарок "Present" (minecraft-heads #130511) — новая голова подарка VoidGifts
+  - "5c86e361e7a3319c420a158903deddca4ba2bca2585c5aeec40c8195c4ba8a23"
