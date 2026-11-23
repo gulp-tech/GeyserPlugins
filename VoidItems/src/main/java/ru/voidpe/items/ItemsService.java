@@ -330,6 +330,19 @@ public final class ItemsService implements Listener {
         // Зелья — обычные бутылки с водой: без встроенных эффектов и цвета,
         // эффекты выдаёт onConsumeCustomPotion из конфига при выпивании.
         meta.getPersistentDataContainer().set(idKey, PersistentDataType.STRING, item.id());
+        // Современный способ для Geyser v2: маппит по item_model (как талисманы).
+        // Проставляем всем предметам — в custom_mappings описаны только нужные.
+        // Старые предметы без item_model перевыдайте в игре.
+        try {
+            String id = item.id();
+            org.bukkit.NamespacedKey modelKey = org.bukkit.NamespacedKey.fromString(
+                    id.contains(":") ? id : "voiditems:" + id);
+            if (modelKey != null) {
+                meta.setItemModel(modelKey);
+            }
+        } catch (Throwable t) {
+            plugin.getLogger().warning("item_model для " + item.id() + " не поставлен: " + t);
+        }
         stack.setItemMeta(meta);
         return stack;
     }
