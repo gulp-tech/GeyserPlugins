@@ -291,19 +291,57 @@ public final class VoidGifts extends JavaPlugin implements Listener, CommandExec
         if (texture == null || texture.isBlank()) texture = DEFAULT_TEXTURE;
         ItemStack head = new ItemStack(Material.PLAYER_HEAD, count);
         SkullMeta meta = (SkullMeta) head.getItemMeta();
-        try {
-            com.destroystokyo.paper.profile.PlayerProfile profile =
-                    Bukkit.createProfile(UUID.nameUUIDFromBytes(("voidgifts:" + type).getBytes()), "gift_" + type);
-            profile.setProperty(new com.destroystokyo.paper.profile.ProfileProperty("textures", texture));
-            meta.setPlayerProfile(profile);
-        } catch (Throwable t) {
-            getLogger().warning("Не удалось применить текстуру головы (тип " + type + "): " + t);
-        }
+        applyTexture(meta, type, texture);
         String display = cfg == null ? type : cfg.getString("display-name", type);
         meta.setDisplayName(color(display));
         meta.getPersistentDataContainer().set(typeKey, PersistentDataType.STRING, type);
         head.setItemMeta(meta);
         return head;
+    }
+
+    /**
+     * Текстура головы: основной путь — legacy org.bukkit.profile API (везде с 1.16),
+     * запасной — com.destroystokyo.paper.profile через рефлексию.
+     * textureValue — base64 "Value" из базы голов; оттуда достаём URL скина.
+     */
+    private void applyTexture(SkullMeta meta, String type, String textureValue) {
+        UUID id = UUID.nameUUIDFromBytes(("voidgifts:" + type).getBytes());
+        String url = skinUrlFromValue(textureValue);
+        if (url == null) {
+            getLogger().warning("Текстура подарка «" + type + "»: не удалось разобрать Value (base64/url) — голова без текстуры");
+            return;
+        }
+        try {
+            org.bukkit.profile.PlayerProfile profile = Bukkit.createPlayerProfile(id, "gift");
+            org.bukkit.profile.PlayerTextures textures = profile.getTextures();
+            textures.setSkin(new java.net.URL(url));
+            profile.setTextures(textures);
+            meta.setOwnerProfile(profile);
+            return;
+        } catch (Throwable legacy) {
+            getLogger().warning("Legacy-путь текстуры не сработал (" + legacy + "), пробую Paper-API через рефлексию");
+        }
+        try {
+            Object profile = Bukkit.class.getMethod("createProfile", UUID.class, String.class).invoke(null, id, "gift");
+            Class<?> paperProfile = Class.forName("com.destroystokyo.paper.profile.PlayerProfile");
+            Class<?> propClass = Class.forName("com.destroystokyo.paper.profile.ProfileProperty");
+            Object prop = propClass.getConstructor(String.class, String.class).newInstance("textures", textureValue);
+            paperProfile.getMethod("setProperty", propClass).invoke(profile, prop);
+            SkullMeta.class.getMethod("setPlayerProfile", paperProfile).invoke(meta, profile);
+        } catch (Throwable t) {
+            getLogger().warning("Не удалось применить текстуру головы (тип " + type + "): " + t);
+        }
+    }
+
+    private String skinUrlFromValue(String value) {
+        if (value == null || value.isBlank()) return null;
+        try {
+            String json = new String(java.util.Base64.getDecoder().decode(value.trim()), "UTF-8");
+            java.util.regex.Matcher m = java.util.regex.Pattern.compile("\\\"url\\\"\\s*:\\s*\\\"([^\\\"]+)\\\"").matcher(json);
+            if (m.find()) return m.group(1);
+        } catch (IllegalArgumentException | java.io.UnsupportedEncodingException ignored) {
+        }
+        return null;
     }
 
     // ---------- размещение / поломка ----------
