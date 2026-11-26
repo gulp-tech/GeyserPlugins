@@ -68,8 +68,9 @@ scoreboard:
   delay-on-join-milliseconds: 1000
   scoreboards:
     voidpe:
-      title: ''
+      title: "\u00A0"
       lines:
+        - "\uE201"
         - '&fИмя: &#FFA63D%player%'
         - '&fДонат: %condition:voidpe_rank%'
         - '&fМонеты: &#FFD93D%vault_eco_balance_fixed%'
