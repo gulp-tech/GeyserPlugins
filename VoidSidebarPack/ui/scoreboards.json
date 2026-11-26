@@ -1,0 +1,23 @@
+{
+  "namespace": "scoreboard",
+  "scoreboard_sidebar_score": {
+    "type": "label",
+    "ignored": true,
+    "visible": false,
+    "text": "",
+    "size": [
+      0,
+      0
+    ],
+    "alpha": 0.0,
+    "locked_alpha": 0.0
+  },
+  "scoreboard_sidebar/main/lists/scores": {
+    "ignored": true,
+    "visible": false,
+    "size": [
+      0,
+      0
+    ]
+  }
+}
