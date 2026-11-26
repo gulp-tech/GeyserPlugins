@@ -1,0 +1,2233 @@
+# ============================================================================
+# GeyserEvent v1.4.0 — Ивенты «Адский Разлом» и «Пляжные Раскопки» (Purpur 26.2)
+# Специально разработан для игроков Bedrock Edition (GeyserMC)
+# ============================================================================
+
+bedrock:
+  # Строгий режим: если false — участвовать и брать кисточки могут и игроки с телефонов, и игроки с Bedrock ПК без ограничений.
+  strict-only: false
+  # Разрешить администраторам с правом geyserevent.bypass.bedrock обходить проверку
+  allow-admin-bypass: true
+  # Префикс никнейма Floodgate/Geyser как резервная проверка
+  fallback-prefix: .
+
+resourcepack:
+  # Автоматически экспортировать Bedrock ресурспак (GeyserEvent-Pack.mcpack)
+  # и копировать его в папку plugins/Geyser-Spigot/packs/
+  auto-install-to-geyser: true
+  # Путь к папке packs Geyser. Пусто = автоопределение plugins/Geyser-Spigot/packs
+  # (когда плагин Geyser-Spigot стоит прямо на этом сервере).
+  # Если Geyser — отдельный прокси (Standalone/BungeeCord/Velocity), укажите путь к его packs,
+  # например: "/home/geyser/packs". Если путь недоступен — плагин напишет в консоли,
+  # какой файл куда скопировать вручную.
+  geyser-packs-dir: ''
+  # Ресурспак GeyserEvent-Pack.mcpack: 3D-рюкзак шахтёра и текстуры блоков призыва.
+  # Панель ивента в углу экрана убрана в v1.9.29 — настройки ниже не используются,
+  # но оставлены для будущего. Информация ивента: только BossBar сверху + GPS в action bar.
+  top-right-hud:
+    enabled: true
+    # Информационный BossBar ивента убран в v1.9.23 (функция удалена из плагина).
+    # Панель в углу экрана убрана в v1.9.29: ресурспак больше не меняет HUD клиента.
+    title: '&#FF2E2E&lАДСКИЙ РАЗЛОМ'
+    event-display-name: '&#34D711Адский-Разлом'
+    excavation-display-name: '&#34D711Пляжные-Раскопки'
+    cauldron-display-name: '&#34D711Котёл-Алхимика'
+    rarity-display: '&#FF2E2EМ&#F64620и&#ED5E12ф&#E47604и&#EB8E08ч&#F2A60Cе&#F9BE10с&#FFD614к&#FFE042и&#FFEA70й'
+    # Своя иконка у каждого ивента: показывается в чат-сообщениях ивентов.
+    # (в панель эти символы не попадают — панель в углу экрана убрана).
+    icon-infernal-rift: ☠
+    icon-excavation: ⚓
+    icon-cauldron: ⚗
+    icon-mine: ⛏
+
+event:
+  # Мир, в котором появляются ивенты «Адский Разлом» и «Пляжные Раскопки»
+  world: world2
+  # Название редкости для плейсхолдера %loot%
+  loot-rarity: '&#FF2E2EМ&#F64620и&#ED5E12ф&#E47604и&#EB8E08ч&#F2A60Cе&#F9BE10с&#FFD614к&#FFE042и&#FFEA70й'
+  # Автоматический запуск случайного ивента по таймеру
+  auto-start: true
+  # Интервал между автоматическими запусками (в минутах)
+  interval-minutes: 60
+  # Длительность ивента (в минутах). Через 20 минут ивент пропадает.
+  duration-minutes: 20
+  # Минимум игроков онлайн для АВТО-старта, если у ивента нет своего числа.
+  # Ручной запуск (/rift start, /rift start-here) всегда без проверки.
+  min-bedrock-players: 1
+  # Сколько игроков нужно, чтобы этот ивент сам появился по таймеру.
+  # Меняется командой: /rift minplayers <rift|excavation|cauldron|alien|all> <число>
+  auto-min-players:
+    rift: 10
+    excavation: 1
+    cauldron: 1
+    alien: 10
+    wind: 1
+    skibidi: 10
+    ronaldo: 10
+  # Задержка перед очисткой после убийства босса (в секундах)
+  cleanup-delay-seconds: 15
+  
+  # Настройки локатора (/event gps)
+  gps:
+    # На каком расстоянии (в блоках) от ивента локатор автоматически молча отключается
+    arrival-distance: 10.0
+    # Показывать ли путеводные частицы перед игроком в сторону ивента
+    particle-trail: true
+  
+  # Настройки поиска случайных координат в мире world2
+  spawn:
+    center-x: 0
+    center-z: 0
+    min-radius: 100
+    max-radius: 1000
+    max-attempts: 35
+
+schematic:
+  file: infernal_citadel_25.schem.yml
+  restore-blocks-on-end: true
+  protect-region: true
+  protection-radius: 13
+  disable-portal-teleport: true
+
+# ============================================================================
+# Ивент 1: «Адский Разлом (Вторжение Босса)»
+# ============================================================================
+boss:
+  name: '&4&lБрутальный Владыка Разлома &8[&c%hp%&7/&c%max_hp% ❤&8]'
+  health: 3500.0
+  damage: 8.0
+  height-meters: 2.0
+  scale: 1.22
+  weapon:
+    material: NETHERITE_AXE
+    name: '&4&lСекира Адского Разлома'
+    enchanted-glow: true
+  movement-speed: 0.35
+  knockback-resistance: 0.85
+  leash-radius: 35.0
+  max-ranged-attack-distance: 28.0
+
+minions:
+  enabled: true
+  # Приспешники появляются только когда игрок подходит к боссу ближе чем на 20 блоков
+  trigger-radius: 20.0
+  summon-interval-seconds: 25
+  count-per-wave: 3
+  max-active: 8
+  entity-type: PIGLIN_BRUTE
+  name: '&cПриспешник Разлома &7[%hp% ❤]'
+  health: 60.0
+  damage: 7.0
+  scale: 0.92
+  weapon: GOLDEN_AXE
+  
+  loot:
+    enabled: true
+    min-exp: 50
+    max-exp: 120
+    items:
+      magma_cream:
+        material: MAGMA_CREAM
+        chance: 65.0
+        min: 4
+        max: 10
+        rare: false
+      blaze_rod:
+        material: BLAZE_ROD
+        chance: 55.0
+        min: 2
+        max: 8
+        rare: false
+      blaze_powder:
+        material: BLAZE_POWDER
+        chance: 50.0
+        min: 4
+        max: 10
+        rare: false
+      quartz:
+        material: QUARTZ
+        chance: 60.0
+        min: 8
+        max: 20
+        rare: false
+      glowstone_dust:
+        material: GLOWSTONE_DUST
+        chance: 55.0
+        min: 6
+        max: 16
+        rare: false
+      nether_wart:
+        material: NETHER_WART
+        chance: 50.0
+        min: 6
+        max: 14
+        rare: false
+      ghast_tear:
+        material: GHAST_TEAR
+        chance: 35.0
+        min: 2
+        max: 4
+        rare: false
+      crying_obsidian:
+        material: CRYING_OBSIDIAN
+        chance: 40.0
+        min: 2
+        max: 6
+        rare: false
+      fire_charge:
+        material: FIRE_CHARGE
+        chance: 45.0
+        min: 4
+        max: 8
+        rare: false
+      gold_ingot:
+        material: GOLD_INGOT
+        chance: 65.0
+        min: 6
+        max: 16
+        rare: false
+      gold_block:
+        material: GOLD_BLOCK
+        chance: 25.0
+        min: 2
+        max: 4
+        rare: false
+      golden_apple:
+        material: GOLDEN_APPLE
+        chance: 30.0
+        min: 2
+        max: 4
+        rare: false
+      diamond:
+        material: DIAMOND
+        chance: 45.0
+        min: 4
+        max: 10
+        rare: false
+      diamond_block:
+        material: DIAMOND_BLOCK
+        chance: 12.0
+        min: 1
+        max: 1
+        rare: false
+      ancient_debris:
+        material: ANCIENT_DEBRIS
+        chance: 9.0
+        min: 1
+        max: 2
+        rare: true
+      netherite_scrap:
+        material: NETHERITE_SCRAP
+        chance: 8.0
+        min: 1
+        max: 2
+        rare: true
+      netherite_upgrade_template:
+        material: NETHERITE_UPGRADE_SMITHING_TEMPLATE
+        chance: 6.0
+        min: 1
+        max: 1
+        rare: true
+      netherite_ingot:
+        material: NETHERITE_INGOT
+        chance: 3.5
+        min: 1
+        max: 1
+        rare: true
+      netherite_sword:
+        material: NETHERITE_SWORD
+        chance: 1.5
+        min: 1
+        max: 1
+        rare: true
+      netherite_pickaxe:
+        material: NETHERITE_PICKAXE
+        chance: 1.5
+        min: 1
+        max: 1
+        rare: true
+      netherite_chestplate:
+        material: NETHERITE_CHESTPLATE
+        chance: 1.2
+        min: 1
+        max: 1
+        rare: true
+      netherite_leggings:
+        material: NETHERITE_LEGGINGS
+        chance: 1.2
+        min: 1
+        max: 1
+        rare: true
+      netherite_helmet:
+        material: NETHERITE_HELMET
+        chance: 1.5
+        min: 1
+        max: 1
+        rare: true
+      netherite_boots:
+        material: NETHERITE_BOOTS
+        chance: 1.5
+        min: 1
+        max: 1
+        rare: true
+
+abilities:
+  radius: 18.0
+  cast-interval-seconds: 10
+  
+  pull:
+    enabled: true
+    horizontal-strength: 1.85
+    vertical-boost: 0.55
+    damage: 12.0
+    slowness-ticks: 50
+  
+  push:
+    enabled: true
+    horizontal-strength: 2.05
+    vertical-boost: 0.65
+    damage: 10.0
+  
+  gather:
+    enabled: true
+    distance-in-front: 4.0
+    damage: 12.0
+    slowness-ticks: 70
+
+# Награды за топ-3 по нанесённому боссу урону (выдаются, когда Адский Разлом побеждён)
+rewards:
+  # Как называть валюту в сообщениях (например "осколков")
+  currency-name: осколков
+  # true — выдавать через PlayerPoints API (плагин PlayerPoints должен быть установлен)
+  use-playerpoints-api: true
+  # Резерв: команда консоли, если PlayerPoints нет. %player% — ник, %amount% — сумма
+  fallback-command: points give %player% %amount%
+  # Сколько осколков за каждое место (0 — не выдавать)
+  places:
+    '1': 1440
+    '2': 960
+    '3': 480
+
+# ============================================================================
+# ПРИЗЫВНЫЕ ИВЕНТЫ: алтарь призыва «Адского Разлома»
+# Специальные блоки с кастомными текстурами из ресурспака (GeyserEvent-Pack.mcpack).
+# Админ ставит алтарь: /rift summonaltar  (рядом сами встанут 4 пилона)
+# Игрок жмёт ПКМ по алтарю -> отсчёт -> на месте алтаря стартует «Адский Разлом».
+# ============================================================================
+summon:
+  enabled: true
+  # В каком мире работает призыв (ваш PvP-мир). В других мирах алтарь ответит,
+  # что тут призывать нельзя. Пусто = тот же мир, что и event.world.
+  world: pvp
+  # Сколько секунд идёт призыв до появления босса
+  wait-seconds: 120
+  # Радиус в блоках: если рядом с алтарём/боссом никого нет — призыв или ивент
+  # отменяется (см. idle-no-players-seconds)
+  player-radius: 40
+  # Сколько секунд подряд можно быть без игроков в радиусе, пока призыв/ивент
+  # не отменится сам
+  idle-no-players-seconds: 60
+  # Сколько секунд боссу можно не наносить урон, пока ивент не отменится
+  idle-no-damage-seconds: 90
+  # Через сколько секунд призванный босс исчезает, если его не убили
+  boss-timeout-seconds: 300
+  # Что написать в чат, когда призванный босс исчез по таймауту
+  timeout-message: '&e┠ &cПризванный босс вернулся в Разлом — его не успели убить!'
+  # Выпадает ли алтарь предметом, если призыв сорвался.
+  # false (как сейчас) — блок просто исчезает, на пол ничего не падает.
+  drop-altar-on-fail: false
+  # Блоки структуры. ВНИМАНИЕ: кастомные текстуры в ресурспаке привязаны
+  # именно к этим блокам — если поменяете блок, текстура на него не встанет
+  # (блок останется ванильным). Все пять блоков редкие, поэтому обычные
+  # постройки игроков не поменяются.
+  altar-block: REINFORCED_DEEPSLATE
+  pylon-1-block: OCHRE_FROGLIGHT
+  pylon-2-block: VERDANT_FROGLIGHT
+  pylon-3-block: PEARLESCENT_FROGLIGHT
+  pylon-4-block: BUDDING_AMETHYST
+
+# ============================================================================
+# Ивент 2: «Пляжные Раскопки» (2-метровый Житель выдаёт кисточки раз в 30 сек)
+# Настройка лута из игры: /rift brushloot <add|list|remove|clear> <обычная|эпическая|легендарная>
+# ============================================================================
+excavation:
+  villager-name: '&e&lАрхеолог &8[&fКисточка: &#E0C912%sec%с&8]'
+  villager-waiting-name: '&e&lАрхеолог &8[&aНажмите, чтобы забрать!&8]'
+  villager-scale: 1.1
+  brush-interval-seconds: 30
+  brush-handout-radius: 14.0
+  brush-remove-distance: 16.5
+  
+  brushes:
+    
+    common:
+      name: '&aОбычная кисточка'
+      chance: 35.0
+      uses: 3
+      loot:
+      - material: GOLD_NUGGET
+        amount: 32
+        chance: 75.0
+      - material: IRON_NUGGET
+        amount: 40
+        chance: 75.0
+      - material: PRISMARINE_SHARD
+        amount: 20
+        chance: 60.0
+      - material: PRISMARINE_CRYSTALS
+        amount: 16
+        chance: 50.0
+      - material: GOLD_INGOT
+        amount: 12
+        chance: 55.0
+      - material: IRON_INGOT
+        amount: 16
+        chance: 55.0
+      - material: COPPER_INGOT
+        amount: 20
+        chance: 50.0
+      - material: EMERALD
+        amount: 8
+        chance: 40.0
+      - material: NAUTILUS_SHELL
+        amount: 1
+        chance: 20.0
+      - material: INK_SAC
+        amount: 24
+        chance: 45.0
+      - material: KELP
+        amount: 32
+        chance: 40.0
+      - material: TROPICAL_FISH
+        amount: 16
+        chance: 35.0
+      - material: EXPERIENCE_BOTTLE
+        amount: 20
+        chance: 45.0
+      - material: GOLDEN_APPLE
+        amount: 2
+        chance: 18.0
+    
+    epic:
+      name: '&dЭпическая кисточка'
+      chance: 40.0
+      uses: 4
+      loot:
+      - material: DIAMOND
+        amount: 10
+        chance: 55.0
+      - material: HEART_OF_THE_SEA
+        amount: 1
+        chance: 25.0
+      - material: TURTLE_SCUTE
+        amount: 3
+        chance: 32.0
+      - material: GOLDEN_APPLE
+        amount: 6
+        chance: 40.0
+      - material: GOLD_BLOCK
+        amount: 4
+        chance: 30.0
+      - material: EMERALD_BLOCK
+        amount: 2
+        chance: 22.0
+      - material: TRIDENT
+        amount: 1
+        chance: 10.0
+      - material: DIAMOND_SWORD
+        amount: 1
+        chance: 14.0
+        enchants:
+          sharpness: 4
+          unbreaking: 3
+          looting: 2
+      - material: DIAMOND_CHESTPLATE
+        amount: 1
+        chance: 12.0
+        enchants:
+          protection: 3
+          unbreaking: 3
+      - material: DIAMOND_HELMET
+        amount: 1
+        chance: 12.0
+        enchants:
+          protection: 3
+          unbreaking: 3
+          respiration: 2
+      - material: DIAMOND_LEGGINGS
+        amount: 1
+        chance: 12.0
+        enchants:
+          protection: 3
+          unbreaking: 3
+      - material: DIAMOND_BOOTS
+        amount: 1
+        chance: 12.0
+        enchants:
+          protection: 3
+          feather_falling: 4
+          unbreaking: 3
+          depth_strider: 2
+      - material: BOW
+        amount: 1
+        chance: 16.0
+        enchants:
+          power: 4
+          unbreaking: 3
+          punch: 1
+      - material: EXPERIENCE_BOTTLE
+        amount: 40
+        chance: 40.0
+      - material: TOTEM_OF_UNDYING
+        amount: 1
+        chance: 12.0
+    
+    legendary:
+      name: '&6Легендарная кисточка'
+      chance: 25.0
+      uses: 5
+      loot:
+      - material: NETHERITE_INGOT
+        amount: 1
+        chance: 22.0
+      - material: CONDUIT
+        amount: 1
+        chance: 18.0
+      - material: ENCHANTED_GOLDEN_APPLE
+        amount: 1
+        chance: 14.0
+      - material: TOTEM_OF_UNDYING
+        amount: 1
+        chance: 28.0
+      - material: TRIDENT
+        amount: 1
+        chance: 16.0
+        enchants:
+          loyalty: 3
+          impaling: 5
+          unbreaking: 3
+          mending: 1
+      - material: HEART_OF_THE_SEA
+        amount: 1
+        chance: 30.0
+      - material: NETHERITE_UPGRADE_SMITHING_TEMPLATE
+        amount: 1
+        chance: 20.0
+      - material: NETHERITE_HELMET
+        amount: 1
+        chance: 10.0
+        enchants:
+          protection: 4
+          unbreaking: 3
+          mending: 1
+          respiration: 3
+          aqua_affinity: 1
+      - material: NETHERITE_CHESTPLATE
+        amount: 1
+        chance: 10.0
+        enchants:
+          protection: 4
+          unbreaking: 3
+          mending: 1
+          thorns: 2
+      - material: NETHERITE_LEGGINGS
+        amount: 1
+        chance: 10.0
+        enchants:
+          protection: 4
+          unbreaking: 3
+          mending: 1
+          swift_sneak: 3
+      - material: NETHERITE_BOOTS
+        amount: 1
+        chance: 10.0
+        enchants:
+          protection: 4
+          unbreaking: 3
+          mending: 1
+          feather_falling: 4
+          depth_strider: 3
+          soul_speed: 3
+      - material: NETHERITE_SWORD
+        amount: 1
+        chance: 10.0
+        enchants:
+          sharpness: 5
+          unbreaking: 3
+          mending: 1
+          looting: 3
+          fire_aspect: 2
+          sweeping_edge: 3
+      - material: DIAMOND_CHESTPLATE
+        amount: 1
+        chance: 16.0
+        enchants:
+          protection: 4
+          unbreaking: 3
+          mending: 1
+      - material: DIAMOND_HELMET
+        amount: 1
+        chance: 16.0
+        enchants:
+          protection: 4
+          unbreaking: 3
+          mending: 1
+          respiration: 3
+          aqua_affinity: 1
+      - material: DIAMOND_LEGGINGS
+        amount: 1
+        chance: 16.0
+        enchants:
+          protection: 4
+          unbreaking: 3
+          mending: 1
+          swift_sneak: 3
+      - material: DIAMOND_BOOTS
+        amount: 1
+        chance: 16.0
+        enchants:
+          protection: 4
+          unbreaking: 3
+          mending: 1
+          feather_falling: 4
+          depth_strider: 3
+          soul_speed: 3
+      - material: DIAMOND_SWORD
+        amount: 1
+        chance: 16.0
+        enchants:
+          sharpness: 5
+          unbreaking: 3
+          mending: 1
+          looting: 3
+          fire_aspect: 2
+          sweeping_edge: 3
+      - material: PAPER
+        amount: 1
+        chance: 18.0
+        name: '&aСфера пустоты'
+        lore:
+        - '&a+4 к урону'
+        - '&a+4 к защите'
+        - '&a+4 к здоровью'
+        - '&a+5% к скорости'
+      - chance: 30.0
+        material: DIAMOND
+        amount: 12
+      - chance: 24.0
+        material: EMERALD
+        amount: 24
+      - chance: 28.0
+        material: EXPERIENCE_BOTTLE
+        amount: 40
+      - chance: 20.0
+        material: PRISMARINE_CRYSTALS
+        amount: 32
+
+# ============================================================================
+# Ивент 3: «Котёл Алхимика» (отдельные таблицы лута реагентов)
+# Настраиваются в игре через /rift menu (нижний ряд) или /rift cauldronloot
+# ============================================================================
+cauldron:
+  reagents:
+    
+    common:
+      chance: 35.0
+      loot:
+      - material: NETHER_WART
+        amount: 20
+        chance: 75.0
+      - material: GLOWSTONE_DUST
+        amount: 28
+        chance: 65.0
+      - material: REDSTONE
+        amount: 40
+        chance: 70.0
+      - material: SUGAR
+        amount: 32
+        chance: 60.0
+      - material: SPIDER_EYE
+        amount: 16
+        chance: 55.0
+      - material: BLAZE_POWDER
+        amount: 12
+        chance: 45.0
+      - material: GLASS_BOTTLE
+        amount: 24
+        chance: 50.0
+      - material: BROWN_MUSHROOM
+        amount: 20
+        chance: 40.0
+      - material: RED_MUSHROOM
+        amount: 20
+        chance: 40.0
+      - material: GUNPOWDER
+        amount: 20
+        chance: 45.0
+      - material: RABBIT_FOOT
+        amount: 4
+        chance: 25.0
+      - material: MAGMA_CREAM
+        amount: 8
+        chance: 35.0
+      - material: GOLDEN_CARROT
+        amount: 8
+        chance: 30.0
+    
+    epic:
+      chance: 40.0
+      loot:
+      - material: GHAST_TEAR
+        amount: 8
+        chance: 50.0
+      - material: BLAZE_ROD
+        amount: 12
+        chance: 55.0
+      - material: FERMENTED_SPIDER_EYE
+        amount: 8
+        chance: 45.0
+      - material: MAGMA_CREAM
+        amount: 16
+        chance: 50.0
+      - material: GOLDEN_CARROT
+        amount: 16
+        chance: 45.0
+      - material: GOLDEN_APPLE
+        amount: 6
+        chance: 32.0
+      - material: PHANTOM_MEMBRANE
+        amount: 8
+        chance: 28.0
+      - material: BREWING_STAND
+        amount: 1
+        chance: 30.0
+      - material: CAULDRON
+        amount: 1
+        chance: 25.0
+      - material: DIAMOND
+        amount: 8
+        chance: 35.0
+      - material: EXPERIENCE_BOTTLE
+        amount: 32
+        chance: 40.0
+      - material: DIAMOND_SWORD
+        amount: 1
+        chance: 12.0
+        enchants:
+          sharpness: 4
+          fire_aspect: 2
+          unbreaking: 3
+      - material: BOW
+        amount: 1
+        chance: 14.0
+        enchants:
+          power: 4
+          flame: 1
+          unbreaking: 3
+    
+    legendary:
+      chance: 25.0
+      loot:
+      - material: DRAGON_BREATH
+        amount: 6
+        chance: 32.0
+      - material: NETHERITE_INGOT
+        amount: 1
+        chance: 20.0
+      - material: ENCHANTED_GOLDEN_APPLE
+        amount: 1
+        chance: 14.0
+      - material: TOTEM_OF_UNDYING
+        amount: 1
+        chance: 26.0
+      - material: NETHER_STAR
+        amount: 1
+        chance: 8.0
+      - material: NETHERITE_UPGRADE_SMITHING_TEMPLATE
+        amount: 1
+        chance: 18.0
+      - material: NETHERITE_HELMET
+        amount: 1
+        chance: 10.0
+        enchants:
+          protection: 4
+          unbreaking: 3
+          mending: 1
+          respiration: 3
+          aqua_affinity: 1
+      - material: NETHERITE_CHESTPLATE
+        amount: 1
+        chance: 10.0
+        enchants:
+          protection: 4
+          unbreaking: 3
+          mending: 1
+          thorns: 2
+      - material: NETHERITE_LEGGINGS
+        amount: 1
+        chance: 10.0
+        enchants:
+          protection: 4
+          unbreaking: 3
+          mending: 1
+          swift_sneak: 3
+      - material: NETHERITE_BOOTS
+        amount: 1
+        chance: 10.0
+        enchants:
+          protection: 4
+          unbreaking: 3
+          mending: 1
+          feather_falling: 4
+          depth_strider: 3
+          soul_speed: 3
+      - material: NETHERITE_SWORD
+        amount: 1
+        chance: 10.0
+        enchants:
+          sharpness: 5
+          unbreaking: 3
+          mending: 1
+          looting: 3
+          fire_aspect: 2
+          sweeping_edge: 3
+      - material: NETHERITE_AXE
+        amount: 1
+        chance: 8.0
+        enchants:
+          sharpness: 5
+          unbreaking: 3
+          mending: 1
+          efficiency: 5
+      - material: DIAMOND_CHESTPLATE
+        amount: 1
+        chance: 16.0
+        enchants:
+          protection: 4
+          unbreaking: 3
+          mending: 1
+      - material: DIAMOND_HELMET
+        amount: 1
+        chance: 16.0
+        enchants:
+          protection: 4
+          unbreaking: 3
+          mending: 1
+          respiration: 3
+          aqua_affinity: 1
+      - material: DIAMOND_LEGGINGS
+        amount: 1
+        chance: 16.0
+        enchants:
+          protection: 4
+          unbreaking: 3
+          mending: 1
+      - material: DIAMOND_BOOTS
+        amount: 1
+        chance: 16.0
+        enchants:
+          protection: 4
+          unbreaking: 3
+          mending: 1
+          feather_falling: 4
+          depth_strider: 3
+          soul_speed: 3
+      - material: DIAMOND_SWORD
+        amount: 1
+        chance: 16.0
+        enchants:
+          sharpness: 5
+          unbreaking: 3
+          mending: 1
+          looting: 3
+          fire_aspect: 2
+          sweeping_edge: 3
+      - chance: 30.0
+        material: BLAZE_ROD
+        amount: 24
+      - chance: 22.0
+        material: GHAST_TEAR
+        amount: 12
+      - chance: 24.0
+        material: GOLDEN_CARROT
+        amount: 32
+      - chance: 28.0
+        material: EXPERIENCE_BOTTLE
+        amount: 40
+
+# ============================================================================
+# Ивент 4 (ПОСТОЯННЫЙ): «Шахта Древних (Жила Жеод)» на координатах 0 ~ 0
+# Постоянный карьер 31x31, который сам регенерирует руды и спавнит
+# «Древние жеоды» (Обычная / Эпическая / Легендарная).
+# Настраивается в игре через /minemenu (или /rift menu -> 3-й ряд).
+# ============================================================================
+mine:
+  enabled: true
+  world: world2
+  # Координаты центра Шахты Древних (0 ~ 0). y: -999 означает авто-определение поверхности (~)
+  x: 0
+  y: -999
+  z: 0
+  # Полная регенерация рудной жилы каждые 180 секунд (3 минуты)
+  regen-interval-seconds: 180
+  geodes:
+    
+    common:
+      chance: 35.0
+      loot:
+      - material: COAL
+        amount: 48
+        chance: 80.0
+      - material: RAW_IRON
+        amount: 28
+        chance: 75.0
+      - material: RAW_COPPER
+        amount: 36
+        chance: 70.0
+      - material: RAW_GOLD
+        amount: 16
+        chance: 55.0
+      - material: REDSTONE
+        amount: 48
+        chance: 60.0
+      - material: LAPIS_LAZULI
+        amount: 32
+        chance: 55.0
+      - material: AMETHYST_SHARD
+        amount: 24
+        chance: 45.0
+      - material: QUARTZ
+        amount: 24
+        chance: 40.0
+      - material: IRON_INGOT
+        amount: 16
+        chance: 50.0
+      - material: GOLD_INGOT
+        amount: 12
+        chance: 40.0
+      - material: COPPER_INGOT
+        amount: 24
+        chance: 50.0
+      - material: FLINT
+        amount: 32
+        chance: 40.0
+    
+    epic:
+      chance: 40.0
+      loot:
+      - material: DIAMOND
+        amount: 12
+        chance: 60.0
+      - material: EMERALD
+        amount: 16
+        chance: 55.0
+      - material: GOLD_BLOCK
+        amount: 4
+        chance: 35.0
+      - material: IRON_BLOCK
+        amount: 6
+        chance: 40.0
+      - material: ANCIENT_DEBRIS
+        amount: 1
+        chance: 22.0
+      - material: AMETHYST_BLOCK
+        amount: 12
+        chance: 30.0
+      - material: EXPERIENCE_BOTTLE
+        amount: 40
+        chance: 45.0
+      - material: DIAMOND_PICKAXE
+        amount: 1
+        chance: 18.0
+        enchants:
+          efficiency: 4
+          unbreaking: 3
+          fortune: 2
+      - material: DIAMOND_SHOVEL
+        amount: 1
+        chance: 14.0
+        enchants:
+          efficiency: 4
+          unbreaking: 3
+      - material: DIAMOND_AXE
+        amount: 1
+        chance: 12.0
+        enchants:
+          efficiency: 4
+          unbreaking: 3
+          sharpness: 3
+      - material: IRON_PICKAXE
+        amount: 1
+        chance: 20.0
+        enchants:
+          efficiency: 4
+          unbreaking: 3
+          fortune: 2
+      - material: GOLDEN_APPLE
+        amount: 4
+        chance: 25.0
+    
+    legendary:
+      chance: 25.0
+      loot:
+      - chance: 28.0
+        material: NETHERITE_INGOT
+        amount: 1
+      - chance: 42.0
+        material: ANCIENT_DEBRIS
+        amount: 3
+      - chance: 35.0
+        material: DIAMOND_BLOCK
+        amount: 2
+      - chance: 30.0
+        material: EMERALD_BLOCK
+        amount: 4
+      - chance: 22.0
+        material: NETHERITE_UPGRADE_SMITHING_TEMPLATE
+        amount: 1
+      - chance: 12.0
+        material: ENCHANTED_GOLDEN_APPLE
+        amount: 1
+      - chance: 14.0
+        item:
+          ==: org.bukkit.inventory.ItemStack
+          DataVersion: 4903
+          id: minecraft:netherite_pickaxe
+          count: 1
+          components:
+            minecraft:enchantments: '{"minecraft:efficiency":5,"minecraft:fortune":3,"minecraft:mending":1,"minecraft:unbreaking":3}'
+          schema_version: 1
+      - chance: 8.0
+        item:
+          ==: org.bukkit.inventory.ItemStack
+          DataVersion: 4903
+          id: minecraft:netherite_pickaxe
+          count: 1
+          components:
+            minecraft:enchantments: '{"minecraft:efficiency":5,"minecraft:mending":1,"minecraft:silk_touch":1,"minecraft:unbreaking":3}'
+          schema_version: 1
+      - chance: 10.0
+        item:
+          ==: org.bukkit.inventory.ItemStack
+          DataVersion: 4903
+          id: minecraft:netherite_shovel
+          count: 1
+          components:
+            minecraft:enchantments: '{"minecraft:efficiency":5,"minecraft:fortune":3,"minecraft:mending":1,"minecraft:unbreaking":3}'
+          schema_version: 1
+      - chance: 10.0
+        item:
+          ==: org.bukkit.inventory.ItemStack
+          DataVersion: 4903
+          id: minecraft:netherite_axe
+          count: 1
+          components:
+            minecraft:enchantments: '{"minecraft:efficiency":5,"minecraft:mending":1,"minecraft:sharpness":5,"minecraft:unbreaking":3}'
+          schema_version: 1
+      - chance: 10.0
+        item:
+          ==: org.bukkit.inventory.ItemStack
+          DataVersion: 4903
+          id: minecraft:netherite_helmet
+          count: 1
+          components:
+            minecraft:enchantments: '{"minecraft:aqua_affinity":1,"minecraft:mending":1,"minecraft:protection":4,"minecraft:respiration":3,"minecraft:unbreaking":3}'
+          schema_version: 1
+      - chance: 10.0
+        item:
+          ==: org.bukkit.inventory.ItemStack
+          DataVersion: 4903
+          id: minecraft:netherite_chestplate
+          count: 1
+          components:
+            minecraft:enchantments: '{"minecraft:mending":1,"minecraft:protection":4,"minecraft:unbreaking":3}'
+          schema_version: 1
+      - chance: 10.0
+        item:
+          ==: org.bukkit.inventory.ItemStack
+          DataVersion: 4903
+          id: minecraft:netherite_leggings
+          count: 1
+          components:
+            minecraft:enchantments: '{"minecraft:mending":1,"minecraft:protection":4,"minecraft:swift_sneak":3,"minecraft:unbreaking":3}'
+          schema_version: 1
+      - chance: 10.0
+        item:
+          ==: org.bukkit.inventory.ItemStack
+          DataVersion: 4903
+          id: minecraft:netherite_boots
+          count: 1
+          components:
+            minecraft:enchantments: '{"minecraft:depth_strider":3,"minecraft:feather_falling":4,"minecraft:mending":1,"minecraft:protection":4,"minecraft:soul_speed":3,"minecraft:unbreaking":3}'
+          schema_version: 1
+      - chance: 18.0
+        item:
+          ==: org.bukkit.inventory.ItemStack
+          DataVersion: 4903
+          id: minecraft:diamond_pickaxe
+          count: 1
+          components:
+            minecraft:enchantments: '{"minecraft:efficiency":5,"minecraft:fortune":3,"minecraft:mending":1,"minecraft:unbreaking":3}'
+          schema_version: 1
+      - chance: 16.0
+        item:
+          ==: org.bukkit.inventory.ItemStack
+          DataVersion: 4903
+          id: minecraft:diamond_chestplate
+          count: 1
+          components:
+            minecraft:enchantments: '{"minecraft:mending":1,"minecraft:protection":4,"minecraft:unbreaking":3}'
+          schema_version: 1
+      - chance: 16.0
+        item:
+          ==: org.bukkit.inventory.ItemStack
+          DataVersion: 4903
+          id: minecraft:diamond_helmet
+          count: 1
+          components:
+            minecraft:enchantments: '{"minecraft:aqua_affinity":1,"minecraft:mending":1,"minecraft:protection":4,"minecraft:respiration":3,"minecraft:unbreaking":3}'
+          schema_version: 1
+      - chance: 16.0
+        item:
+          ==: org.bukkit.inventory.ItemStack
+          DataVersion: 4903
+          id: minecraft:diamond_leggings
+          count: 1
+          components:
+            minecraft:enchantments: '{"minecraft:mending":1,"minecraft:protection":4,"minecraft:unbreaking":3}'
+          schema_version: 1
+      - chance: 16.0
+        item:
+          ==: org.bukkit.inventory.ItemStack
+          DataVersion: 4903
+          id: minecraft:diamond_boots
+          count: 1
+          components:
+            minecraft:enchantments: '{"minecraft:depth_strider":3,"minecraft:feather_falling":4,"minecraft:mending":1,"minecraft:protection":4,"minecraft:soul_speed":3,"minecraft:unbreaking":3}'
+          schema_version: 1
+      - chance: 30.0
+        material: DIAMOND
+        amount: 16
+      - chance: 24.0
+        material: EMERALD
+        amount: 24
+      - chance: 26.0
+        material: IRON_BLOCK
+        amount: 8
+      - chance: 28.0
+        material: EXPERIENCE_BOTTLE
+        amount: 40
+
+# ============================================================================
+# НПС ивентов и невидимость
+# ============================================================================
+npcs:
+  # Невидимость НЕ работает на НПС: Босс «Адского Разлома» и его Приспешники
+  # ВСЕГДА видят и атакуют игрока, даже если он выпил зелье невидимости.
+  ignore-invisibility: true
+  # Пока идёт временный ивент, зелье невидимости снимается с игроков внутри
+  # зоны ивента (НПС ивента всегда замечают игрока).
+  strip-invisibility-in-events: true
+  # То же самое внутри зоны постоянного ивента «Шахта Древних» (0 ~ 0).
+  strip-invisibility-in-mine: false
+
+# ============================================================================
+# Интеграция с WorldGuard
+# ============================================================================
+worldguard:
+  # Автоматически создавать и обновлять регион «geyserevent_mine» вокруг
+  # «Шахты Древних» (0 ~ 0), чтобы регионы WorldGuard НЕ мешали ломать
+  # руды и Древние жеоды, а также открывать меню Древнего Кузнеца.
+  # Если WorldGuard не установлен — настройка просто игнорируется.
+  sync-mine-region: true
+
+messages:
+  prefix: '&e┠ &r'
+  only-bedrock: '&e┠ &cДоступно только для игроков с Bedrock Edition.'
+  portal-no-teleport: '&e┠ &cТелепортация через этот портал отключена.'
+  region-protected: '&e┠ &cЗдесь нельзя ломать или ставить блоки.'
+  
+  # Сообщение появления ивента «Адский Разлом»
+  spawn-broadcast:
+  - '&e┠ &#34D711А&#41CF10д&#4EC80Eс&#5BC00Dк&#68B90Bи&#75B10Aй&#81A909-&#8EA207Р&#9B9A06а&#A89304з&#B58B03л&#C28402о&#CF7C00м
+    &fпоявился на карте.'
+  - '&e┠ &fЗдоровье: &c%hp% ❤'
+  - '&e┠ &fКоординаты: &#E0C912%x% %y% %z%'
+  
+  # Сообщение появления ивента «Пляжные Раскопки»
+  excavation-spawn-broadcast:
+  - '&e┠ &#34D711П&#40CE10л&#4CC50Eя&#58BC0Dж&#64B30Bн&#70AA0Aы&#7CA109е-&#889807Р&#948F06а&#A08605с&#AC7D03к&#B87402о&#C46B01п&#CF7C00к&#DB8500и
+    &fпоявились на карте.'
+  - '&e┠ &fЖитель выдаёт кисточку: &#E0C912каждые 30 сек.'
+  - '&e┠ &fКоординаты: &#E0C912%x% %y% %z%'
+  
+  # Сообщение появления ивента «Котёл Алхимика»
+  cauldron-spawn-broadcast:
+  - '&e┠ &#34D711К&#42CE0Fо&#50C50Eт&#5EBC0Cё&#6CB30Bл-&#7AAA09А&#88A108л&#969806х&#A48F05и&#B28603м&#C07D02и&#CE7400к&#DC6B00а
+    &fпоявился на карте.'
+  - '&e┠ &fСобирайте реагенты на болоте и сдавайте Алхимику!'
+  - '&e┠ &fКоординаты: &#E0C912%x% %y% %z%'
+  
+  # /event delay (до начала ивента — НЕ показывает какой ивент будет следующим!)
+  delay-waiting:
+  - '&e┠ &fДо появления следующего ивента: &#E0C912%time%'
+  
+  # /event delay (когда идёт «Адский Разлом»)
+  delay-active:
+  - '&e┠ &#34D711А&#41CF10д&#4EC80Eс&#5BC00Dк&#68B90Bи&#75B10Aй&#81A909-&#8EA207Р&#9B9A06а&#A89304з&#B58B03л&#C28402о&#CF7C00м
+    &fактивен на карте.'
+  - '&e┠ &fЗдоровье: &c%hp%/%max_hp% ❤'
+  - '&e┠ &fКоординаты: &#E0C912%x% %y% %z%'
+  
+  # /event delay (когда идут «Пляжные Раскопки»)
+  excavation-delay-active:
+  - '&e┠ &#34D711П&#40CE10л&#4CC50Eя&#58BC0Dж&#64B30Bн&#70AA0Aы&#7CA109е-&#889807Р&#948F06а&#A08605с&#AC7D03к&#B87402о&#C46B01п&#CF7C00к&#DB8500и
+    &fактивны на карте.'
+  - '&e┠ &fДо конца раскопок: &#E0C912%remaining%'
+  - '&e┠ &fКоординаты: &#E0C912%x% %y% %z%'
+  
+  # /event delay (когда идёт «Котёл Алхимика»)
+  cauldron-delay-active:
+  - '&e┠ &#34D711К&#42CE0Fо&#50C50Eт&#5EBC0Cё&#6CB30Bл-&#7AAA09А&#88A108л&#969806х&#A48F05и&#B28603м&#C07D02и&#CE7400к&#DC6B00а
+    &fактивен на карте.'
+  - '&e┠ &fДо конца ивента: &#E0C912%remaining%'
+  - '&e┠ &fКоординаты: &#E0C912%x% %y% %z%'
+
+# ============================================================================
+# Ивент «Вторжение Пришельцев» (v1.20.0)
+# Кастомный босс-пришелец с кастомной текстурой на схематике-посадке 25x25.
+# После убийства босса на 4 пьедесталах открываются сундуки с ресурсами.
+# 3D-модели из аддона al3xandre привязаны в ресурспаке к ванильным сущностям
+# (Geyser не умеет спавнить ale:alien / ale:nave с Java-сервера):
+#   EVOKER → geometry.alien (босс), VEX → мелкий alien, GHAST → тарелка geometry.nave.
+# Эвокер/векс/гаст в обычном мире почти не встречаются, поэтому обычный геймплей не ломается.
+# ============================================================================
+alien:
+  enabled: true
+  # Длительность ивента в минутах (после этого пришелец улетает)
+  duration-minutes: 15
+  # Радиус защиты постройки: внутри неё блоки не ломаются и не ставятся
+  protection-radius: 13
+  
+  # ---- Босс-пришелец ----
+  # Тип моба на Java: VINDICATOR — нормальный ближний ИИ (бежит и бьёт).
+  # На Bedrock модель заменена на 3D-пришельца. EVOKER оставлен в паке как запасной.
+  # Не ставьте броню — она рисуется поверх кастомной модели.
+  boss-type: VINDICATOR
+  # Имя: %hp% — текущее HP, %max_hp% — максимум
+  boss-name: '&5&lПришелец-Владыка &8[&d%hp%&7/&d%max_hp% ❤&8]'
+  boss-health: 16000.0
+  boss-damage: 24.0
+  # Размер модели (1.0 — ванильный). Модель alien и так высокая (~3 блока).
+  boss-scale: 1.55
+  boss-movement-speed: 0.32
+  boss-knockback-resistance: 1.0
+  # Радиус преследования: босс идёт к игрокам в этом радиусе (помогает выбраться из арены)
+  boss-chase-range: 25.0
+  # Броня выключена: нетэрит поверх 3D-модели пришельца выглядит как каша.
+  boss-armor: false
+  # Предмет в руке босса (AIR — без оружия; у виндicator свой топор, в паке не рисуется)
+  boss-weapon: AIR
+  
+  # ---- Малые пришельцы (приспешники) ----
+  minions:
+    enabled: true
+    # VINDICATOR — ходят и бьют по земле (VEX летали хаотично). Модель — мелкий пришелец.
+    type: VINDICATOR
+    name: '&a&lМалый пришелец &7[%hp% ❤]'
+    health: 160.0
+    damage: 16.0
+    scale: 0.55
+    weapon: AIR
+    interval-seconds: 25
+    count-per-wave: 2
+    max-active: 4
+    trigger-radius: 25.0
+  
+  # Летающая тарелка над ареной (модель nave из пака al3xandre на сущности GHAST).
+  # Неуязвима, без ИИ, не стреляет, не коллизится с игроками.
+  ufo:
+    enabled: true
+    type: GHAST
+    height: 10.0
+    scale: 0.45
+  
+  # Интервал способностей босса (pull/push/gather из общего раздела abilities)
+  ability-interval-seconds: 14
+  
+  # ---- Сундуки с ресурсами после убийства босса ----
+  chests:
+    enabled: true
+    # Сколько секунд сундуки доступны после убийства босса (затем площадка откатывается)
+    loot-time-seconds: 180
+    # Сколько раз кидать кубик на предмет в каждом сундуке (помимо базы)
+    rolls-per-chest: 8
+    # Смещения сундуков от центра ивента (x y z) — 4 пьедестала схемы
+    offsets:
+    - 0 2 9
+    - 9 2 0
+    - 0 2 -9
+    - -9 2 0
+    # ГАРАНТИРОВАННЫЙ базовый лут: эти предметы ВСЕГДА есть в каждом сундуке
+    # (не зависят от шансов и роллов). Хватит, чтобы лут никогда не был пустым.
+    # Гарантированный базовый лут: эти предметы ВСЕГДА есть в каждом сундуке
+    # (не зависят от шансов и роллов). Ключ — произвольное название.
+    base-loot:
+      iron:
+        material: IRON_INGOT
+        min: 6
+        max: 12
+      gold:
+        material: GOLD_INGOT
+        min: 4
+        max: 8
+      emerald:
+        material: EMERALD
+        min: 4
+        max: 8
+      diamond:
+        material: DIAMOND
+        min: 2
+        max: 4
+    # Обычный / эпический / легендарный лут сундуков (свой chance у каждого).
+    loot:
+      chorus:
+        material: CHORUS_FRUIT
+        min: 16
+        max: 32
+        chance: 75
+      pearls:
+        material: ENDER_PEARL
+        min: 8
+        max: 16
+        chance: 65
+      membrane:
+        material: PHANTOM_MEMBRANE
+        min: 6
+        max: 16
+        chance: 50
+      diamond:
+        material: DIAMOND
+        min: 6
+        max: 16
+        chance: 50
+      emerald:
+        material: EMERALD
+        min: 8
+        max: 16
+        chance: 45
+      shulker:
+        material: SHULKER_SHELL
+        min: 1
+        max: 3
+        chance: 32
+      end_crystal:
+        material: END_CRYSTAL
+        min: 1
+        max: 3
+        chance: 24
+      obsidian:
+        material: OBSIDIAN
+        min: 16
+        max: 32
+        chance: 40
+      ender_eye:
+        material: ENDER_EYE
+        min: 4
+        max: 12
+        chance: 35
+      elytra:
+        material: ELYTRA
+        min: 1
+        max: 1
+        chance: 8
+        rare: true
+        enchants:
+          unbreaking: 3
+          mending: 1
+      netherite:
+        material: NETHERITE_INGOT
+        min: 1
+        max: 1
+        chance: 16
+        rare: true
+      enchanted_apple:
+        material: ENCHANTED_GOLDEN_APPLE
+        min: 1
+        max: 1
+        chance: 12
+        rare: true
+      totem:
+        material: TOTEM_OF_UNDYING
+        min: 1
+        max: 1
+        chance: 20
+        rare: true
+      dragon_head:
+        material: DRAGON_HEAD
+        min: 1
+        max: 1
+        chance: 8
+        rare: true
+      netherite_helm:
+        material: NETHERITE_HELMET
+        min: 1
+        max: 1
+        chance: 10
+        rare: true
+        enchants:
+          protection: 4
+          unbreaking: 3
+          mending: 1
+          respiration: 3
+          aqua_affinity: 1
+      netherite_chest:
+        material: NETHERITE_CHESTPLATE
+        min: 1
+        max: 1
+        chance: 10
+        rare: true
+        enchants:
+          protection: 4
+          unbreaking: 3
+          mending: 1
+          thorns: 2
+      netherite_legs:
+        material: NETHERITE_LEGGINGS
+        min: 1
+        max: 1
+        chance: 10
+        rare: true
+        enchants:
+          protection: 4
+          unbreaking: 3
+          mending: 1
+          swift_sneak: 3
+      netherite_boots:
+        material: NETHERITE_BOOTS
+        min: 1
+        max: 1
+        chance: 10
+        rare: true
+        enchants:
+          protection: 4
+          unbreaking: 3
+          mending: 1
+          feather_falling: 4
+          depth_strider: 3
+          soul_speed: 3
+      netherite_sword:
+        material: NETHERITE_SWORD
+        min: 1
+        max: 1
+        chance: 10
+        rare: true
+        enchants:
+          sharpness: 5
+          unbreaking: 3
+          mending: 1
+          looting: 3
+          fire_aspect: 2
+          sweeping_edge: 3
+      diamond_chest:
+        material: DIAMOND_CHESTPLATE
+        min: 1
+        max: 1
+        chance: 16
+        rare: true
+        enchants:
+          protection: 4
+          unbreaking: 3
+          mending: 1
+      diamond_helm:
+        material: DIAMOND_HELMET
+        min: 1
+        max: 1
+        chance: 16
+        rare: true
+        enchants:
+          protection: 4
+          unbreaking: 3
+          mending: 1
+          respiration: 3
+          aqua_affinity: 1
+      diamond_legs:
+        material: DIAMOND_LEGGINGS
+        min: 1
+        max: 1
+        chance: 16
+        rare: true
+        enchants:
+          protection: 4
+          unbreaking: 3
+          mending: 1
+      diamond_boots:
+        material: DIAMOND_BOOTS
+        min: 1
+        max: 1
+        chance: 16
+        rare: true
+        enchants:
+          protection: 4
+          unbreaking: 3
+          mending: 1
+          feather_falling: 4
+          depth_strider: 3
+          soul_speed: 3
+      diamond_sword:
+        material: DIAMOND_SWORD
+        min: 1
+        max: 1
+        chance: 16
+        rare: true
+        enchants:
+          sharpness: 5
+          unbreaking: 3
+          mending: 1
+          looting: 3
+          fire_aspect: 2
+          sweeping_edge: 3
+      bow:
+        material: BOW
+        min: 1
+        max: 1
+        chance: 14
+        rare: true
+        enchants:
+          power: 5
+          unbreaking: 3
+          mending: 1
+          punch: 2
+          flame: 1
+      crossbow:
+        material: CROSSBOW
+        min: 1
+        max: 1
+        chance: 12
+        rare: true
+        enchants:
+          piercing: 4
+          quick_charge: 3
+          unbreaking: 3
+          mending: 1
+          multishot: 1
+      void_sphere:
+        material: PAPER
+        min: 1
+        max: 1
+        chance: 16
+        rare: true
+        name: '&aСфера пустоты'
+        lore:
+        - '&a+4 к урону'
+        - '&a+4 к защите'
+        - '&a+4 к здоровью'
+        - '&a+5% к скорости'
+  
+  rewards:
+    enabled: true
+  
+  # ---- Сообщения (%x% %y% %z% %world% %hp% %max_hp% %currency%) ----
+  messages:
+    spawn:
+    - '&e┼ &#34D711В&#41CE0FН&#4EC80EТ&#5BC00DО&#68B90BР&#75B10AЖ&#81A909Е&#8EA207Н&#9B9A06И&#A89304Е
+      &#B58B03П&#C28402Р&#CF7C00И&#DC6B00Ш&#E96200Е&#F65900Л&#FF5000Ь&#FF5000Ц&#FF5000Е&#FF5000В
+      &fна карте!'
+    - '&e┠ &fНа посадочной площади появился Пришелец-Владыка &8(&d%hp% ❤&8)'
+    - '&e┠ &fУбейте его — откроются 4 сундука с ресурсами'
+    - '&e┠ &fКоординаты: &#E0C912%x% %y% %z%'
+    defeated:
+    - '&e┼ &#34D711Пришелец-Владыка повержен! &fЭкипаж судна открыл хранилища.'
+    chests: '&e┼ &#34D711Открылись 4 сундука с ресурсами &f— ищите их на пьедесталах
+      посадки!'
+    timeout: '&e┼ &cПришелец вернулся на корабль — его не успели убить!'
+    
+    # /event delay (когда идёт «Вторжение Пришельцев»)
+    delay-active:
+    - '&e┼ &#34D711Вторжение Пришельцев &fактивно на карте.'
+    - '&e┠ &fЗдоровье пришельца: &c%hp%/%max_hp% ❤'
+    - '&e┠ &fДо конца ивента: &#E0C912%remaining%'
+    - '&e┠ &fКоординаты: &#E0C912%x% %y% %z%'
+
+# ============================================================================
+# Ивент 5: «Древний клад» — квадратные руины, один ванильный сундук-ловушка.
+# Старт: /klad  или  /rift start wind.
+# ============================================================================
+wind:
+  enabled: true
+  duration-minutes: 20
+  # Таймер до открытия сундука (секунды). Стартует только после клика игрока.
+  unlock-seconds: 300
+  # Сколько секунд руины живут после открытия сундука.
+  loot-seconds: 600
+  loot:
+    gold:
+      material: GOLD_INGOT
+      min: 16
+      max: 32
+      chance: 80
+    iron:
+      material: IRON_INGOT
+      min: 20
+      max: 40
+      chance: 75
+    emerald:
+      material: EMERALD
+      min: 12
+      max: 24
+      chance: 65
+    diamond:
+      material: DIAMOND
+      min: 8
+      max: 20
+      chance: 60
+    echo:
+      material: ECHO_SHARD
+      min: 12
+      max: 28
+      chance: 55
+    sculk:
+      material: SCULK
+      min: 32
+      max: 64
+      chance: 40
+    debris:
+      material: ANCIENT_DEBRIS
+      min: 1
+      max: 3
+      chance: 30
+      rare: true
+    netherite:
+      material: NETHERITE_INGOT
+      min: 1
+      max: 2
+      chance: 18
+      rare: true
+    enchanted_apple:
+      material: ENCHANTED_GOLDEN_APPLE
+      min: 1
+      max: 1
+      chance: 14
+      rare: true
+    totem:
+      material: TOTEM_OF_UNDYING
+      min: 1
+      max: 1
+      chance: 22
+      rare: true
+    template:
+      material: NETHERITE_UPGRADE_SMITHING_TEMPLATE
+      min: 1
+      max: 1
+      chance: 20
+      rare: true
+    netherite_helm:
+      material: NETHERITE_HELMET
+      min: 1
+      max: 1
+      chance: 12
+      rare: true
+      enchants:
+        protection: 4
+        unbreaking: 3
+        mending: 1
+        respiration: 3
+        aqua_affinity: 1
+    netherite_chest:
+      material: NETHERITE_CHESTPLATE
+      min: 1
+      max: 1
+      chance: 12
+      rare: true
+      enchants:
+        protection: 4
+        unbreaking: 3
+        mending: 1
+        thorns: 2
+    netherite_legs:
+      material: NETHERITE_LEGGINGS
+      min: 1
+      max: 1
+      chance: 12
+      rare: true
+      enchants:
+        protection: 4
+        unbreaking: 3
+        mending: 1
+        swift_sneak: 3
+    netherite_boots:
+      material: NETHERITE_BOOTS
+      min: 1
+      max: 1
+      chance: 12
+      rare: true
+      enchants:
+        protection: 4
+        unbreaking: 3
+        mending: 1
+        feather_falling: 4
+        depth_strider: 3
+        soul_speed: 3
+    netherite_sword:
+      material: NETHERITE_SWORD
+      min: 1
+      max: 1
+      chance: 12
+      rare: true
+      enchants:
+        sharpness: 5
+        unbreaking: 3
+        mending: 1
+        looting: 3
+        fire_aspect: 2
+        sweeping_edge: 3
+    netherite_pick:
+      material: NETHERITE_PICKAXE
+      min: 1
+      max: 1
+      chance: 10
+      rare: true
+      enchants:
+        efficiency: 5
+        unbreaking: 3
+        mending: 1
+        fortune: 3
+    diamond_chest:
+      material: DIAMOND_CHESTPLATE
+      min: 1
+      max: 1
+      chance: 18
+      rare: true
+      enchants:
+        protection: 4
+        unbreaking: 3
+        mending: 1
+    diamond_helm:
+      material: DIAMOND_HELMET
+      min: 1
+      max: 1
+      chance: 18
+      rare: true
+      enchants:
+        protection: 4
+        unbreaking: 3
+        mending: 1
+        respiration: 3
+        aqua_affinity: 1
+    diamond_legs:
+      material: DIAMOND_LEGGINGS
+      min: 1
+      max: 1
+      chance: 18
+      rare: true
+      enchants:
+        protection: 4
+        unbreaking: 3
+        mending: 1
+    diamond_boots:
+      material: DIAMOND_BOOTS
+      min: 1
+      max: 1
+      chance: 18
+      rare: true
+      enchants:
+        protection: 4
+        unbreaking: 3
+        mending: 1
+        feather_falling: 4
+        depth_strider: 3
+        soul_speed: 3
+    diamond_sword:
+      material: DIAMOND_SWORD
+      min: 1
+      max: 1
+      chance: 18
+      rare: true
+      enchants:
+        sharpness: 5
+        unbreaking: 3
+        mending: 1
+        looting: 3
+        fire_aspect: 2
+        sweeping_edge: 3
+    bow:
+      material: BOW
+      min: 1
+      max: 1
+      chance: 16
+      rare: true
+      enchants:
+        power: 5
+        unbreaking: 3
+        mending: 1
+        punch: 2
+        flame: 1
+    common: {}
+    rare: {}
+    epic: {}
+    legendary: {}
+
+# ============================================================================
+# Ивент 6: «Шкибиди Туалет» — схема + волны 3D-туалетов (ravager → skibidi).
+# Старт: /skibidi  или  /rift start skibidi
+# Лут: /rift copylot excavation skibidi   (у каждого предмета свой chance)
+# ============================================================================
+skibidi:
+  enabled: false
+  duration-minutes: 8
+  wave-interval-seconds: 300
+  wave-min: 2
+  wave-max: 5
+  health: 600
+  damage: 30
+  scale: 1.0
+  big-health: 600
+  big-damage: 40
+  big-scale: 1.15
+  levels: 30
+  big-levels: 50
+  loot:
+    iron:
+      material: IRON_INGOT
+      min: 8
+      max: 20
+      chance: 80
+    gold:
+      material: GOLD_INGOT
+      min: 6
+      max: 16
+      chance: 65
+    copper:
+      material: COPPER_INGOT
+      min: 12
+      max: 28
+      chance: 70
+    coal:
+      material: COAL
+      min: 20
+      max: 40
+      chance: 65
+    redstone:
+      material: REDSTONE
+      min: 20
+      max: 48
+      chance: 55
+    lapis:
+      material: LAPIS_LAZULI
+      min: 16
+      max: 32
+      chance: 45
+    diamond:
+      material: DIAMOND
+      min: 4
+      max: 10
+      chance: 35
+    emerald:
+      material: EMERALD
+      min: 4
+      max: 12
+      chance: 38
+    quartz:
+      material: QUARTZ
+      min: 16
+      max: 32
+      chance: 40
+    golden_apple:
+      material: GOLDEN_APPLE
+      min: 2
+      max: 6
+      chance: 22
+    xp:
+      material: EXPERIENCE_BOTTLE
+      min: 16
+      max: 40
+      chance: 40
+    netherite:
+      material: NETHERITE_INGOT
+      min: 1
+      max: 1
+      chance: 12
+      rare: true
+    totem:
+      material: TOTEM_OF_UNDYING
+      min: 1
+      max: 1
+      chance: 10
+      rare: true
+    enchanted_apple:
+      material: ENCHANTED_GOLDEN_APPLE
+      min: 1
+      max: 1
+      chance: 6
+      rare: true
+    netherite_helm:
+      material: NETHERITE_HELMET
+      min: 1
+      max: 1
+      chance: 8
+      rare: true
+      enchants:
+        protection: 4
+        unbreaking: 3
+        mending: 1
+        respiration: 3
+        aqua_affinity: 1
+    netherite_chest:
+      material: NETHERITE_CHESTPLATE
+      min: 1
+      max: 1
+      chance: 8
+      rare: true
+      enchants:
+        protection: 4
+        unbreaking: 3
+        mending: 1
+    netherite_legs:
+      material: NETHERITE_LEGGINGS
+      min: 1
+      max: 1
+      chance: 8
+      rare: true
+      enchants:
+        protection: 4
+        unbreaking: 3
+        mending: 1
+        swift_sneak: 3
+    netherite_boots:
+      material: NETHERITE_BOOTS
+      min: 1
+      max: 1
+      chance: 8
+      rare: true
+      enchants:
+        protection: 4
+        unbreaking: 3
+        mending: 1
+        feather_falling: 4
+        depth_strider: 3
+        soul_speed: 3
+    netherite_sword:
+      material: NETHERITE_SWORD
+      min: 1
+      max: 1
+      chance: 8
+      rare: true
+      enchants:
+        sharpness: 5
+        unbreaking: 3
+        mending: 1
+        looting: 3
+        fire_aspect: 2
+        sweeping_edge: 3
+    diamond_chest:
+      material: DIAMOND_CHESTPLATE
+      min: 1
+      max: 1
+      chance: 14
+      rare: true
+      enchants:
+        protection: 4
+        unbreaking: 3
+        mending: 1
+    diamond_helm:
+      material: DIAMOND_HELMET
+      min: 1
+      max: 1
+      chance: 14
+      rare: true
+      enchants:
+        protection: 4
+        unbreaking: 3
+        mending: 1
+        respiration: 3
+        aqua_affinity: 1
+    diamond_legs:
+      material: DIAMOND_LEGGINGS
+      min: 1
+      max: 1
+      chance: 14
+      rare: true
+      enchants:
+        protection: 4
+        unbreaking: 3
+        mending: 1
+    diamond_boots:
+      material: DIAMOND_BOOTS
+      min: 1
+      max: 1
+      chance: 14
+      rare: true
+      enchants:
+        protection: 4
+        unbreaking: 3
+        mending: 1
+        feather_falling: 4
+        depth_strider: 3
+        soul_speed: 3
+    diamond_sword:
+      material: DIAMOND_SWORD
+      min: 1
+      max: 1
+      chance: 14
+      rare: true
+      enchants:
+        sharpness: 5
+        unbreaking: 3
+        mending: 1
+        looting: 3
+        fire_aspect: 2
+        sweeping_edge: 3
+    bow:
+      material: BOW
+      min: 1
+      max: 1
+      chance: 12
+      rare: true
+      enchants:
+        power: 5
+        unbreaking: 3
+        mending: 1
+        punch: 2
+        flame: 1
+
+# ============================================================================
+# Ивент 7: «Роналду SIUU» — стадион, один босс CR7 (illusioner), без клонов.
+# Старт: /ronaldo  или  /rift start ronaldo
+# Варп: Essentials API setWarp / removeWarp (имя ronaldo).
+# Лут: /rift copylot excavation ronaldo
+# ============================================================================
+ronaldo:
+  enabled: false
+  duration-minutes: 8
+  boss-health: 900
+  boss-damage: 40
+  boss-scale: 1.35
+  levels: 30
+  boss-levels: 50
+  jump-interval-seconds: 6
+  shoot-interval-seconds: 4
+  siuu-interval-seconds: 45
+  talk-interval-seconds: 35
+  warp-name: ronaldo
+  rewards:
+    '1': 500
+    '2': 300
+    '3': 100
+  # Essentials: старт /setwarp ronaldo, конец /delwarp ronaldo
+  warp-set-command: setwarp ronaldo
+  warp-delete-command: delwarp ronaldo
+  loot:
+    gold:
+      material: GOLD_INGOT
+      min: 8
+      max: 24
+      chance: 80
+    iron:
+      material: IRON_INGOT
+      min: 12
+      max: 28
+      chance: 70
+    diamond:
+      material: DIAMOND
+      min: 4
+      max: 12
+      chance: 38
+    emerald:
+      material: EMERALD
+      min: 4
+      max: 12
+      chance: 40
+    golden_apple:
+      material: GOLDEN_APPLE
+      min: 2
+      max: 6
+      chance: 24
+    xp:
+      material: EXPERIENCE_BOTTLE
+      min: 16
+      max: 40
+      chance: 40
+    netherite:
+      material: NETHERITE_INGOT
+      min: 1
+      max: 1
+      chance: 12
+      rare: true
+    totem:
+      material: TOTEM_OF_UNDYING
+      min: 1
+      max: 1
+      chance: 10
+      rare: true
+    enchanted_apple:
+      material: ENCHANTED_GOLDEN_APPLE
+      min: 1
+      max: 1
+      chance: 6
+      rare: true
+    netherite_helm:
+      material: NETHERITE_HELMET
+      min: 1
+      max: 1
+      chance: 8
+      rare: true
+      enchants:
+        protection: 4
+        unbreaking: 3
+        mending: 1
+    netherite_chest:
+      material: NETHERITE_CHESTPLATE
+      min: 1
+      max: 1
+      chance: 8
+      rare: true
+      enchants:
+        protection: 4
+        unbreaking: 3
+        mending: 1
+    netherite_legs:
+      material: NETHERITE_LEGGINGS
+      min: 1
+      max: 1
+      chance: 8
+      rare: true
+      enchants:
+        protection: 4
+        unbreaking: 3
+        mending: 1
+    netherite_boots:
+      material: NETHERITE_BOOTS
+      min: 1
+      max: 1
+      chance: 8
+      rare: true
+      enchants:
+        protection: 4
+        unbreaking: 3
+        mending: 1
+        feather_falling: 4
+    diamond_sword:
+      material: DIAMOND_SWORD
+      min: 1
+      max: 1
+      chance: 14
+      rare: true
+      enchants:
+        sharpness: 5
+        unbreaking: 3
+        mending: 1
+        looting: 3
+        fire_aspect: 2
+
+# ============================================================================
+# Ивент 8: «Рыбалка» — пруд, рыбак выдаёт удочки 3 редкостей (PDC).
+# Старт: /fishing  или  /rift start fishing
+# Лут: /rift menu → Рыбалка  или  /rift copylot excavation fishing
+# Ванильная удочка без метки не меняется.
+# ============================================================================
+fishing:
+  enabled: true
+  duration-minutes: 8
+  warp-name: fishing
+  max-rods: 1
+  rod-cooldown-seconds: 4
+  rods:
+    common:
+      chance: 35
+      uses: 5
+      name: '&aМедная удочка удачи'
+      loot:
+      - material: COD
+        amount: 12
+        chance: 45.0
+      - material: SALMON
+        amount: 10
+        chance: 35.0
+      - material: IRON_INGOT
+        amount: 8
+        chance: 25.0
+      - material: PRISMARINE_SHARD
+        amount: 8
+        chance: 20.0
+      - material: PRISMARINE_CRYSTALS
+        amount: 6
+        chance: 18.0
+      - material: GOLD_INGOT
+        amount: 6
+        chance: 18.0
+      - material: EXPERIENCE_BOTTLE
+        amount: 12
+        chance: 22.0
+      - material: EMERALD
+        amount: 4
+        chance: 12.0
+      - material: NAUTILUS_SHELL
+        amount: 1
+        chance: 5.0
+    epic:
+      chance: 40
+      uses: 6
+      name: '&dЗолотая удочка удачи'
+      loot:
+      - material: SALMON
+        amount: 16
+        chance: 30.0
+      - material: GOLD_INGOT
+        amount: 12
+        chance: 32.0
+      - material: PRISMARINE_CRYSTALS
+        amount: 12
+        chance: 28.0
+      - material: DIAMOND
+        amount: 4
+        chance: 18.0
+      - material: EMERALD
+        amount: 8
+        chance: 20.0
+      - material: NAUTILUS_SHELL
+        amount: 2
+        chance: 12.0
+      - material: EXPERIENCE_BOTTLE
+        amount: 24
+        chance: 25.0
+      - material: GOLDEN_APPLE
+        amount: 2
+        chance: 10.0
+      - material: HEART_OF_THE_SEA
+        amount: 1
+        chance: 3.0
+    legendary:
+      chance: 25
+      uses: 8
+      name: '&6Кристальная удочка удачи'
+      loot:
+      - material: DIAMOND
+        amount: 8
+        chance: 30.0
+      - material: EMERALD
+        amount: 16
+        chance: 28.0
+      - material: GOLD_INGOT
+        amount: 24
+        chance: 24.0
+      - material: EXPERIENCE_BOTTLE
+        amount: 32
+        chance: 25.0
+      - material: NAUTILUS_SHELL
+        amount: 4
+        chance: 16.0
+      - material: HEART_OF_THE_SEA
+        amount: 1
+        chance: 10.0
+      - material: GOLDEN_APPLE
+        amount: 4
+        chance: 14.0
+      - material: TOTEM_OF_UNDYING
+        amount: 1
+        chance: 5.0
+      - material: ENCHANTED_GOLDEN_APPLE
+        amount: 1
+        chance: 2.0
+      - material: NETHERITE_INGOT
+        amount: 1
+        chance: 2.0
