@@ -12,7 +12,9 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /** All Bukkit API and tab-complete calls are confined to the server main thread. */
@@ -44,10 +46,11 @@ final class BukkitBridge implements Listener {
 
     void refresh(SuggestionSession session, int generation) {
         if (closed || !session.isCurrent(generation)) return;
-        runBatch(session, generation, session.targets(), 0);
+        runBatch(session, generation, session.targets(), 0, new HashMap<>());
     }
 
-    private void runBatch(SuggestionSession session, int generation, List<DynamicParam> targets, int offset) {
+    private void runBatch(SuggestionSession session, int generation, List<DynamicParam> targets, int offset,
+                          Map<String, List<String>> completedByLine) {
         if (closed || !session.isCurrent(generation)) return;
         Player player = Bukkit.getPlayer(session.playerId);
         if (player == null || !player.isOnline()) {
@@ -61,16 +64,17 @@ final class BukkitBridge implements Listener {
             String commandLine = target.completionLine(session.values);
             if (commandLine == null) continue;
 
-            List<String> completed;
+            List<String> values;
             try {
-                completed = Bukkit.getCommandMap().tabComplete(player, commandLine);
+                values = SuggestionText.cachedCompletion(completedByLine, commandLine,
+                        () -> Bukkit.getCommandMap().tabComplete(player, commandLine),
+                        extension.config().maxSuggestions());
             } catch (RuntimeException e) {
                 if (extension.config().verbose()) {
                     extension.logger().warning("VoidCommands: tabComplete failed for " + commandLine + ": " + e);
                 }
                 continue;
             }
-            List<String> values = SuggestionText.clean(completed, extension.config().maxSuggestions());
             if (session.updateValues(target.enumName(), values)) {
                 extension.sendSoftEnum(session, target.enumName(), values);
             }
@@ -78,7 +82,7 @@ final class BukkitBridge implements Listener {
 
         if (end < targets.size()) {
             Bukkit.getScheduler().runTaskLater(schedulerOwner,
-                    () -> runBatch(session, generation, targets, end), 1);
+                    () -> runBatch(session, generation, targets, end, completedByLine), 1);
         } else if (extension.config().verbose()) {
             extension.logger().info("VoidCommands: обновлено " + targets.size() + " аргументов для "
                     + player.getName() + ".");

@@ -3,6 +3,8 @@ package ru.voidpe.geyser.commands;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.function.Supplier;
 import java.util.Set;
 
 /** Pure text helpers, kept independent from Bukkit/Geyser for regression tests. */
@@ -25,6 +27,16 @@ final class SuggestionText {
             if (unique.size() >= limit) break;
         }
         return List.copyOf(unique);
+    }
+
+    /** Per-refresh cache: never shared between players or subsequent refreshes. */
+    static List<String> cachedCompletion(Map<String, List<String>> cache, String line,
+                                         Supplier<? extends Iterable<String>> complete, int limit) {
+        List<String> cached = cache.get(line);
+        if (cached != null) return cached;
+        List<String> result = clean(complete.get(), limit);
+        cache.put(line, result);
+        return result;
     }
 
     static String enumName(String command, int overload, int parameter) {
