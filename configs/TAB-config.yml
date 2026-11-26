@@ -70,7 +70,6 @@ scoreboard:
     voidpe:
       title: ''
       lines:
-        - "\uE201"
         - '&fИмя: &#FFA63D%player%'
         - '&fДонат: %condition:voidpe_rank%'
         - '&fМонеты: &#FFD93D%vault_eco_balance_fixed%'
