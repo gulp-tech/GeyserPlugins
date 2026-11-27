@@ -125,8 +125,13 @@ class VoidGiftsLootTest {
                 bottomSlot, ClickType.LEFT, InventoryAction.PICKUP_ALL);
         assertNotNull(probe.getClickedInventory(), "bottom clicked inventory is null");
         assertTrue(probe.getClickedInventory() instanceof org.bukkit.inventory.PlayerInventory, "bottom is not player inventory: " + probe.getClickedInventory());
+        // Set through InventoryView as well: MockBukkit does not mirror direct
+        // PlayerInventory writes into its open view on every implementation.
+        probe.setCurrentItem(original.clone());
         assertNotNull(probe.getCurrentItem(), "bottom current item is null");
-        click(bottomSlot);
+        server.getPluginManager().callEvent(probe);
+        assertTrue(probe.isCancelled());
+        server.getScheduler().performTicks(2L);
         assertEquals(7, player.getInventory().getItem(9).getAmount());
         GiftLootStore stored = new GiftLootStore(plugin); stored.load();
         assertEquals(1, stored.rewards("present").size());
