@@ -134,6 +134,15 @@ class WardenLootIntegrationTest {
         assertEquals(42, call("effectiveItemChance", new Class<?>[]{org.bukkit.inventory.ItemStack.class}, restored));
     }
 
+    @Test void corruptLootFileIsNotOverwrittenAndRefillsFailClosed() throws Exception {
+        var file = plugin.getDataFolder().toPath().resolve("loot-items.yml");
+        java.nio.file.Files.writeString(file, "items: [unterminated");
+        call("loadCustomLoot", new Class<?>[]{});
+        assertEquals(false, call("dataReady", new Class<?>[]{}));
+        assertEquals(false, call("saveCustomLoot", new Class<?>[]{}));
+        assertEquals("items: [unterminated", java.nio.file.Files.readString(file));
+    }
+
     @Test void failedSaveRollsBackChance() throws Exception {
         java.nio.file.Path path = plugin.getDataFolder().toPath().resolve("loot-chances.yml");
         java.nio.file.Files.createDirectory(path);

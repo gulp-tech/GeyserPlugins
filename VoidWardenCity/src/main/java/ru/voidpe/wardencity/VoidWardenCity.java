@@ -79,6 +79,9 @@ public class VoidWardenCity extends JavaPlugin implements Listener, CommandExecu
 
     private final Random random = new Random();
     private NamespacedKey chestMarker;
+    private boolean chestDataReady = true;
+    private boolean customLootReady = true;
+    private boolean chanceDataReady = true;
     private static final String CITY_TABLE = "chests/ancient_city";
     private static final String ICE_TABLE = "chests/ancient_city_ice_box";
     private WorldGuardCityRegion worldGuardRegion;
@@ -379,6 +382,8 @@ public class VoidWardenCity extends JavaPlugin implements Listener, CommandExecu
 
     // ------------------------------------------------------------- сундуки
 
+    private boolean dataReady() { return chestDataReady && customLootReady && chanceDataReady; }
+
     /** A marked single chest is the only inventory this plugin may refill. */
     private boolean singleChest(Chest chest) {
         return chest.getBlockData() instanceof org.bukkit.block.data.type.Chest data
@@ -399,7 +404,7 @@ public class VoidWardenCity extends JavaPlugin implements Listener, CommandExecu
 
     /** Mark before opening inventory. Never trust old coordinate-only records. */
     private boolean markChest(Chest chest, String table) {
-        if (!singleChest(chest) || !inCity(chest.getLocation())) return false;
+        if (!dataReady() || !singleChest(chest) || !inCity(chest.getLocation())) return false;
         chest.getPersistentDataContainer().set(chestMarker, PersistentDataType.STRING, table);
         chest.setLootTable(null); // prevent an extra native fill on first inventory access
         if (!chest.update(true, false)) return false;
@@ -408,7 +413,7 @@ public class VoidWardenCity extends JavaPlugin implements Listener, CommandExecu
     }
 
     private boolean isManaged(Chest chest) {
-        return ChestPolicy.canUse(singleChest(chest), inCity(chest.getLocation()),
+        return dataReady() && ChestPolicy.canUse(singleChest(chest), inCity(chest.getLocation()),
                 playerChests.contains(key(chest.getLocation())), markedTable(chest) != null);
     }
 
@@ -556,7 +561,7 @@ public class VoidWardenCity extends JavaPlugin implements Listener, CommandExecu
     /** Handle a natural table generated before the chunk scanner reached it. */
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onNaturalLoot(org.bukkit.event.world.LootGenerateEvent event) {
-        if (event.isPlugin() || !(event.getInventoryHolder() instanceof Chest chest)) return;
+        if (!dataReady() || event.isPlugin() || !(event.getInventoryHolder() instanceof Chest chest)) return;
         NamespacedKey lootKey = event.getLootTable().getKey();
         String table = lootKey.getNamespace().equals("minecraft") ? lootKey.getKey() : "";
         if ((!CITY_TABLE.equals(table) && !ICE_TABLE.equals(table))
@@ -701,6 +706,18 @@ public class VoidWardenCity extends JavaPlugin implements Listener, CommandExecu
         return loc.getWorld().getName() + ";" + loc.getBlockX() + ";" + loc.getBlockY() + ";" + loc.getBlockZ();
     }
 
+    private YamlConfiguration loadDataSafely(File file) {
+        YamlConfiguration data = new YamlConfiguration();
+        try {
+            data.load(file);
+            return data;
+        } catch (IOException | org.bukkit.configuration.InvalidConfigurationException ex) {
+            getLogger().severe("Не удалось прочитать " + file.getName()
+                    + "; файл сохранён без изменений: " + ex.getMessage());
+            return null;
+        }
+    }
+
     private void atomicSave(YamlConfiguration data, File target) throws IOException {
         java.nio.file.Path dest = target.toPath().toAbsolutePath();
         java.nio.file.Files.createDirectories(dest.getParent());
@@ -723,11 +740,13 @@ public class VoidWardenCity extends JavaPlugin implements Listener, CommandExecu
     }
 
     private void loadChestData() {
+        chestDataReady = true;
         File file = chestFile();
         if (!file.exists()) {
             return;
         }
-        YamlConfiguration data = YamlConfiguration.loadConfiguration(file);
+        YamlConfiguration data = loadDataSafely(file);
+        if (data == null) { chestDataReady = false; return; }
         if (data.isConfigurationSection("chests")) {
             for (String k : data.getConfigurationSection("chests").getKeys(false)) {
                 chestRefills.put(k, data.getLong("chests." + k));
@@ -740,6 +759,7 @@ public class VoidWardenCity extends JavaPlugin implements Listener, CommandExecu
     }
 
     private void saveChestData() {
+        if (!chestDataReady) return;
         YamlConfiguration data = new YamlConfiguration();
         for (Map.Entry<String, Long> e : chestRefills.entrySet()) {
             data.set("chests." + e.getKey(), e.getValue());
@@ -862,12 +882,14 @@ public class VoidWardenCity extends JavaPlugin implements Listener, CommandExecu
     }
 
     private void loadCustomLoot() {
+        customLootReady = true;
         customLoot.clear();
         File file = customLootFile();
         if (!file.exists()) {
             return;
         }
-        YamlConfiguration data = YamlConfiguration.loadConfiguration(file);
+        YamlConfiguration data = loadDataSafely(file);
+        if (data == null) { customLootReady = false; return; }
         List<?> raw = data.getList("items");
         if (raw != null) {
             for (Object o : raw) {
@@ -880,6 +902,7 @@ public class VoidWardenCity extends JavaPlugin implements Listener, CommandExecu
     }
 
     private boolean saveCustomLoot() {
+        if (!customLootReady) return false;
         YamlConfiguration data = new YamlConfiguration();
         data.set("items", customLoot);
         try {
@@ -892,6 +915,7 @@ public class VoidWardenCity extends JavaPlugin implements Listener, CommandExecu
     }
 
     private void openLootGui(Player player) {
+        if (!customLootReady) { send(player, "&cНе удалось прочитать loot-items.yml. Исправь файл и перезапусти сервер."); return; }
         LootGuiHolder holder = new LootGuiHolder();
         Inventory gui = Bukkit.createInventory(holder, 54, comp(msg("gui-title")));
         holder.inventory = gui;
@@ -911,6 +935,7 @@ public class VoidWardenCity extends JavaPlugin implements Listener, CommandExecu
         if (!(event.getInventory().getHolder() instanceof LootGuiHolder)) {
             return;
         }
+        if (!customLootReady) return;
         customLoot.clear();
         for (ItemStack item : event.getInventory().getContents()) {
             if (item != null && !item.getType().isAir()) {
@@ -931,13 +956,15 @@ public class VoidWardenCity extends JavaPlugin implements Listener, CommandExecu
     }
 
     private void loadChanceOverrides() {
+        chanceDataReady = true;
         chanceOverrides.clear();
         customChanceOverride = null;
         File file = chanceFile();
         if (!file.exists()) {
             return;
         }
-        YamlConfiguration data = YamlConfiguration.loadConfiguration(file);
+        YamlConfiguration data = loadDataSafely(file);
+        if (data == null) { chanceDataReady = false; return; }
         for (Map<?, ?> raw : data.getMapList("chances")) {
             Object sig = raw.get("sig");
             if (sig != null && raw.get("chance") instanceof Number n) {
@@ -950,6 +977,7 @@ public class VoidWardenCity extends JavaPlugin implements Listener, CommandExecu
     }
 
     private boolean saveChanceOverrides() {
+        if (!chanceDataReady) return false;
         YamlConfiguration data = new YamlConfiguration();
         List<Map<String, Object>> list = new ArrayList<>();
         for (Map.Entry<String, Integer> e : chanceOverrides.entrySet()) {
@@ -1056,6 +1084,7 @@ public class VoidWardenCity extends JavaPlugin implements Listener, CommandExecu
     }
 
     private void openChancesGui(Player player, int page) {
+        if (!chanceDataReady || !customLootReady) { send(player, "&cНе удалось прочитать данные лута или шансов. Проверь файлы и перезапусти сервер."); return; }
         List<ChanceEntry> entries = chanceEntries();
         int perPage = 45;
         int pages = Math.max(1, (entries.size() + perPage - 1) / perPage);
@@ -1172,6 +1201,7 @@ public class VoidWardenCity extends JavaPlugin implements Listener, CommandExecu
     }
 
     private void openChanceEditor(Player player, String sig, int page, boolean custom) {
+        if (!chanceDataReady || !customLootReady) { send(player, "&cДанные лута недоступны."); return; }
         int chance = custom ? effectiveCustomChance() : currentEntryChance(sig);
         ChanceEditHolder holder = new ChanceEditHolder(sig, page, custom);
         Inventory gui = Bukkit.createInventory(holder, 27, comp(msg("chance-edit-title")));
