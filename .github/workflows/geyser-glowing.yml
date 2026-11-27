@@ -31,25 +31,29 @@ jobs:
             exit "$code"
           fi
           tail -20 gradle.log
-      - name: Verify unchanged original pack inside JAR
+      - name: Verify optimized pack inside JAR
         working-directory: GeyserJavaGlowing
         run: |
           python3 - <<'PY'
           import hashlib, pathlib, zipfile
-          jar = pathlib.Path('build/libs/GeyserJavaGlowing-0.2.13-voidpe.1.jar')
+          jar = pathlib.Path('build/libs/GeyserJavaGlowing-0.2.13-voidpe.2.jar')
           with zipfile.ZipFile(jar) as z:
               pack = z.read('GeyserJavaGlowing.mcpack')
-              assert hashlib.sha256(pack).hexdigest() == 'd63e07dac405b20b6544c5c28a3ba3be2f90208339efe684ece9ebc3441f3b75'
+              assert hashlib.sha256(pack).hexdigest() == 'eea9f0ff1bdef2f8098a224b567b11d4a7fd43f775503975478a9d31e2bd5ff7'
+              pathlib.Path('build/verified.mcpack').write_bytes(pack)
               assert z.testzip() is None
           PY
+      - name: Verify pack against original
+        working-directory: GeyserJavaGlowing
+        run: python3 tools/pack_tool.py test build/verified.mcpack
       - uses: actions/upload-artifact@v4
         with:
           name: GeyserJavaGlowing-voidpe
-          path: GeyserJavaGlowing/build/libs/GeyserJavaGlowing-0.2.13-voidpe.1.jar
+          path: GeyserJavaGlowing/build/libs/GeyserJavaGlowing-0.2.13-voidpe.2.jar
           if-no-files-found: error
       - name: Publish tagged release
         if: startsWith(github.ref, 'refs/tags/glowing-v')
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" GeyserJavaGlowing/build/libs/GeyserJavaGlowing-0.2.13-voidpe.1.jar --target "$GITHUB_SHA" --title "GeyserJavaGlowing VoidPE 0.2.13-1" --notes "Maintenance build of GeyserJavaGlowing 0.2.13. Reduces unnecessary scoreboard-team glow updates. Original embedded resource pack unchanged. Validate visually and measure performance in Bedrock."
+          gh release create "$GITHUB_REF_NAME" GeyserJavaGlowing/build/libs/GeyserJavaGlowing-0.2.13-voidpe.2.jar --target "$GITHUB_SHA" --title "GeyserJavaGlowing VoidPE 0.2.13-2 (experimental FPS)" --notes "Experimental Bedrock FPS build. Checks glow status before armor queries without changing geometry or features. Improvement and visual compatibility require Bedrock testing."
