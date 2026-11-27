@@ -18,7 +18,19 @@ jobs:
           java-version: '21'
       - name: Compile and run regression tests
         working-directory: GeyserJavaGlowing
-        run: bash gradlew --no-daemon clean test jar
+        run: |
+          set +e
+          bash gradlew --no-daemon clean test jar > gradle.log 2>&1
+          code=$?
+          if [ "$code" -ne 0 ]; then
+            grep -E 'FAILURE|What went wrong|Execution failed|error:|Could not|Caused by|Exception|FAILED' gradle.log | head -100 | sed 's/%/%25/g; s/\r/%0D/g; s/\n/%0A/g; s/^/::error::/'
+            tail -100 gradle.log | sed 's/%/%25/g; s/\r/%0D/g; s/\n/%0A/g; s/^/::error::/'
+            for f in build/test-results/test/TEST-*.xml; do
+              [ -f "$f" ] && grep -E -A8 '<failure|<error' "$f" | head -80 | sed 's/%/%25/g; s/\r/%0D/g; s/\n/%0A/g; s/^/::error::/'
+            done
+            exit "$code"
+          fi
+          tail -20 gradle.log
       - name: Verify unchanged original pack inside JAR
         working-directory: GeyserJavaGlowing
         run: |
