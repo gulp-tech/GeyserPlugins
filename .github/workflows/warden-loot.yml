@@ -1,0 +1,45 @@
+name: VoidWardenCity loot and chest tests
+on:
+  push:
+    branches: ['arena/41da8305-geyserplugins']
+    paths: ['VoidWardenCity/**', '.github/workflows/warden-loot.yml']
+    tags: ['wardencity-v*']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+      - name: Test bounds and chest safety policy
+        working-directory: VoidWardenCity
+        run: |
+          mkdir -p /tmp/warden-tests
+          javac -d /tmp/warden-tests src/main/java/ru/voidpe/wardencity/{CityBounds,ChestPolicy}.java src/test/java/ru/voidpe/wardencity/{CityBoundsTest,ChestPolicyTest}.java
+          java -ea -cp /tmp/warden-tests ru.voidpe.wardencity.CityBoundsTest
+          java -ea -cp /tmp/warden-tests ru.voidpe.wardencity.ChestPolicyTest
+      - name: Compile plugin
+        working-directory: VoidWardenCity
+        run: |
+          set +e
+          mvn -B -DskipTests clean package > build.log 2>&1
+          code=$?
+          if [ "$code" -ne 0 ]; then cat build.log; exit "$code"; fi
+          tail -25 build.log
+      - uses: actions/upload-artifact@v4
+        with:
+          name: VoidWardenCity-1.5.0
+          path: VoidWardenCity/target/VoidWardenCity-1.5.0.jar
+          if-no-files-found: error
+      - name: Publish tagged release
+        if: startsWith(github.ref, 'refs/tags/wardencity-v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" VoidWardenCity/target/VoidWardenCity-1.5.0.jar --target "$GITHUB_SHA" --title "VoidWardenCity 1.5.0" --notes "Uses server Ancient City loot tables and retains extra rewards. Only marked event chests and unopened natural city chests are refilled; old unmarked event chests require /wcity chestadd. Requires live Bedrock/Purpur testing."

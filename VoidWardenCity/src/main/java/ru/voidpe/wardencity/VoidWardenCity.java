@@ -36,6 +36,10 @@ import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.event.inventory.InventoryDragEvent;
+import org.bukkit.loot.LootContext;
+import org.bukkit.loot.LootTable;
+import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.EnchantmentStorageMeta;
@@ -74,6 +78,9 @@ import java.util.UUID;
 public final class VoidWardenCity extends JavaPlugin implements Listener, CommandExecutor, TabCompleter {
 
     private final Random random = new Random();
+    private NamespacedKey chestMarker;
+    private static final String CITY_TABLE = "chests/ancient_city";
+    private static final String ICE_TABLE = "chests/ancient_city_ice_box";
     private WorldGuardCityRegion worldGuardRegion;
     private String regionStatus = "регион ещё не проверен";
     /** Время последнего наполнения сундука: "world;x;y;z" -> millis. */
@@ -86,6 +93,8 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
     private final Map<UUID, org.bukkit.scheduler.BukkitTask> tpWarmups = new HashMap<>();
     /** Голограммы над сундуками: ключ сундука -> UUID стенда. */
     private final Map<String, UUID> holograms = new HashMap<>();
+
+    private record ChanceEntry(LootEntry entry, ItemStack customItem) { }
 
     private record LootEntry(Material material, String command, int chance, int min, int max,
                              String name, int customModelData, String itemModel,
@@ -153,6 +162,7 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
     @Override
     public void onEnable() {
         saveDefaultConfig();
+        chestMarker = new NamespacedKey(this, "event_chest_table");
         loadPoints();
         loadChestData();
         loadCustomLoot();
@@ -163,6 +173,8 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
             getCommand("wcity").setExecutor(this);
             getCommand("wcity").setTabCompleter(this);
         }
+        // Identify unopened natural city chests before players can open them.
+        scanChests(false);
         long chestPeriod = Math.max(20L, getConfig().getLong("chests.scan-seconds", 60L) * 20L);
         Bukkit.getScheduler().runTaskTimer(this, () -> scanChests(false), chestPeriod, chestPeriod);
         long wardenPeriod = Math.max(20L, getConfig().getLong("warden.check-seconds", 30L) * 20L);
@@ -367,150 +379,203 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
 
     // ------------------------------------------------------------- сундуки
 
+    /** A marked single chest is the only inventory this plugin may refill. */
+    private boolean singleChest(Chest chest) {
+        return chest.getBlockData() instanceof org.bukkit.block.data.type.Chest data
+                && data.getType() == org.bukkit.block.data.type.Chest.Type.SINGLE;
+    }
+
+    private String markedTable(Chest chest) {
+        String table = chest.getPersistentDataContainer().get(chestMarker, PersistentDataType.STRING);
+        return CITY_TABLE.equals(table) || ICE_TABLE.equals(table) ? table : null;
+    }
+
+    private String naturalTable(Chest chest) {
+        LootTable table = chest.getLootTable();
+        if (table == null || !table.getKey().getNamespace().equals("minecraft")) return null;
+        String path = table.getKey().getKey();
+        return CITY_TABLE.equals(path) || ICE_TABLE.equals(path) ? path : null;
+    }
+
+    /** Mark before opening inventory. Never trust old coordinate-only records. */
+    private boolean markChest(Chest chest, String table) {
+        if (!singleChest(chest) || !inCity(chest.getLocation())) return false;
+        chest.getPersistentDataContainer().set(chestMarker, PersistentDataType.STRING, table);
+        chest.setLootTable(null); // prevent an extra native fill on first inventory access
+        if (!chest.update(true, false)) return false;
+        playerChests.remove(key(chest.getLocation()));
+        return true;
+    }
+
+    private boolean isManaged(Chest chest) {
+        return ChestPolicy.canUse(singleChest(chest), inCity(chest.getLocation()),
+                playerChests.contains(key(chest.getLocation())), markedTable(chest) != null);
+    }
+
+    private boolean discoverNatural(Chest chest) {
+        String table = naturalTable(chest);
+        if (!ChestPolicy.canDiscover(singleChest(chest), inCity(chest.getLocation()),
+                playerChests.contains(key(chest.getLocation())), table != null)) return false;
+        return markChest(chest, table);
+    }
+
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onChestOpen(InventoryOpenEvent event) {
-        if (!(event.getPlayer() instanceof Player player)) {
-            return;
-        }
-        Location loc = holderLocation(event.getInventory());
-        if (loc == null || !inCity(loc)) {
-            return;
-        }
-        String key = key(loc);
-        if (playerChests.contains(key)) {
-            return;
-        }
+        if (!(event.getPlayer() instanceof Player player)
+                || !(event.getInventory().getHolder() instanceof Chest chest)) return;
+        if (!isManaged(chest)) return; // Includes all double chests.
+        String key = key(chest.getLocation());
         long now = System.currentTimeMillis();
-        long cooldown = currentRefillMillis();
         Long last = chestRefills.get(key);
-        if (last == null || now - last >= cooldown) {
-            refill(event.getInventory(), player);
+        if (last == null || now - last >= currentRefillMillis()) {
+            if (!refill(event.getInventory(), player, chest)) return;
             chestRefills.put(key, now);
             saveChestData();
-            ensureHologram(loc);
+        }
+        ensureHologram(chest.getLocation());
+    }
+
+    /** Newly loaded unopened natural chests are marked before players can open them. */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onChunkLoad(org.bukkit.event.world.ChunkLoadEvent event) {
+        discoverChunk(event.getChunk());
+    }
+
+    private void discoverChunk(org.bukkit.Chunk chunk) {
+        Location center = cityCenter();
+        if (center == null || center.getWorld() != chunk.getWorld()) return;
+        double radius = getConfig().getDouble("city.radius", 120);
+        if (Math.hypot(chunk.getX() * 16 + 8 - center.getX(), chunk.getZ() * 16 + 8 - center.getZ()) > radius + 24) return;
+        for (org.bukkit.block.BlockState state : chunk.getTileEntities()) {
+            if (state instanceof Chest chest) discoverNatural(chest);
         }
     }
 
-    private Location holderLocation(Inventory inv) {
-        Object holder = inv.getHolder();
-        if (holder instanceof Chest chest) {
-            return chest.getLocation();
-        }
-        if (holder instanceof org.bukkit.block.DoubleChest dc) {
-            return dc.getLocation();
-        }
-        return null;
-    }
+    private void scanChests() { scanChests(false); }
 
-    /** Периодически находит сундуки в загруженных чанках города и обновляет протухший лут. */
-    private void scanChests() {
-        scanChests(false);
-    }
-
-    /** @return сколько сундуков наполнено. force — обновить все, игнорируя кулдаун. */
     private int scanChests(boolean force) {
         Location center = cityCenter();
-        if (center == null || center.getWorld() == null) {
-            return 0;
-        }
+        if (center == null || center.getWorld() == null) return 0;
         long now = System.currentTimeMillis();
-        long cooldown = currentRefillMillis();
-        double radius = getConfig().getDouble("city.radius", 120);
         boolean changed = false;
         int refilled = 0;
         for (org.bukkit.Chunk chunk : center.getWorld().getLoadedChunks()) {
-            double cx = chunk.getX() * 16 + 8;
-            double cz = chunk.getZ() * 16 + 8;
-            if (Math.hypot(cx - center.getX(), cz - center.getZ()) > radius + 24) {
-                continue;
-            }
+            double radius = getConfig().getDouble("city.radius", 120);
+            if (Math.hypot(chunk.getX() * 16 + 8 - center.getX(), chunk.getZ() * 16 + 8 - center.getZ()) > radius + 24) continue;
             for (org.bukkit.block.BlockState state : chunk.getTileEntities()) {
-                if (!(state instanceof Chest chest) || !inCity(chest.getLocation())) {
-                    continue;
-                }
-                String key = key(chest.getLocation());
-                if (playerChests.contains(key)) {
-                    continue;
-                }
+                if (!(state instanceof Chest chest) || !inCity(chest.getLocation())) continue;
+                if (!isManaged(chest) && !discoverNatural(chest)) continue;
+                // Refresh the state after setting persistent data.
+                if (!(chest.getBlock().getState() instanceof Chest live) || !isManaged(live)) continue;
+                String key = key(live.getLocation());
                 Long last = chestRefills.get(key);
-                if (force || last == null || now - last >= cooldown) {
-                    refill(chest.getBlockInventory(), null);
-                    chestRefills.put(key, now);
-                    changed = true;
-                    refilled++;
+                if (force || last == null || now - last >= currentRefillMillis()) {
+                    if (refill(live.getBlockInventory(), null, live)) {
+                        chestRefills.put(key, now);
+                        changed = true;
+                        refilled++;
+                    }
                 }
-                ensureHologram(chest.getLocation());
+                ensureHologram(live.getLocation());
             }
         }
-        if (changed) {
-            saveChestData();
-        }
+        if (changed) saveChestData();
         return refilled;
     }
 
-    private void refill(Inventory inv, Player opener) {
-        inv.clear();
-        List<LootEntry> loot = parseLoot();
-        if (loot.isEmpty()) {
-            return;
+    private boolean refill(Inventory inv, Player opener, Chest chest) {
+        String tableKey = markedTable(chest);
+        LootTable table = tableKey == null ? null : Bukkit.getLootTable(NamespacedKey.minecraft(tableKey));
+        if (table == null) {
+            getLogger().warning("Таблица лута " + tableKey + " недоступна: сундук не очищен.");
+            return false;
         }
+        List<ItemStack> vanilla;
+        try {
+            LootContext context = new LootContext.Builder(chest.getLocation()).build();
+            vanilla = new ArrayList<>(table.populateLoot(random, context));
+        } catch (RuntimeException ex) {
+            getLogger().warning("Не удалось создать ванильный лут: " + ex.getMessage() + "; сундук не очищен.");
+            return false;
+        }
+        List<ItemStack> selected = filterVanilla(vanilla);
+        addExtraLoot(selected, opener, inv.getSize());
+        inv.clear();
+        for (ItemStack item : selected) {
+            int slot = freeSlot(inv);
+            if (slot < 0) break;
+            inv.setItem(slot, item);
+        }
+        return true;
+    }
+
+    private List<ItemStack> filterVanilla(java.util.Collection<ItemStack> source) {
+        List<ItemStack> selected = new ArrayList<>();
+        for (ItemStack stack : source) {
+            if (stack == null || stack.getType().isAir()) continue;
+            if (random.nextInt(100) < overrideChance(vanillaSig(stack), 100)) selected.add(stack);
+        }
+        return selected;
+    }
+
+    private void addExtraLoot(List<ItemStack> selected, Player opener, int capacity) {
+        // Reserve remaining space for the original config and the saved GUI items.
+        List<LootEntry> loot = parseLoot();
         int rollsMin = Math.max(0, getConfig().getInt("chests.rolls-min", 2));
         int rollsMax = Math.max(rollsMin, getConfig().getInt("chests.rolls-max", 4));
         int rolls = rollsMin + (rollsMax > rollsMin ? random.nextInt(rollsMax - rollsMin + 1) : 0);
-        // Как в ванилле: в сундуке ВСЕГДА rolls наград. Раньше каждая строка
-        // бросала шанс один раз — при неудаче сундук получал 2-4 предмета
-        // вместо 5-10, а зачарованные строки (12-30%) часто проваливались все.
-        // Теперь идём проходами по перемешанному списку, пока не наберём rolls.
         int placed = 0;
-        boolean full = false;
-        for (int pass = 0; pass < 3 && placed < rolls && !full; pass++) {
+        for (int pass = 0; pass < 3 && placed < rolls && selected.size() < capacity; pass++) {
             List<LootEntry> shuffled = new ArrayList<>(loot);
             java.util.Collections.shuffle(shuffled, random);
             for (LootEntry e : shuffled) {
-                if (placed >= rolls) {
-                    break;
-                }
-                if (random.nextInt(100) >= e.chance()) {
-                    continue;
-                }
+                if (placed >= rolls || selected.size() >= capacity) break;
+                if (random.nextInt(100) >= e.chance()) continue;
                 if (e.command() != null) {
-                    // Командный лут (сферы, талисманы, осколки) выдаётся тому, кто открыл
-                    // свежезаполненный сундук. При фоновом обновлении без игрока — пропускаем.
                     if (opener != null) {
-                        Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
-                                e.command().replace("%player%", opener.getName()));
+                        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), e.command().replace("%player%", opener.getName()));
                         placed++;
                     }
                     continue;
                 }
                 int amount = e.min() + (e.max() > e.min() ? random.nextInt(e.max() - e.min() + 1) : 0);
-                if (amount <= 0) {
-                    continue;
-                }
-                int slot = freeSlot(inv);
-                if (slot < 0) {
-                    full = true;
-                    break;
-                }
-                inv.setItem(slot, buildItem(e, amount));
+                if (amount <= 0) continue;
+                selected.add(buildItem(e, amount));
                 placed++;
             }
         }
-        // Дополнение к ванильному луту из GUI (/wcity loot): каждый сохранённый
-        // предмет с шансом кладётся в сундук в случайном количестве 1..размер стака.
-        int customChance = effectiveCustomChance();
         for (ItemStack saved : customLoot) {
-            if (random.nextInt(100) >= customChance) {
-                continue;
-            }
-            int slot = freeSlot(inv);
-            if (slot < 0) {
-                break;
-            }
+            if (selected.size() >= capacity) break;
+            if (random.nextInt(100) >= effectiveItemChance(saved)) continue;
             ItemStack clone = saved.clone();
             clone.setAmount(1 + random.nextInt(Math.max(1, saved.getAmount())));
-            inv.setItem(slot, clone);
+            selected.add(clone);
         }
+    }
+
+    /** Handle a natural table generated before the chunk scanner reached it. */
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onNaturalLoot(org.bukkit.event.world.LootGenerateEvent event) {
+        if (event.isPlugin() || !(event.getInventoryHolder() instanceof Chest chest)) return;
+        NamespacedKey lootKey = event.getLootTable().getKey();
+        String table = lootKey.getNamespace().equals("minecraft") ? lootKey.getKey() : "";
+        if ((!CITY_TABLE.equals(table) && !ICE_TABLE.equals(table))
+                || !ChestPolicy.canDiscover(singleChest(chest), inCity(chest.getLocation()),
+                        playerChests.contains(key(chest.getLocation())), true)) return;
+        List<ItemStack> selected = filterVanilla(event.getLoot());
+        Player opener = event.getEntity() instanceof Player p ? p : null;
+        addExtraLoot(selected, opener, 27);
+        event.setLoot(selected);
+        Location loc = chest.getLocation().clone();
+        Bukkit.getScheduler().runTask(this, () -> {
+            if (event.isCancelled() || !(loc.getBlock().getState() instanceof Chest current)
+                    || playerChests.contains(key(loc)) || !singleChest(current)) return;
+            if (markChest(current, table)) {
+                chestRefills.put(key(loc), System.currentTimeMillis());
+                saveChestData();
+                ensureHologram(loc);
+            }
+        });
     }
 
     private ItemStack buildItem(LootEntry e, int amount) {
@@ -654,6 +719,7 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
         if (data.isConfigurationSection("player-placed")) {
             playerChests.addAll(data.getConfigurationSection("player-placed").getKeys(false));
         }
+        playerChests.addAll(data.getStringList("player-placed-list"));
     }
 
     private void saveChestData() {
@@ -661,9 +727,7 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
         for (Map.Entry<String, Long> e : chestRefills.entrySet()) {
             data.set("chests." + e.getKey(), e.getValue());
         }
-        for (String k : playerChests) {
-            data.set("player-placed." + k, true);
-        }
+        data.set("player-placed-list", new ArrayList<>(playerChests));
         try {
             data.save(chestFile());
         } catch (IOException e) {
@@ -728,6 +792,10 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
                 removeHologram(key);
                 chestRefills.remove(key);
                 saveChestData();
+                continue;
+            }
+            if (!(loc.getBlock().getState() instanceof Chest chest) || !isManaged(chest)) {
+                removeHologram(key);
                 continue;
             }
             ensureHologram(loc);
@@ -896,8 +964,77 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
                 : getConfig().getInt("custom-loot.chance-percent", 30);
     }
 
+    private static String itemSig(ItemStack item) {
+        try {
+            byte[] hash = java.security.MessageDigest.getInstance("SHA-256").digest(item.serializeAsBytes());
+            return "customitem:" + java.util.HexFormat.of().formatHex(hash);
+        } catch (java.security.NoSuchAlgorithmException ex) {
+            throw new IllegalStateException(ex);
+        }
+    }
+
+    private int effectiveItemChance(ItemStack item) {
+        return overrideChance(itemSig(item), clampChance(effectiveCustomChance()));
+    }
+
+    private String vanillaSig(ItemStack stack) {
+        if (stack.getType() == Material.ENCHANTED_BOOK
+                && stack.getItemMeta() instanceof EnchantmentStorageMeta meta
+                && meta.hasStoredEnchant(Enchantment.SWIFT_SNEAK)) return "vanilla:SWIFT_SNEAK";
+        return "vanilla:" + stack.getType().name();
+    }
+
+    private List<ChanceEntry> chanceEntries() {
+        List<ChanceEntry> entries = new ArrayList<>();
+        // Material list for the two vanilla Ancient City loot tables. The actual
+        // loot is generated by the server, not by this display list.
+        String[] names = {"ENCHANTED_GOLDEN_APPLE", "MUSIC_DISC_OTHERSIDE", "COMPASS",
+                "SCULK_CATALYST", "DIAMOND_HOE", "LEAD", "DIAMOND_HORSE_ARMOR",
+                "LEATHER", "MUSIC_DISC_13", "MUSIC_DISC_CAT", "DIAMOND_LEGGINGS",
+                "SCULK", "SCULK_SENSOR", "CANDLE", "AMETHYST_SHARD", "EXPERIENCE_BOTTLE",
+                "GLOW_BERRIES", "IRON_LEGGINGS", "CHISELED_SOULSHALE", "ECHO_SHARD",
+                "DISC_FRAGMENT_5", "POTION", "ENCHANTED_BOOK", "BOOK", "BONE", "SOUL_TORCH",
+                "COAL", "WARD_ARMOR_TRIM_SMITHING_TEMPLATE", "SILENCE_ARMOR_TRIM_SMITHING_TEMPLATE",
+                "SUSPICIOUS_STEW", "GOLDEN_CARROT", "BAKED_POTATO", "PACKED_ICE", "SNOWBALL"};
+        for (String name : names) {
+            Material mat = Material.matchMaterial(name);
+            if (mat == null) continue; // newer vanilla items may not exist in older servers
+            String sig = "vanilla:" + name;
+            LootEntry row = new LootEntry(mat, null, overrideChance(sig, 100), 1, 1,
+                    null, 0, null, Map.of(), null, sig);
+            entries.add(new ChanceEntry(row, null));
+        }
+        LootEntry swift = new LootEntry(Material.ENCHANTED_BOOK, null, overrideChance("vanilla:SWIFT_SNEAK", 100),
+                1, 1, "&eКнига Swift Sneak", 0, null, Map.of(), null, "vanilla:SWIFT_SNEAK");
+        entries.add(new ChanceEntry(swift, null));
+        for (LootEntry row : parseLoot()) entries.add(new ChanceEntry(row, null));
+        for (ItemStack item : customLoot) {
+            String sig = itemSig(item);
+            LootEntry row = new LootEntry(item.getType(), null, effectiveItemChance(item), 1,
+                    item.getAmount(), null, 0, null, Map.of(), null, sig);
+            entries.add(new ChanceEntry(row, item));
+        }
+        return entries;
+    }
+
+    private ItemStack chanceEntryIcon(ChanceEntry entry) {
+        if (entry.customItem() == null) return chanceIcon(entry.entry());
+        ItemStack icon = entry.customItem().clone();
+        icon.setAmount(1);
+        ItemMeta meta = icon.getItemMeta();
+        if (meta != null) {
+            List<Component> lore = meta.hasLore() ? new ArrayList<>(meta.lore()) : new ArrayList<>();
+            lore.add(comp("&7Дополнительный предмет"));
+            lore.add(comp("&7Шанс: &f" + entry.entry().chance() + "%"));
+            lore.add(comp("&eНажми, чтобы изменить"));
+            meta.lore(lore);
+            icon.setItemMeta(meta);
+        }
+        return icon;
+    }
+
     private void openChancesGui(Player player, int page) {
-        List<LootEntry> entries = parseLoot();
+        List<ChanceEntry> entries = chanceEntries();
         int perPage = 45;
         int pages = Math.max(1, (entries.size() + perPage - 1) / perPage);
         int current = Math.max(0, Math.min(page, pages - 1));
@@ -906,7 +1043,7 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
         holder.inventory = gui;
         int from = current * perPage;
         for (int i = 0; i < perPage && from + i < entries.size(); i++) {
-            gui.setItem(i, chanceIcon(entries.get(from + i)));
+            gui.setItem(i, chanceEntryIcon(entries.get(from + i)));
         }
         ItemStack filler = pane(Material.GRAY_STAINED_GLASS_PANE, " ");
         for (int slot = 45; slot < 54; slot++) {
@@ -948,7 +1085,13 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
             for (String line : lore) {
                 lines.add(comp(line));
             }
-            lines.add(comp("&7Шанс выпадения: &f" + e.chance() + "%"));
+            if (e.sig().startsWith("vanilla:")) {
+                lines.add(comp("&7Если выпало по ванильной таблице:"));
+                lines.add(comp("&7шанс оставить: &f" + e.chance() + "%"));
+                lines.add(comp("&8Это не общий шанс в сундуке"));
+            } else {
+                lines.add(comp("&7Шанс на одну попытку: &f" + e.chance() + "%"));
+            }
             if (e.command() == null) {
                 lines.add(comp(e.min() == e.max()
                         ? "&7Количество: &f" + e.min()
@@ -994,10 +1137,8 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
             ItemStack icon = customChanceIcon();
             return icon;
         }
-        for (LootEntry e : parseLoot()) {
-            if (e.sig().equals(sig)) {
-                return chanceIcon(e);
-            }
+        for (ChanceEntry entry : chanceEntries()) {
+            if (entry.entry().sig().equals(sig)) return chanceEntryIcon(entry);
         }
         ItemStack icon = new ItemStack(Material.PAPER);
         ItemMeta meta = icon.getItemMeta();
@@ -1029,10 +1170,8 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
     }
 
     private int currentEntryChance(String sig) {
-        for (LootEntry e : parseLoot()) {
-            if (e.sig().equals(sig)) {
-                return e.chance();
-            }
+        for (ChanceEntry entry : chanceEntries()) {
+            if (entry.entry().sig().equals(sig)) return entry.entry().chance();
         }
         return 0;
     }
@@ -1054,6 +1193,7 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
         }
         if (event.getInventory().getHolder() instanceof ChancesGuiHolder holder) {
             event.setCancelled(true);
+            if (!player.hasPermission("voidwardencity.admin")) return;
             if (event.getClickedInventory() != event.getInventory()) {
                 return;
             }
@@ -1066,16 +1206,17 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
             } else if (slot == 53) {
                 openChancesGui(player, holder.page + 1);
             } else if (slot < 45) {
-                List<LootEntry> entries = parseLoot();
+                List<ChanceEntry> entries = chanceEntries();
                 int index = holder.page * 45 + slot;
-                if (index < entries.size()) {
-                    openChanceEditor(player, entries.get(index).sig(), holder.page, false);
+                if (index >= 0 && index < entries.size()) {
+                    openChanceEditor(player, entries.get(index).entry().sig(), holder.page, false);
                 }
             }
             return;
         }
         if (event.getInventory().getHolder() instanceof ChanceEditHolder holder) {
             event.setCancelled(true);
+            if (!player.hasPermission("voidwardencity.admin")) return;
             if (event.getClickedInventory() != event.getInventory()) {
                 return;
             }
@@ -1103,6 +1244,12 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
                 player.sendActionBar(comp(msg("chance-set").replace("{chance}", String.valueOf(value))));
             }
         }
+    }
+
+    @EventHandler(priority = EventPriority.HIGH)
+    public void onChancesDrag(InventoryDragEvent event) {
+        InventoryHolder holder = event.getView().getTopInventory().getHolder();
+        if (holder instanceof ChancesGuiHolder || holder instanceof ChanceEditHolder) event.setCancelled(true);
     }
 
     // ------------------------------------------------------------- вардены
@@ -1244,9 +1391,16 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
             send(event.getPlayer(), msg("protected"));
             return;
         }
-        if (playerChests.remove(key(event.getBlock().getLocation()))) {
-            saveChestData();
-        }
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void recordChestBreak(BlockBreakEvent event) {
+        if (event.getBlock().getType() != Material.CHEST) return;
+        String k = key(event.getBlock().getLocation());
+        playerChests.remove(k);
+        chestRefills.remove(k);
+        removeHologram(k);
+        saveChestData();
     }
 
     /** Backup for normal Bukkit explosions crossing the region boundary. HyperTNT
@@ -1312,12 +1466,23 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
             send(event.getPlayer(), msg("protected"));
             return;
         }
-        // сундук, поставленный игроком, не должен давать лут
-        if (inCity(event.getBlock().getLocation())
-                && event.getBlock().getState() instanceof org.bukkit.block.Chest) {
-            playerChests.add(key(event.getBlock().getLocation()));
-            saveChestData();
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void recordPlayerChest(BlockPlaceEvent event) {
+        if (!(event.getBlockPlaced().getState() instanceof Chest chest)) return;
+        // A chest item carrying copied block-entity data must not copy an event marker.
+        if (chest.getPersistentDataContainer().has(chestMarker)) {
+            chest.getPersistentDataContainer().remove(chestMarker);
+            chest.setLootTable(null);
+            chest.update(true, false);
         }
+        if (!inCity(chest.getLocation())) return;
+        String k = key(chest.getLocation());
+        playerChests.add(k);
+        chestRefills.remove(k);
+        removeHologram(k);
+        saveChestData();
     }
 
     // ------------------------------------------------------------- команда
@@ -1411,13 +1576,40 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
                     dir.setFacing(player.getFacing().getOppositeFace());
                     target.setBlockData(dir);
                 }
-                if (target.getState() instanceof Chest chest) {
-                    refill(chest.getBlockInventory(), null);
+                if (!(target.getState() instanceof Chest chest) || !markChest(chest, CITY_TABLE)) {
+                    target.setType(Material.AIR);
+                    send(sender, "&cРядом другой сундук: сундук ивента должен быть одиночным.");
+                    return true;
+                }
+                Chest marked = (Chest) target.getState();
+                if (refill(marked.getBlockInventory(), null, marked)) {
                     chestRefills.put(key(target.getLocation()), System.currentTimeMillis());
                     saveChestData();
                     ensureHologram(target.getLocation());
                 }
                 send(sender, msg("chest-placed"));
+                return true;
+            }
+            case "chestadd" -> {
+                if (!admin(sender) || !(sender instanceof Player player)) {
+                    send(sender, msg("admin-only"));
+                    return true;
+                }
+                Block target = player.getTargetBlockExact(6);
+                if (target == null || !(target.getState() instanceof Chest chest)
+                        || !inCity(target.getLocation()) || !singleChest(chest)) {
+                    send(sender, "&cПосмотри на одиночный сундук внутри города с расстояния не более 6 блоков.");
+                    return true;
+                }
+                if (!markChest(chest, CITY_TABLE)) {
+                    send(sender, "&cНе удалось зарегистрировать сундук.");
+                    return true;
+                }
+                // Do not clear this chest during registration: next refill respects existing timer.
+                chestRefills.putIfAbsent(key(target.getLocation()), System.currentTimeMillis());
+                saveChestData();
+                ensureHologram(target.getLocation());
+                send(sender, "&aСундук зарегистрирован для ивента; его содержимое не изменено.");
                 return true;
             }
             case "loot" -> {
@@ -1579,7 +1771,7 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
             List<String> base = admin(sender)
-                    ? List.of("tp", "setcenter", "setspawn", "chest", "loot", "chances", "refill", "info", "region", "reload")
+                    ? List.of("tp", "setcenter", "setspawn", "chest", "chestadd", "loot", "chances", "refill", "info", "region", "reload")
                     : List.of("tp", "info");
             List<String> out = new ArrayList<>();
             for (String b : base) {
