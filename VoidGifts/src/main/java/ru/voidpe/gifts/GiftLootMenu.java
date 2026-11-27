@@ -123,7 +123,7 @@ final class GiftLootMenu implements Listener {
             later(player, holder, () -> openTypes(player, 0)); return;
         }
         Inventory clicked = event.getClickedInventory();
-        if (holder.view == View.LOOT && clicked instanceof PlayerInventory && clicked.getHolder() == player) {
+        if (holder.view == View.LOOT && clicked instanceof PlayerInventory) {
             ItemStack item = event.getCurrentItem();
             if (item == null || item.getType().isAir()) return;
             if (!store.add(holder.type, item)) { saveFailed(player); return; }

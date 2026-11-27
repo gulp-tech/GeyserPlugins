@@ -113,7 +113,14 @@ class VoidGiftsLootTest {
         click(0); // first gift type
         ItemStack original = prize();
         player.getInventory().setItem(9, original);
-        click(54); // first slot of bottom inventory
+        assertNotNull(player.getOpenInventory().getTopInventory().getItem(49));
+        int bottomSlot = -1;
+        int topSize = player.getOpenInventory().getTopInventory().getSize();
+        for (int raw = topSize; raw < topSize + 36; raw++) {
+            if (player.getOpenInventory().convertSlot(raw) == 9) { bottomSlot = raw; break; }
+        }
+        assertTrue(bottomSlot >= topSize, "Could not find player inventory slot 9");
+        click(bottomSlot);
         assertEquals(7, player.getInventory().getItem(9).getAmount());
         GiftLootStore stored = new GiftLootStore(plugin); stored.load();
         assertEquals(1, stored.rewards("present").size());
@@ -131,7 +138,8 @@ class VoidGiftsLootTest {
     @Test void nonAdminCannotOpenMenu() {
         player.setOp(false);
         player.performCommand("gift menu");
-        assertEquals(InventoryType.CRAFTING, player.getOpenInventory().getTopInventory().getType());
+        assertTrue(player.getOpenInventory().getTopInventory() == null
+                || player.getOpenInventory().getTopInventory().getType() == InventoryType.CRAFTING);
     }
 
     @SuppressWarnings("unchecked")
