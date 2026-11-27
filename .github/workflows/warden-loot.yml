@@ -28,7 +28,7 @@ jobs:
         working-directory: VoidWardenCity
         run: |
           set +e
-          mvn -B -DskipTests clean package > build.log 2>&1
+          mvn -B clean test package > build.log 2>&1
           code=$?
           if [ "$code" -ne 0 ]; then cat build.log; exit "$code"; fi
           tail -25 build.log

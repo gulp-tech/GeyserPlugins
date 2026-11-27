@@ -75,7 +75,7 @@ import java.util.UUID;
  * Найди древний город (/locate structure ancient_city), встань в его центре
  * и выполни /wcity setcenter и /wcity setspawn.</p>
  */
-public final class VoidWardenCity extends JavaPlugin implements Listener, CommandExecutor, TabCompleter {
+public class VoidWardenCity extends JavaPlugin implements Listener, CommandExecutor, TabCompleter {
 
     private final Random random = new Random();
     private NamespacedKey chestMarker;
@@ -701,6 +701,23 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
         return loc.getWorld().getName() + ";" + loc.getBlockX() + ";" + loc.getBlockY() + ";" + loc.getBlockZ();
     }
 
+    private void atomicSave(YamlConfiguration data, File target) throws IOException {
+        java.nio.file.Path dest = target.toPath().toAbsolutePath();
+        java.nio.file.Files.createDirectories(dest.getParent());
+        java.nio.file.Path temp = java.nio.file.Files.createTempFile(dest.getParent(), ".warden-", ".tmp");
+        try {
+            data.save(temp.toFile());
+            try {
+                java.nio.file.Files.move(temp, dest, java.nio.file.StandardCopyOption.ATOMIC_MOVE,
+                        java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            } catch (java.nio.file.AtomicMoveNotSupportedException ex) {
+                java.nio.file.Files.move(temp, dest, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            }
+        } finally {
+            java.nio.file.Files.deleteIfExists(temp);
+        }
+    }
+
     private File chestFile() {
         return new File(getDataFolder(), "chests.yml");
     }
@@ -729,7 +746,7 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
         }
         data.set("player-placed-list", new ArrayList<>(playerChests));
         try {
-            data.save(chestFile());
+            atomicSave(data, chestFile());
         } catch (IOException e) {
             getLogger().warning("Не удалось сохранить chests.yml: " + e.getMessage());
         }
@@ -862,13 +879,15 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
         getLogger().info("Дополнительного лута из GUI загружено предметов: " + customLoot.size());
     }
 
-    private void saveCustomLoot() {
+    private boolean saveCustomLoot() {
         YamlConfiguration data = new YamlConfiguration();
         data.set("items", customLoot);
         try {
-            data.save(customLootFile());
+            atomicSave(data, customLootFile());
+            return true;
         } catch (IOException e) {
             getLogger().warning("Не удалось сохранить loot-items.yml: " + e.getMessage());
+            return false;
         }
     }
 
@@ -898,9 +917,10 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
                 customLoot.add(item.clone());
             }
         }
-        saveCustomLoot();
+        boolean saved = saveCustomLoot();
         if (event.getPlayer() instanceof Player player) {
-            send(player, msg("gui-saved").replace("{count}", String.valueOf(customLoot.size())));
+            if (saved) send(player, msg("gui-saved").replace("{count}", String.valueOf(customLoot.size())));
+            else send(player, "&cНе удалось сохранить loot-items.yml! Исправь ошибку диска и снова открой/закрой меню до перезапуска.");
         }
     }
 
@@ -929,7 +949,7 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
         }
     }
 
-    private void saveChanceOverrides() {
+    private boolean saveChanceOverrides() {
         YamlConfiguration data = new YamlConfiguration();
         List<Map<String, Object>> list = new ArrayList<>();
         for (Map.Entry<String, Integer> e : chanceOverrides.entrySet()) {
@@ -943,9 +963,11 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
             data.set("custom-chance-percent", customChanceOverride);
         }
         try {
-            data.save(chanceFile());
+            atomicSave(data, chanceFile());
+            return true;
         } catch (IOException e) {
             getLogger().warning("Не удалось сохранить loot-chances.yml: " + e.getMessage());
+            return false;
         }
     }
 
@@ -1176,14 +1198,16 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
         return 0;
     }
 
-    private void setChance(String sig, boolean custom, int chance) {
+    private boolean setChance(String sig, boolean custom, int chance) {
         int value = clampChance(chance);
-        if (custom) {
-            customChanceOverride = value;
-        } else {
-            chanceOverrides.put(sig, value);
-        }
-        saveChanceOverrides();
+        Integer previous = custom ? customChanceOverride : chanceOverrides.get(sig);
+        if (custom) customChanceOverride = value;
+        else chanceOverrides.put(sig, value);
+        if (saveChanceOverrides()) return true;
+        if (custom) customChanceOverride = previous;
+        else if (previous == null) chanceOverrides.remove(sig);
+        else chanceOverrides.put(sig, previous);
+        return false;
     }
 
     @EventHandler(priority = EventPriority.HIGH)
@@ -1239,9 +1263,10 @@ public final class VoidWardenCity extends JavaPlugin implements Listener, Comman
                 int current = holder.custom
                         ? effectiveCustomChance() : currentEntryChance(holder.sig);
                 int value = clampChance(current + delta);
-                setChance(holder.sig, holder.custom, value);
+                boolean saved = setChance(holder.sig, holder.custom, value);
                 openChanceEditor(player, holder.sig, holder.page, holder.custom);
-                player.sendActionBar(comp(msg("chance-set").replace("{chance}", String.valueOf(value))));
+                if (saved) player.sendActionBar(comp(msg("chance-set").replace("{chance}", String.valueOf(value))));
+                else send(player, "&cШанс не сохранён. Проверь файл loot-chances.yml и права на запись.");
             }
         }
     }
