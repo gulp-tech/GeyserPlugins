@@ -36,10 +36,10 @@ jobs:
         run: |
           python3 - <<'PY'
           import hashlib, pathlib, zipfile
-          jar = pathlib.Path('build/libs/GeyserJavaGlowing-0.2.13-voidpe.2.jar')
+          jar = pathlib.Path('build/libs/GeyserJavaGlowing-0.2.13-voidpe.3.jar')
           with zipfile.ZipFile(jar) as z:
               pack = z.read('GeyserJavaGlowing.mcpack')
-              assert hashlib.sha256(pack).hexdigest() == 'eea9f0ff1bdef2f8098a224b567b11d4a7fd43f775503975478a9d31e2bd5ff7'
+              assert hashlib.sha256(pack).hexdigest() == 'c914ad331a53a1647a1590c7747861837c340691296be282ace6b5d1d8e36774'
               pathlib.Path('build/verified.mcpack').write_bytes(pack)
               assert z.testzip() is None
           PY
@@ -49,11 +49,11 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: GeyserJavaGlowing-voidpe
-          path: GeyserJavaGlowing/build/libs/GeyserJavaGlowing-0.2.13-voidpe.2.jar
+          path: GeyserJavaGlowing/build/libs/GeyserJavaGlowing-0.2.13-voidpe.3.jar
           if-no-files-found: error
       - name: Publish tagged release
         if: startsWith(github.ref, 'refs/tags/glowing-v')
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" GeyserJavaGlowing/build/libs/GeyserJavaGlowing-0.2.13-voidpe.2.jar --target "$GITHUB_SHA" --title "GeyserJavaGlowing VoidPE 0.2.13-2 (experimental FPS)" --notes "Experimental Bedrock FPS build. Checks glow status before armor queries without changing geometry or features. Improvement and visual compatibility require Bedrock testing."
+          gh release create "$GITHUB_REF_NAME" GeyserJavaGlowing/build/libs/GeyserJavaGlowing-0.2.13-voidpe.3.jar --target "$GITHUB_SHA" --title "GeyserJavaGlowing VoidPE 0.2.13-3 (experimental FPS)" --notes "Experimental Bedrock FPS build: folds unanimated outline rig leaves into their parents and retains original cubes, UVs, armor, textures, and the earlier condition optimization. FPS and visual compatibility require live Bedrock testing."

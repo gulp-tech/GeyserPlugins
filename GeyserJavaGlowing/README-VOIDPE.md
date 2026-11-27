@@ -7,3 +7,7 @@ This variant avoids revisiting glowing players on scoreboard-team packets that d
 ## Experimental voidpe.2 FPS build
 
 The 66 glow render-controller conditions check the glow mode before other conditions. Logical conditions and all geometry, textures, animations and materials remain unchanged. The pack manifest version is updated. This may reduce Molang condition evaluation for non-glowing players if the Bedrock runtime short-circuits these expressions, but FPS gains and visuals have not been verified in game. Build or validate using `python3 tools/pack_tool.py build|test src/main/resources/GeyserJavaGlowing.mcpack`.
+
+## Experimental voidpe.3: reduce outline rig cost
+
+The same condition ordering as voidpe.2 is retained. This pack folds 435 leaf bones per outline geometry into their unchanged parents (499 -> 64 for each player model). The validator independently compares every original cube and its remaining ancestor transform chain: 6,278 slim / 6,534 wide cubes, UVs and inflate values are preserved. Armor, cape, elytra, textures, materials, animations and render controllers are unchanged. The manifest version is incremented so Bedrock receives the updated pack. There is no proof that rig size is the user's FPS bottleneck; the number of cubes is unchanged and there is no guarantee that FPS will improve. Changes in draw order or external packs can still affect appearance; test in Bedrock and revert if necessary.

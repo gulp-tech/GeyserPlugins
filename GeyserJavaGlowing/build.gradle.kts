@@ -1,6 +1,6 @@
 plugins { java }
 group = "org.pexserver"
-version = "0.2.13-voidpe.2"
+version = "0.2.13-voidpe.3"
 repositories { maven("https://repo.opencollab.dev/main/"); mavenCentral() }
 dependencies {
     compileOnly("org.geysermc.geyser:api:2.11.3-SNAPSHOT")
