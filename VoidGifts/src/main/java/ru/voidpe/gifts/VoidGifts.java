@@ -49,7 +49,7 @@ import java.util.zip.ZipOutputStream;
  * по содержимому music/) и кладёт его в plugins/Geyser-Spigot/packs/.
  * Игрокам нужен перезаход после добавления новых треков.
  */
-public final class VoidGifts extends JavaPlugin implements Listener, CommandExecutor {
+public class VoidGifts extends JavaPlugin implements Listener, CommandExecutor {
 
     private static final String DEFAULT_TEXTURE =
             "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNWM4NmUzNjFlN2EzMzE5YzQyMGExNTg5MDNkZWRkY2E0YmEyYmNhMjU4NWM1YWVlYzQwYzgxOTVjNGJhOGEyMyJ9fX0=";
