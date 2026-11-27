@@ -114,12 +114,18 @@ class VoidGiftsLootTest {
         ItemStack original = prize();
         player.getInventory().setItem(9, original);
         assertNotNull(player.getOpenInventory().getTopInventory().getItem(49));
+        assertTrue(player.getOpenInventory().getTopInventory().getItem(49).getItemMeta().getDisplayName().contains("Как добавить"), "Type selection did not open loot menu");
         int bottomSlot = -1;
         int topSize = player.getOpenInventory().getTopInventory().getSize();
         for (int raw = topSize; raw < topSize + 36; raw++) {
             if (player.getOpenInventory().convertSlot(raw) == 9) { bottomSlot = raw; break; }
         }
         assertTrue(bottomSlot >= topSize, "Could not find player inventory slot 9");
+        InventoryClickEvent probe = new InventoryClickEvent(player.getOpenInventory(), InventoryType.SlotType.CONTAINER,
+                bottomSlot, ClickType.LEFT, InventoryAction.PICKUP_ALL);
+        assertNotNull(probe.getClickedInventory(), "bottom clicked inventory is null");
+        assertTrue(probe.getClickedInventory() instanceof org.bukkit.inventory.PlayerInventory, "bottom is not player inventory: " + probe.getClickedInventory());
+        assertNotNull(probe.getCurrentItem(), "bottom current item is null");
         click(bottomSlot);
         assertEquals(7, player.getInventory().getItem(9).getAmount());
         GiftLootStore stored = new GiftLootStore(plugin); stored.load();
