@@ -61,6 +61,50 @@ class WardenLootIntegrationTest {
         assertFalse((boolean) call("isManaged", new Class<?>[]{Chest.class}, chest));
     }
 
+    @SuppressWarnings("unchecked")
+    @Test void openingUnmarkedOrPlacedChestDoesNotClearContents() throws Exception {
+        var player = server.addPlayer();
+        Chest chest = mock(Chest.class);
+        var data = mock(org.bukkit.block.data.type.Chest.class);
+        var pdc = mock(PersistentDataContainer.class);
+        var inventory = mock(org.bukkit.inventory.Inventory.class);
+        var event = mock(org.bukkit.event.inventory.InventoryOpenEvent.class);
+        when(event.getPlayer()).thenReturn(player);
+        when(event.getInventory()).thenReturn(inventory);
+        when(inventory.getHolder()).thenReturn(chest);
+        when(chest.getLocation()).thenReturn(new Location(world, 0, -51, 0));
+        when(chest.getBlockData()).thenReturn(data);
+        when(data.getType()).thenReturn(Type.SINGLE);
+        when(chest.getPersistentDataContainer()).thenReturn(pdc);
+        Field old = VoidWardenCity.class.getDeclaredField("chestRefills"); old.setAccessible(true);
+        ((java.util.Map<String, Long>) old.get(plugin)).put("world;0;-51;0", 1L);
+        plugin.onChestOpen(event);
+        verify(inventory, never()).clear();
+        NamespacedKey marker = new NamespacedKey(plugin, "event_chest_table");
+        when(pdc.get(marker, PersistentDataType.STRING)).thenReturn("chests/ancient_city");
+        Field placed = VoidWardenCity.class.getDeclaredField("playerChests"); placed.setAccessible(true);
+        ((Set<String>) placed.get(plugin)).add("world;0;-51;0");
+        plugin.onChestOpen(event);
+        verify(inventory, never()).clear();
+    }
+
+    @Test void menuButtonsAdjustAndSaveVanillaChance() throws Exception {
+        var player = server.addPlayer(); player.setOp(true);
+        call("openChancesGui", new Class<?>[]{org.bukkit.entity.Player.class, int.class}, player, 0);
+        var view = player.getOpenInventory();
+        var click = new org.bukkit.event.inventory.InventoryClickEvent(view, org.bukkit.event.inventory.InventoryType.SlotType.CONTAINER,
+                0, org.bukkit.event.inventory.ClickType.LEFT, org.bukkit.event.inventory.InventoryAction.PICKUP_ALL);
+        plugin.onChancesClick(click);
+        assertTrue(click.isCancelled());
+        view = player.getOpenInventory();
+        var minus = new org.bukkit.event.inventory.InventoryClickEvent(view, org.bukkit.event.inventory.InventoryType.SlotType.CONTAINER,
+                12, org.bukkit.event.inventory.ClickType.LEFT, org.bukkit.event.inventory.InventoryAction.PICKUP_ALL);
+        plugin.onChancesClick(minus);
+        assertTrue(minus.isCancelled());
+        call("loadChanceOverrides", new Class<?>[]{});
+        assertEquals(99, call("currentEntryChance", new Class<?>[]{String.class}, "vanilla:ENCHANTED_GOLDEN_APPLE"));
+    }
+
     @Test void vanillaChanceIsStoredAndReloadedWithoutChangingConfig() throws Exception {
         int entries = plugin.getConfig().getMapList("chests.loot").size();
         assertEquals(100, call("currentEntryChance", new Class<?>[]{String.class}, "vanilla:SCULK"));
