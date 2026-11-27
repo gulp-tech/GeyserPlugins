@@ -114,6 +114,13 @@ final class GlowingPacketBridge {
         affected.removeIf(name -> before.get(name) == teamRgb(name));
         if (affected.isEmpty()) return;
         for (int id : glowing) {
+            AppliedState known = lastApplied.get(id);
+            if (known != null) {
+                // The last synchronized player is stable until the spawn hook invalidates it.
+                if (affected.contains(known.player.getUsername())) apply(id);
+                continue;
+            }
+            // Metadata can precede spawn; preserve the original late-entity handling.
             Entity entity = session.getEntityCache().getEntityByJavaId(id);
             if (entity == null && session.getPlayerEntity().getEntityId() == id) {
                 entity = session.getPlayerEntity();
