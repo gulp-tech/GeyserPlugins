@@ -100,6 +100,16 @@ class VoidGiftsLootTest {
         assertEquals(broken, Files.readString(file));
     }
 
+    @Test void failedSaveDoesNotKeepAnUnsavedRewardInMemory() throws Exception {
+        GiftLootStore store = new GiftLootStore(plugin);
+        store.load();
+        Path path = plugin.getDataFolder().toPath().resolve("loot.yml");
+        Files.createDirectory(path); // Moving a file over a directory must fail.
+        assertFalse(store.add("present", prize()));
+        assertTrue(store.rewards("present").isEmpty());
+        assertTrue(Files.isDirectory(path));
+    }
+
     private void click(int rawSlot) {
         InventoryClickEvent event = new InventoryClickEvent(player.getOpenInventory(), InventoryType.SlotType.CONTAINER,
                 rawSlot, ClickType.LEFT, InventoryAction.PICKUP_ALL);
@@ -144,6 +154,18 @@ class VoidGiftsLootTest {
         stored.load();
         assertTrue(stored.rewards("present").isEmpty());
         assertEquals(7, player.getInventory().getItem(9).getAmount());
+    }
+
+    @Test void manyRewardsHaveAccessibleNextPage() throws Exception {
+        GiftLootStore store = (GiftLootStore) field("lootStore");
+        for (int i = 0; i < 47; i++) assertTrue(store.add("present", new ItemStack(Material.EMERALD, 1)));
+        assertTrue(player.performCommand("gift menu"));
+        click(0);
+        assertNotNull(player.getOpenInventory().getTopInventory().getItem(50));
+        click(50);
+        assertNotNull(player.getOpenInventory().getTopInventory().getItem(0));
+        assertNotNull(player.getOpenInventory().getTopInventory().getItem(1));
+        assertNull(player.getOpenInventory().getTopInventory().getItem(2));
     }
 
     @Test void nonAdminCannotOpenMenu() {
