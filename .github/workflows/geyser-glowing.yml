@@ -1,0 +1,43 @@
+name: GeyserJavaGlowing maintenance build
+on:
+  push:
+    branches: ['arena/41da8305-geyserplugins']
+    paths: ['GeyserJavaGlowing/**', '.github/workflows/geyser-glowing.yml']
+    tags: ['glowing-v*']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Compile and run regression tests
+        working-directory: GeyserJavaGlowing
+        run: bash gradlew --no-daemon clean test jar
+      - name: Verify unchanged original pack inside JAR
+        working-directory: GeyserJavaGlowing
+        run: |
+          python3 - <<'PY'
+          import hashlib, pathlib, zipfile
+          jar = pathlib.Path('build/libs/GeyserJavaGlowing-0.2.13-voidpe.1.jar')
+          with zipfile.ZipFile(jar) as z:
+              pack = z.read('GeyserJavaGlowing.mcpack')
+              assert hashlib.sha256(pack).hexdigest() == 'd63e07dac405b20b6544c5c28a3ba3be2f90208339efe684ece9ebc3441f3b75'
+              assert z.testzip() is None
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GeyserJavaGlowing-voidpe
+          path: GeyserJavaGlowing/build/libs/GeyserJavaGlowing-0.2.13-voidpe.1.jar
+          if-no-files-found: error
+      - name: Publish tagged release
+        if: startsWith(github.ref, 'refs/tags/glowing-v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" GeyserJavaGlowing/build/libs/GeyserJavaGlowing-0.2.13-voidpe.1.jar --target "$GITHUB_SHA" --title "GeyserJavaGlowing VoidPE 0.2.13-1" --notes "Maintenance build of GeyserJavaGlowing 0.2.13. Reduces unnecessary scoreboard-team glow updates. Original embedded resource pack unchanged. Validate visually and measure performance in Bedrock."
