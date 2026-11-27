@@ -30,7 +30,13 @@ jobs:
           set +e
           mvn -B clean test package > build.log 2>&1
           code=$?
-          if [ "$code" -ne 0 ]; then cat build.log; exit "$code"; fi
+          if [ "$code" -ne 0 ]; then
+            grep -E -A8 '\[ERROR\]|Caused by:|FAILURE|Exception|Failures:|Errors:' build.log | head -150 | sed 's/%/%25/g; s/\r/%0D/g; s/\n/%0A/g; s/^/::error::/'
+            for f in target/surefire-reports/*.txt; do
+              [ -f "$f" ] && head -100 "$f" | sed 's/%/%25/g; s/\r/%0D/g; s/\n/%0A/g; s/^/::error::/'
+            done
+            exit "$code"
+          fi
           tail -25 build.log
       - uses: actions/upload-artifact@v4
         with:
