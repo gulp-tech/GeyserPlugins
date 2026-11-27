@@ -1,5 +1,5 @@
 name: VoidGifts
-version: '1.0.0'
+version: '1.1.0'
 main: ru.voidpe.gifts.VoidGifts
 api-version: '1.20'
 author: VoidPE
@@ -8,7 +8,7 @@ description: Подарки-головы — нажатие выдаёт наг�
 commands:
   gift:
     description: 'Управление подарками'
-    usage: '/gift <create <тип> [кол-во] | give <игрок> <тип> [кол-во] | list | reload>'
+    usage: '/gift <menu | create <тип> [кол-во] | give <игрок> <тип> [кол-во] | list | reload>'
     aliases: [voidgifts]
 
 permissions:

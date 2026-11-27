@@ -60,6 +60,8 @@ public final class VoidGifts extends JavaPlugin implements Listener, CommandExec
     private FileConfiguration dataConfig;
     private File dataFile;
     private File giftsFile;
+    private GiftLootStore lootStore;
+    private GiftLootMenu lootMenu;
 
     /** placed: "мир;x;y;z" -> тип подарка */
     private final Map<String, String> placed = new LinkedHashMap<>();
@@ -87,6 +89,10 @@ public final class VoidGifts extends JavaPlugin implements Listener, CommandExec
         new File(getDataFolder(), "music").mkdirs();
         typeKey = new org.bukkit.NamespacedKey(this, "gift_type");
         loadGifts();
+        lootStore = new GiftLootStore(this);
+        lootStore.load();
+        lootMenu = new GiftLootMenu(this, lootStore);
+        getServer().getPluginManager().registerEvents(lootMenu, this);
         loadData();
         loadSettings();
         getCommand("gift").setExecutor(this);
@@ -206,11 +212,14 @@ public final class VoidGifts extends JavaPlugin implements Listener, CommandExec
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (args.length == 0) {
-            sender.sendMessage(color(getConfig().getString("messages.no-permission", "&cУкажи подкоманду: /gift create|give|list|reload")));
+            sender.sendMessage(color(getConfig().getString("messages.no-permission", "&cУкажи подкоманду: /gift menu|create|give|list|reload")));
             return true;
         }
         String sub = args[0].toLowerCase(Locale.ROOT);
         switch (sub) {
+            case "menu":
+            case "loot":
+                return cmdLootMenu(sender);
             case "create":
                 return cmdCreate(sender, args);
             case "give":
@@ -220,10 +229,27 @@ public final class VoidGifts extends JavaPlugin implements Listener, CommandExec
             case "reload":
                 return cmdReload(sender);
             default:
-                sender.sendMessage(color("&cНеизвестная подкоманда. /gift create|give|list|reload"));
+                sender.sendMessage(color("&cНеизвестная подкоманда. /gift menu|create|give|list|reload"));
                 return true;
         }
     }
+
+    private boolean cmdLootMenu(CommandSender sender) {
+        if (!sender.hasPermission("voidgifts.admin")) { sender.sendMessage(msg("messages.no-permission")); return true; }
+        if (!(sender instanceof Player player)) { sender.sendMessage("Меню можно открыть только в игре."); return true; }
+        if (!lootStore.isReady()) { sender.sendMessage(color("&cНе удалось загрузить loot.yml. Проверьте лог сервера.")); return true; }
+        lootMenu.openTypes(player, 0);
+        return true;
+    }
+
+    List<String> configuredGiftTypes() {
+        ConfigurationSection all = giftTypes();
+        return all == null ? List.of() : new ArrayList<>(all.getKeys(false));
+    }
+
+    String menuGiftName(String type) { return giftDisplayName(type); }
+
+    boolean hasGiftType(String type) { return giftType(type) != null; }
 
     private boolean cmdCreate(CommandSender sender, String[] args) {
         if (!sender.hasPermission("voidgifts.admin")) { sender.sendMessage(msg("messages.no-permission")); return true; }
@@ -274,6 +300,7 @@ public final class VoidGifts extends JavaPlugin implements Listener, CommandExec
         if (!sender.hasPermission("voidgifts.admin")) { sender.sendMessage(msg("messages.no-permission")); return true; }
         loadSettings();
         loadGifts();
+        lootStore.load();
         rescanSoundsAndRebuildPack();
         sender.sendMessage(msg("messages.reloaded")
                 .replace("{types}", String.valueOf(giftTypes() == null ? 0 : giftTypes().getKeys(false).size()))
@@ -397,6 +424,10 @@ public final class VoidGifts extends JavaPlugin implements Listener, CommandExec
             player.sendMessage(msg("messages.no-permission"));
             return;
         }
+        if (!lootStore.isReady()) {
+            player.sendMessage(color("&cПодарки временно недоступны: ошибка загрузки лута. Сообщите администрации."));
+            return;
+        }
         Set<UUID> claimed = claims.computeIfAbsent(key, k -> new HashSet<>());
         if (claimed.contains(player.getUniqueId())) {
             player.sendMessage(msg("messages.already-opened"));
@@ -422,6 +453,15 @@ public final class VoidGifts extends JavaPlugin implements Listener, CommandExec
                 } catch (Throwable t) {
                     getLogger().warning("Ошибка команды подарка «" + type + "»: " + cmd + " -> " + t);
                 }
+            }
+        }
+        // Existing commands stay guaranteed; each GUI reward rolls independently.
+        for (GiftLootStore.Reward reward : lootStore.rewards(type)) {
+            if (!LootChance.roll(reward.chance(), ThreadLocalRandomHolder.random().nextDouble())) continue;
+            ItemStack prize = reward.item().clone();
+            Map<Integer, ItemStack> leftovers = player.getInventory().addItem(prize);
+            for (ItemStack excess : leftovers.values()) {
+                player.getWorld().dropItemNaturally(player.getLocation(), excess);
             }
         }
         player.sendMessage(msg("messages.opened").replace("{name}", display));

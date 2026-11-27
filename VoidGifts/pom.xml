@@ -6,7 +6,7 @@
 
     <groupId>ru.voidpe</groupId>
     <artifactId>VoidGifts</artifactId>
-    <version>1.0.0</version>
+    <version>1.1.0</version>
     <packaging>jar</packaging>
     <name>VoidGifts</name>
     <description>Подарки-головы для Bedrock-сервера VoidPE: нажатие выдаёт награду из конфига, только нажавшему играет случайный трек из папки music (ogg). Музыка не повторяется за сессию.</description>
@@ -41,6 +41,18 @@
             <version>${purpur.version}</version>
             <scope>provided</scope>
         </dependency>
+        <dependency>
+            <groupId>org.mockbukkit.mockbukkit</groupId><artifactId>mockbukkit-v26.2</artifactId><version>4.117.0</version><scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId><artifactId>junit-jupiter</artifactId><version>6.1.3</version><scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.platform</groupId><artifactId>junit-platform-launcher</artifactId><version>6.1.3</version><scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.platform</groupId><artifactId>junit-platform-engine</artifactId><version>6.1.3</version><scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -53,6 +65,7 @@
             </resource>
         </resources>
         <plugins>
+            <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-surefire-plugin</artifactId><version>3.5.4</version></plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
