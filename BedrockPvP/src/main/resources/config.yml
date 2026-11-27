@@ -1,0 +1,14 @@
+# Bedrock-style melee for the Purpur/Geyser server. Restart after changes.
+# Remove VoidPvP before installing this plugin; do not use both at once.
+attack-speed:
+  # High attack speed removes most of Java's attack cooldown (except special weapons).
+  base-value: 1024.0
+  refresh-ticks: 40
+knockback:
+  # PvP melee only. Maximum resulting upward velocity from a hit, blocks/tick.
+  # Existing faster upward movement from other causes is not reduced.
+  max-upward-velocity: 0.36
+armor:
+  # Applied to normal armor durability loss after the server's own Unbreaking roll.
+  # 0.666667 means armor lasts about 1.5 times as long, on average.
+  durability-factor: 0.6666666666666666

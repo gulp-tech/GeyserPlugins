@@ -1,0 +1,44 @@
+name: BedrockPvP build
+on:
+  push:
+    branches: ['arena/41da8305-geyserplugins']
+    paths: ['BedrockPvP/**', '.github/workflows/bedrock-pvp.yml']
+    tags: ['bedrockpvp-v*']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+      - name: Check pure combat calculations
+        working-directory: BedrockPvP
+        run: |
+          mkdir -p /tmp/bedrockpvp-tests
+          javac -d /tmp/bedrockpvp-tests src/main/java/ru/voidpe/bedrockpvp/CombatMath.java src/test/java/ru/voidpe/bedrockpvp/CombatMathTest.java
+          java -ea -cp /tmp/bedrockpvp-tests ru.voidpe.bedrockpvp.CombatMathTest
+      - name: Build against server API
+        working-directory: BedrockPvP
+        run: |
+          set +e
+          mvn -B package > build.log 2>&1
+          result=$?
+          if [ "$result" -ne 0 ]; then cat build.log; exit "$result"; fi
+          tail -20 build.log
+      - uses: actions/upload-artifact@v4
+        with:
+          name: BedrockPvP
+          path: BedrockPvP/target/BedrockPvP-1.0.0.jar
+          if-no-files-found: error
+      - name: Publish test release
+        if: startsWith(github.ref, 'refs/tags/bedrockpvp-v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" BedrockPvP/target/BedrockPvP-1.0.0.jar --target "$GITHUB_SHA" --title "BedrockPvP 1.0.0 (experimental)" --notes "Experimental Bedrock-style combat approximation. Not a complete Bedrock combat port. Remove VoidPvP before installation; VoidCombat is unchanged. Test compatibility, knockback, armor wear and 1.21.130 on a test server."
