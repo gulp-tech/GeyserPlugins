@@ -70,6 +70,26 @@ class WardenLootIntegrationTest {
         assertEquals(entries, plugin.getConfig().getMapList("chests.loot").size());
     }
 
+    @SuppressWarnings("unchecked")
+    @Test void customItemMetadataAndIndividualChanceSurviveReload() throws Exception {
+        org.bukkit.inventory.ItemStack item = new org.bukkit.inventory.ItemStack(org.bukkit.Material.NETHERITE_INGOT, 3);
+        org.bukkit.inventory.meta.ItemMeta meta = item.getItemMeta();
+        meta.getPersistentDataContainer().set(new NamespacedKey(plugin, "prize"), PersistentDataType.STRING, "kept");
+        item.setItemMeta(meta);
+        Field f = VoidWardenCity.class.getDeclaredField("customLoot"); f.setAccessible(true);
+        ((java.util.List<org.bukkit.inventory.ItemStack>) f.get(plugin)).add(item);
+        assertEquals(true, call("saveCustomLoot", new Class<?>[]{}));
+        String sig = (String) call("itemSig", new Class<?>[]{org.bukkit.inventory.ItemStack.class}, item);
+        assertEquals(true, call("setChance", new Class<?>[]{String.class, boolean.class, int.class}, sig, false, 42));
+        call("loadCustomLoot", new Class<?>[]{});
+        call("loadChanceOverrides", new Class<?>[]{});
+        org.bukkit.inventory.ItemStack restored = ((java.util.List<org.bukkit.inventory.ItemStack>) f.get(plugin)).getFirst();
+        assertEquals(3, restored.getAmount());
+        assertEquals("kept", restored.getItemMeta().getPersistentDataContainer().get(new NamespacedKey(plugin, "prize"), PersistentDataType.STRING));
+        assertEquals(sig, call("itemSig", new Class<?>[]{org.bukkit.inventory.ItemStack.class}, restored));
+        assertEquals(42, call("effectiveItemChance", new Class<?>[]{org.bukkit.inventory.ItemStack.class}, restored));
+    }
+
     @Test void failedSaveRollsBackChance() throws Exception {
         java.nio.file.Path path = plugin.getDataFolder().toPath().resolve("loot-chances.yml");
         java.nio.file.Files.createDirectory(path);
