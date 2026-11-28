@@ -11,6 +11,7 @@ import org.powernukkitx.event.entity.EntityLevelChangeEvent;
 import org.powernukkitx.event.player.PlayerInteractEvent;
 import org.powernukkitx.event.player.PlayerMoveEvent;
 import org.powernukkitx.event.player.PlayerQuitEvent;
+import org.powernukkitx.event.player.PlayerTeleportEvent;
 import org.powernukkitx.item.Item;
 import org.powernukkitx.level.Location;
 import org.powernukkitx.plugin.PluginBase;
@@ -35,6 +36,7 @@ public final class VoidRtpZone extends PluginBase implements Listener {
         pm.registerEvent(BlockBreakEvent.class, this, EventPriority.LOW, (l,e) -> ((VoidRtpZone) l).breakBlock((BlockBreakEvent)e), this, true);
         pm.registerEvent(PlayerMoveEvent.class, this, EventPriority.MONITOR, (l,e) -> ((VoidRtpZone) l).move((PlayerMoveEvent)e), this, true);
         pm.registerEvent(PlayerQuitEvent.class, this, EventPriority.NORMAL, (l,e) -> ((VoidRtpZone) l).quit((PlayerQuitEvent)e), this);
+        pm.registerEvent(PlayerTeleportEvent.class, this, EventPriority.MONITOR, (l,e) -> ((VoidRtpZone) l).teleport((PlayerTeleportEvent)e), this, true);
         pm.registerEvent(EntityLevelChangeEvent.class, this, EventPriority.MONITOR, (l,e) -> { if (((EntityLevelChangeEvent)e).getEntity() instanceof Player p) ((VoidRtpZone) l).tracker.leave(p.getUniqueId()); }, this, true);
         getLogger().info("VoidRtpZone включён, зон: " + zones.size());
     }
@@ -74,8 +76,7 @@ public final class VoidRtpZone extends PluginBase implements Listener {
         Location from = event.getFrom(), to = event.getTo();
         if (from == null || to == null || to.getLevel() == null || !getConfig().getBoolean("enabled", true)) { tracker.leave(id); return; }
         if (from.getLevel() == to.getLevel() && from.getFloorX() == to.getFloorX() && from.getFloorY() == to.getFloorY() && from.getFloorZ() == to.getFloorZ()) return;
-        String world = to.getLevel().getFolderName();
-        boolean within = zones.values().stream().anyMatch(z -> z.world().equals(world) && z.dimension() == to.getLevel().getDimension() && z.contains(to.getFloorX(),to.getFloorY(),to.getFloorZ()));
+        boolean within = inZone(to);
         long seconds = Math.max(0, getConfig().getLong("trigger.cooldown-seconds", 10));
         long cooldown = seconds > Long.MAX_VALUE / 1000 ? Long.MAX_VALUE : seconds * 1000;
         if (!tracker.update(id, within, p.hasPermission("voidrtpzone.bypass") || skip(p), System.currentTimeMillis(), cooldown)) return;
@@ -84,6 +85,16 @@ public final class VoidRtpZone extends PluginBase implements Listener {
             String cmd = raw.replace("{player}", p.getName()).trim();
             if (!cmd.isEmpty()) getServer().executeCommand(console ? getServer().getConsoleSender() : p, cmd);
         }
+    }
+    private boolean inZone(Location location) {
+        if (location == null || location.getLevel() == null) return false;
+        String world = location.getLevel().getFolderName();
+        return zones.values().stream().anyMatch(z -> z.world().equals(world) && z.dimension() == location.getLevel().getDimension() && z.contains(location.getFloorX(),location.getFloorY(),location.getFloorZ()));
+    }
+    // PNX teleports are not PlayerMoveEvents. A teleport out must reset the entry
+    // state even if the player never walks at the destination before returning.
+    private void teleport(PlayerTeleportEvent event) {
+        if (!inZone(event.getTo())) tracker.leave(event.getPlayer().getUniqueId());
     }
     private void quit(PlayerQuitEvent e) { UUID id = e.getPlayer().getUniqueId(); selections.remove(id); tracker.forget(id); }
 

@@ -20,6 +20,8 @@ public final class ZoneStoreTest {
             String before = Files.readString(path);
             try { store.load(); throw new AssertionError("invalid data accepted"); } catch (java.io.IOException expected) {}
             check(Files.readString(path).equals(before));
+            Files.writeString(path, "zones:\n  bad:\n    world: world\n    min-x: 2147483648\n    min-y: 0\n    min-z: 0\n    max-x: 4\n    max-y: 5\n    max-z: 6\n");
+            try { store.load(); throw new AssertionError("overflow accepted"); } catch (java.io.IOException expected) {}
             System.out.println("VoidRtpZone storage passed");
         } finally {
             try (var files = Files.walk(folder)) { for (Path p : files.sorted(Comparator.reverseOrder()).toList()) Files.deleteIfExists(p); }

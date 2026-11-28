@@ -27,13 +27,20 @@ public final class ZoneStore {
                 for (String field : List.of("world", "min-x", "min-y", "min-z", "max-x", "max-y", "max-z"))
                     if (!config.exists(p + field)) throw new IOException("Нет поля " + p + field);
                 for (String field : List.of("min-x", "min-y", "min-z", "max-x", "max-y", "max-z"))
-                    if (!(config.get(p + field) instanceof Number)) throw new IOException("Неверная координата " + p + field);
+                    requireInt(config.get(p + field), p + field);
+                if (config.exists(p + "dimension")) requireInt(config.get(p + "dimension"), p + "dimension");
                 Zone z = new Zone(id, config.getString(p + "world"), config.getInt(p + "dimension", 0), config.getInt(p + "min-x"), config.getInt(p + "min-y"), config.getInt(p + "min-z"), config.getInt(p + "max-x"), config.getInt(p + "max-y"), config.getInt(p + "max-z"));
                 if (result.putIfAbsent(id, z) != null) throw new IOException("Повторное имя зоны: " + id);
             }
             return result;
         } catch (IOException e) { throw e; }
         catch (RuntimeException e) { throw new IOException("Ошибка zones.yml: " + e.getMessage(), e); }
+    }
+    private static void requireInt(Object raw, String field) throws IOException {
+        if (!(raw instanceof Number n)) throw new IOException("Неверное число " + field);
+        double value = n.doubleValue();
+        if (!Double.isFinite(value) || value != Math.rint(value) || value < Integer.MIN_VALUE || value > Integer.MAX_VALUE)
+            throw new IOException("Число вне диапазона или не целое: " + field);
     }
     public void save(Map<String, Zone> zones) throws IOException {
         Path parent = file.toAbsolutePath().getParent(); Files.createDirectories(parent);
