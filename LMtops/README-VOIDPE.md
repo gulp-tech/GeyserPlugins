@@ -1,0 +1,10 @@
+# LMtops 2.0.1
+
+Based on the supplied LMtops 2.0.0 sources and configuration. Keep existing `plugins/LMtops/` and back it up before updating. Replace the old JAR and fully restart the server; do not use `/reload`. Requires Vault and a registered economy provider for balance; PlayerPoints is optional and is required for shards. Test `/top`, all categories, `/topholo` and holograms on the actual Purpur/Geyser/Bedrock server.
+
+- Uses the existing `playerdata.yml` schema. A missing file is created on first save; an unreadable/malformed file disables the plugin rather than overwriting it. Save writes through a temporary file and atomic move when available. Online playtime is included at refresh and save time. An abrupt crash can still lose changes since the previous save.
+- Uses `auto-save-interval` minutes (default 5), `cache-update-interval` seconds (default 300), `holograms.update-interval` seconds (default 300), `players-per-tick` (default 25), and `top-limit` (clamped 1–10). These have safe defaults when the keys are absent from an old config. A full refresh can span many ticks on large servers, and Vault/API calls and filesystem writes can still cost time.
+- Vault and Bukkit calls run on the main thread in batches; PlayerPoints leaderboard retrieval runs asynchronously. Previous cached results remain visible while refreshing and on provider failure. PlayerPoints compatibility is compiled against the supplied API jar but needs a live integration test.
+- Text displays are not created by forcibly loading chunks. They are updated after their chunk loads. Existing hologram coordinates, appearance, IDs and commands are retained; no Bedrock FPS guarantee is made.
+- The `/top` GUI uses an inventory holder, disallows item transfers, and opens submenus on the next tick. In-game Bedrock interaction has not been tested.
+- Test suite covers data read/write, corrupt data fail-closed, PlayerPoints result mapping, cancelled block events, rank cache, playtime accumulation, and menu click/navigation via MockBukkit; it does not replace real-server tests.
