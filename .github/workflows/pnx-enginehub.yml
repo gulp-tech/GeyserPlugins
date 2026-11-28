@@ -34,6 +34,17 @@ jobs:
           unzip -q WorldEdit-version-7.4.x.zip -d "$RUNNER_TEMP/enginehub"
           unzip -q WorldGuard-version-7.0.x.zip -d "$RUNNER_TEMP/enginehub"
           wg="$RUNNER_TEMP/enginehub/WorldGuard-version-7.0.x"
+          we="$RUNNER_TEMP/enginehub/WorldEdit-version-7.4.x"
+          # Both upstream composite builds call their plugin build "build-logic".
+          # Give WorldEdit's included build a distinct identity in this temporary CI copy.
+          python3 - "$we/settings.gradle.kts" <<'PY'
+          import pathlib, sys
+          path = pathlib.Path(sys.argv[1])
+          data = path.read_text()
+          old = 'includeBuild("build-logic")'
+          assert data.count(old) == 1
+          path.write_text(data.replace(old, 'includeBuild("build-logic") { name = "worldedit-build-logic" }'))
+          PY
           cat >> "$wg/settings.gradle.kts" <<'GRADLE'
           includeBuild(System.getenv("RUNNER_TEMP") + "/enginehub/WorldEdit-version-7.4.x") {
               dependencySubstitution {
