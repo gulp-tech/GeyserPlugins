@@ -1,0 +1,46 @@
+name: PNX VoidGifts pack foundation
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'PNX-port/VoidGifts/**'
+      - '.github/workflows/pnx-voidgifts-pack.yml'
+      - 'PowerNukkitX-beta.zip'
+      - 'VoidMusicPack/sounds/voidpe/spawn_music.ogg'
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+      - name: Build supplied PNX
+        run: |
+          set -euo pipefail
+          unzip -q PowerNukkitX-beta.zip -d "$RUNNER_TEMP/pnx"
+          cd "$RUNNER_TEMP/pnx/PowerNukkitX-beta"
+          chmod +x gradlew
+          ./gradlew --no-daemon --max-workers=2 shadowJar -x test -x generateGitProperties
+          test -f build/powernukkitx.jar
+      - name: Compile and unit-test pack foundation
+        run: |
+          set -euo pipefail
+          src=PNX-port/VoidGifts
+          pnx="$RUNNER_TEMP/pnx/PowerNukkitX-beta/build/powernukkitx.jar"
+          mkdir -p "$RUNNER_TEMP/pnx-giftpack/classes" "$RUNNER_TEMP/pnx-giftpack/tests"
+          javac --release 25 -encoding UTF-8 -cp "$pnx" -d "$RUNNER_TEMP/pnx-giftpack/classes" $(find "$src/src/main/java" -name '*.java' -print) 2>&1 | tee "$RUNNER_TEMP/gift-compile.log"
+          javac --release 25 -encoding UTF-8 -cp "$pnx:$RUNNER_TEMP/pnx-giftpack/classes" -d "$RUNNER_TEMP/pnx-giftpack/tests" $(find "$src/src/test/java" -name '*.java' -print) 2>&1 | tee -a "$RUNNER_TEMP/gift-compile.log"
+          java -cp "$pnx:$RUNNER_TEMP/pnx-giftpack/classes:$RUNNER_TEMP/pnx-giftpack/tests" ru.voidpe.pnx.gifts.GiftMusicPackTest 2>&1 | tee "$RUNNER_TEMP/gift-test.log"
+          cp "$src/src/test/resources/plugin.yml" "$RUNNER_TEMP/pnx-giftpack/classes/"
+          cp "$RUNNER_TEMP/pnx-giftpack/tests/ru/voidpe/pnx/gifts/GiftPackProbe.class" "$RUNNER_TEMP/pnx-giftpack/classes/ru/voidpe/pnx/gifts/"
+          jar --create --file "$RUNNER_TEMP/pnx-giftpack/GiftPackProbe.jar" -C "$RUNNER_TEMP/pnx-giftpack/classes" .
+      - name: Test pack lifecycle on isolated PNX
+        run: python3 PNX-port/VoidGifts/tools/smoke_pack.py
+      - name: Expose build errors
+        if: failure()
+        run: python3 PNX-port/EngineHubBridge/tools/error_annotation.py "$RUNNER_TEMP/gift-compile.log" "$RUNNER_TEMP/gift-test.log"

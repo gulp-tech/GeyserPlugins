@@ -1,0 +1,8 @@
+name: GiftPackProbe
+version: '0.0.1'
+main: ru.voidpe.pnx.gifts.GiftPackProbe
+api: ['3.0.0']
+load: STARTUP
+commands:
+  giftpackprobe:
+    description: 'Internal CI-only pack probe'
