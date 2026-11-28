@@ -1,0 +1,18 @@
+name: VoidMusic
+version: '1.1.0-pnx.1'
+main: ru.voidpe.pnx.music.VoidMusic
+api: ['3.0.0']
+author: VoidPE
+description: 'Персональная музыка в мире спавна для PowerNukkitX'
+commands:
+  vmusic:
+    description: 'Музыка спавна: start/stop/status/reload'
+    usage: '/vmusic [start [игрок]|stop [игрок]|status|reload]'
+    aliases: [voidmusic]
+permissions:
+  voidmusic.admin:
+    description: 'Старт, стоп для других, status и reload'
+    default: op
+  voidmusic.stop:
+    description: 'Прекратить музыку для себя'
+    default: true

@@ -1,0 +1,48 @@
+name: PNX VoidMusic validation
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'PNX-port/VoidMusic/**'
+      - '.github/workflows/pnx-voidmusic.yml'
+      - 'PowerNukkitX-beta.zip'
+      - 'VoidMusicPack-v1.0.1.mcpack'
+permissions:
+  contents: read
+jobs:
+  compile-and-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+      - name: Compile API from the user's PNX source archive
+        run: |
+          set -euo pipefail
+          unzip -q PowerNukkitX-beta.zip -d "$RUNNER_TEMP/pnx"
+          cd "$RUNNER_TEMP/pnx/PowerNukkitX-beta"
+          chmod +x gradlew
+          ./gradlew --no-daemon shadowJar -x test -x generateGitProperties
+          test -f build/powernukkitx.jar
+      - name: Compile VoidMusic and run policy tests
+        run: |
+          set -euo pipefail
+          src=PNX-port/VoidMusic
+          mkdir -p "$RUNNER_TEMP/pnx-music/classes" "$RUNNER_TEMP/pnx-music/test"
+          javac --release 25 -encoding UTF-8 -cp "$RUNNER_TEMP/pnx/PowerNukkitX-beta/build/powernukkitx.jar" -d "$RUNNER_TEMP/pnx-music/classes" $(find "$src/src/main/java" -name '*.java' -print)
+          javac --release 25 -encoding UTF-8 -cp "$RUNNER_TEMP/pnx-music/classes" -d "$RUNNER_TEMP/pnx-music/test" $(find "$src/src/test/java" -name '*.java' -print)
+          java -cp "$RUNNER_TEMP/pnx-music/classes:$RUNNER_TEMP/pnx-music/test" ru.voidpe.pnx.music.MusicPolicyTest
+          cp -r "$src/src/main/resources/." "$RUNNER_TEMP/pnx-music/classes/"
+          jar --create --file "$RUNNER_TEMP/pnx-music/VoidMusic-1.1.0-pnx.1.jar" -C "$RUNNER_TEMP/pnx-music/classes" .
+          jar --list --file "$RUNNER_TEMP/pnx-music/VoidMusic-1.1.0-pnx.1.jar" | grep -Fx plugin.yml
+      - name: Smoke test on isolated PNX server with the music pack
+        run: python3 PNX-port/VoidMusic/tools/smoke.py
+      - name: Save test build (not yet approved for live use)
+        uses: actions/upload-artifact@v4
+        with:
+          name: VoidMusic-PNX-test-build
+          path: ${{ runner.temp }}/pnx-music/VoidMusic-1.1.0-pnx.1.jar
+          if-no-files-found: error
