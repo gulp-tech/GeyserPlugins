@@ -1,0 +1,50 @@
+name: PNX VoidRtpZone validation
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'PNX-port/VoidRtpZone/**'
+      - '.github/workflows/pnx-rtpzone.yml'
+      - 'PowerNukkitX-beta.zip'
+permissions:
+  contents: read
+jobs:
+  compile-and-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+      - name: Build the uploaded PNX source
+        run: |
+          set -euo pipefail
+          unzip -q PowerNukkitX-beta.zip -d "$RUNNER_TEMP/pnx"
+          cd "$RUNNER_TEMP/pnx/PowerNukkitX-beta"
+          chmod +x gradlew
+          ./gradlew --no-daemon --max-workers=2 shadowJar -x test -x generateGitProperties
+          test -f build/powernukkitx.jar
+      - name: Compile and test zone logic and data
+        run: |
+          set -euo pipefail
+          src=PNX-port/VoidRtpZone
+          pnx="$RUNNER_TEMP/pnx/PowerNukkitX-beta/build/powernukkitx.jar"
+          mkdir -p "$RUNNER_TEMP/pnx-rtpzone/classes" "$RUNNER_TEMP/pnx-rtpzone/test"
+          javac --release 25 -encoding UTF-8 -cp "$pnx" -d "$RUNNER_TEMP/pnx-rtpzone/classes" $(find "$src/src/main/java" -name '*.java' -print) 2>&1 | tee "$RUNNER_TEMP/rtpzone-compile.log"
+          javac --release 25 -encoding UTF-8 -cp "$pnx:$RUNNER_TEMP/pnx-rtpzone/classes" -d "$RUNNER_TEMP/pnx-rtpzone/test" $(find "$src/src/test/java" -name '*.java' -print) 2>&1 | tee -a "$RUNNER_TEMP/rtpzone-compile.log"
+          java -cp "$pnx:$RUNNER_TEMP/pnx-rtpzone/classes:$RUNNER_TEMP/pnx-rtpzone/test" ru.voidpe.pnx.rtpzone.PolicyTest
+          java -cp "$pnx:$RUNNER_TEMP/pnx-rtpzone/classes:$RUNNER_TEMP/pnx-rtpzone/test" ru.voidpe.pnx.rtpzone.ZoneStoreTest
+          cp -r "$src/src/main/resources/." "$RUNNER_TEMP/pnx-rtpzone/classes/"
+          jar --create --file "$RUNNER_TEMP/pnx-rtpzone/VoidRtpZone-1.0.0-pnx.1.jar" -C "$RUNNER_TEMP/pnx-rtpzone/classes" .
+      - name: Smoke test isolated server and restart
+        run: python3 PNX-port/VoidRtpZone/tools/smoke.py
+      - name: Expose compile errors
+        if: failure()
+        run: python3 PNX-port/EngineHubBridge/tools/error_annotation.py "$RUNNER_TEMP/rtpzone-compile.log"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: VoidRtpZone-PNX-test-build
+          path: ${{ runner.temp }}/pnx-rtpzone/VoidRtpZone-1.0.0-pnx.1.jar
+          if-no-files-found: error

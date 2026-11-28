@@ -1,0 +1,19 @@
+name: VoidRtpZone
+version: '1.0.0-pnx.1'
+main: ru.voidpe.pnx.rtpzone.VoidRtpZone
+api: ['3.0.0']
+author: VoidPE
+description: 'Зоны входа с запуском RTP для PowerNukkitX'
+commands:
+  rtpzone:
+    description: 'Выделение и настройка RTP-зон'
+    usage: '/rtpzone wand|save <имя>|remove <имя>|list|reload'
+    aliases: [rtpz]
+    permission: voidrtpzone.admin
+permissions:
+  voidrtpzone.admin:
+    description: 'Управление RTP-зонами'
+    default: op
+  voidrtpzone.bypass:
+    description: 'Зоны не вызывают RTP для игрока'
+    default: false
