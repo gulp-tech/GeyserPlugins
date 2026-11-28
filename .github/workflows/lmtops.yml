@@ -1,0 +1,41 @@
+name: LMtops build and tests
+on:
+  push:
+    branches: ['arena/41da8305-geyserplugins']
+    paths: ['LMtops/src/**', 'LMtops/pom.xml', '.github/workflows/lmtops.yml']
+    tags: ['lmtops-v*']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Compile and test
+        working-directory: LMtops
+        run: |
+          set +e
+          mvn -B clean test package > build.log 2>&1
+          code=$?
+          if [ "$code" -ne 0 ]; then
+            grep -E -A8 '\[ERROR\]|Caused by:|FAILURE|Exception|Failures:|Errors:' build.log | head -150 | sed 's/%/%25/g; s/\r/%0D/g; s/\n/%0A/g; s/^/::error::/'
+            for f in target/surefire-reports/*.txt; do [ -f "$f" ] && head -100 "$f" | sed 's/%/%25/g; s/\r/%0D/g; s/\n/%0A/g; s/^/::error::/'; done
+            exit "$code"
+          fi
+          tail -25 build.log
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LMtops-2.0.1
+          path: LMtops/target/LMtops-2.0.1.jar
+          if-no-files-found: error
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/lmtops-v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" LMtops/target/LMtops-2.0.1.jar --target "$GITHUB_SHA" --title "LMtops 2.0.1" --notes "Preserves LMtops data and commands. Requires live Paper/Purpur, Vault, PlayerPoints and Bedrock testing. Back up the plugin data directory before upgrading."

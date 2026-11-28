@@ -6,7 +6,10 @@ font:
   apply-to-titles: false
   apply-to-lore: false
 
+# Автосохранение данных и сессий в минутах.
 auto-save-interval: 5
+# Число аккаунтов, обрабатываемых за тик (Vault вызывается только на главном потоке).
+players-per-tick: 25
 cache-update-interval: 300
 top-limit: 10
 kill-farm-interval-seconds: 60

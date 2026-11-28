@@ -1,5 +1,5 @@
 name: LMtops
-version: 2.0.0
+version: '${project.version}'
 main: com.musd348.lmtops.LMtops
 api-version: '1.21'
 author: musd348

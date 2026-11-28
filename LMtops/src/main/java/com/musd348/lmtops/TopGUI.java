@@ -5,6 +5,11 @@ import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.InventoryHolder;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
@@ -12,7 +17,13 @@ import org.bukkit.inventory.meta.SkullMeta;
 import java.util.ArrayList;
 import java.util.List;
 
-public class TopGUI {
+public class TopGUI implements Listener {
+    private static final class MenuHolder implements InventoryHolder {
+        private Inventory inventory;
+        private final boolean main;
+        MenuHolder(boolean main) { this.main = main; }
+        @Override public Inventory getInventory() { return inventory; }
+    }
     private final LMtops plugin;
 
     public TopGUI(LMtops plugin) {
@@ -21,7 +32,9 @@ public class TopGUI {
 
     public void openMainMenu(Player player) {
         String title = ColorUtil.color(plugin.getConfig().getString("gui.main-title", "&#FFD700✦ Топы Сервера ✦"));
-        Inventory inv = Bukkit.createInventory(null, 27, title);
+        MenuHolder holder = new MenuHolder(true);
+        Inventory inv = Bukkit.createInventory(holder, 27, title);
+        holder.inventory = inv;
 
         inv.setItem(11, createGuiItem(Material.GOLD_INGOT, plugin.getConfig().getString("gui.balance-title", "&#FFD700⭐ Топ по Балансу"), List.of("&7Нажмите, чтобы открыть")));
         inv.setItem(12, createGuiItem(Material.DIAMOND_SWORD, plugin.getConfig().getString("gui.kills-title", "&#FF4444⚔ Топ по Убийствам"), List.of("&7Нажмите, чтобы открыть")));
@@ -47,7 +60,9 @@ public class TopGUI {
         };
 
         String title = ColorUtil.color(plugin.getConfig().getString(configKey, "Топ"));
-        Inventory inv = Bukkit.createInventory(null, 54, title);
+        MenuHolder holder = new MenuHolder(false);
+        Inventory inv = Bukkit.createInventory(holder, 54, title);
+        holder.inventory = inv;
 
         List<TopEntry> entries = plugin.getTopManager().getTop(type.name().toLowerCase());
         int[] slots = {10, 11, 12, 13, 14, 15, 16, 19, 20, 21};
@@ -57,7 +72,7 @@ public class TopGUI {
             ItemStack skull = new ItemStack(Material.PLAYER_HEAD);
             SkullMeta meta = (SkullMeta) skull.getItemMeta();
             if (meta != null) {
-                meta.setOwner(entry.name());
+                if (entry.uuid() != null) meta.setOwningPlayer(Bukkit.getOfflinePlayer(entry.uuid()));
                 meta.setDisplayName(ColorUtil.color("&e#" + (i + 1) + " &f" + entry.name()));
                 meta.setLore(List.of(ColorUtil.color("&7Результат: &a" + formatValue(type, entry.value()))));
                 skull.setItemMeta(meta);
@@ -80,6 +95,30 @@ public class TopGUI {
         } else {
             openMainMenu(player);
         }
+    }
+
+    @EventHandler
+    public void onClick(InventoryClickEvent event) {
+        if (!(event.getView().getTopInventory().getHolder() instanceof MenuHolder holder)) return;
+        boolean cancelled = event.isCancelled();
+        event.setCancelled(true);
+        if (cancelled || !(event.getWhoClicked() instanceof Player player)) return;
+        int raw = event.getRawSlot();
+        if (raw < 0 || raw >= event.getView().getTopInventory().getSize()) return;
+        if (holder.main) {
+            TopType type = switch (raw) {
+                case 11 -> TopType.BALANCE; case 12 -> TopType.KILLS; case 13 -> TopType.DEATHS;
+                case 14 -> TopType.SHARDS; case 15 -> TopType.BLOCKS; case 16 -> TopType.PLAYTIME;
+                default -> null;
+            };
+            if (type != null) Bukkit.getScheduler().runTask(plugin, () -> { if (player.isOnline() && player.getOpenInventory().getTopInventory().getHolder() == holder) openTopList(player, type); });
+        } else if (raw == 49) {
+            Bukkit.getScheduler().runTask(plugin, () -> { if (player.isOnline() && player.getOpenInventory().getTopInventory().getHolder() == holder) openMainMenu(player); });
+        }
+    }
+    @EventHandler
+    public void onDrag(InventoryDragEvent event) {
+        if (event.getView().getTopInventory().getHolder() instanceof MenuHolder) event.setCancelled(true);
     }
 
     private ItemStack createGuiItem(Material material, String name, List<String> lore) {

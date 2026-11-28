@@ -6,7 +6,7 @@
 
     <groupId>com.musd348</groupId>
     <artifactId>LMtops</artifactId>
-    <version>2.0.0</version>
+    <version>2.0.1</version>
     <packaging>jar</packaging>
     <name>LMtops</name>
 
@@ -53,10 +53,13 @@
             <scope>system</scope>
             <systemPath>${project.basedir}/libs/PlayerPoints.jar</systemPath>
         </dependency>
+        <dependency><groupId>com.github.seeseemelk</groupId><artifactId>MockBukkit-v1.21</artifactId><version>3.133.2</version><scope>test</scope></dependency>
+        <dependency><groupId>org.mockito</groupId><artifactId>mockito-core</artifactId><version>5.21.0</version><scope>test</scope></dependency>
+        <dependency><groupId>org.junit.jupiter</groupId><artifactId>junit-jupiter</artifactId><version>5.11.4</version><scope>test</scope></dependency>
     </dependencies>
 
     <build>
-        <finalName>LMtops-2.0.0</finalName>
+        <finalName>LMtops-${project.version}</finalName>
         <resources>
             <resource>
                 <directory>src/main/resources</directory>
@@ -64,6 +67,7 @@
             </resource>
         </resources>
         <plugins>
+            <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-surefire-plugin</artifactId><version>3.5.4</version></plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>

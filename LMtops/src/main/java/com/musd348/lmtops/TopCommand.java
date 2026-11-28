@@ -33,6 +33,10 @@ public class TopCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
+        if (!player.hasPermission("lmtops.use")) {
+            player.sendMessage(ColorUtil.colorize(plugin.getConfig().getString("messages.prefix", "") + plugin.getConfig().getString("messages.no-permission", "&cНет прав")));
+            return true;
+        }
         if (args.length == 0) {
             plugin.getTopGUI().openMainMenu(player);
             return true;

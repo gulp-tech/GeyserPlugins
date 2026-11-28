@@ -10,15 +10,20 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.TextDisplay;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
+import org.bukkit.event.Listener;
+import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.persistence.PersistentDataType;
 
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
-public class HologramManager {
+public class HologramManager implements Listener {
 
     private final LMtops plugin;
+    private Map<World, Map<String, List<TextDisplay>>> indexed;
     private static final String HOLO_TAG = "lmtops_hologram";
     private static final String TAG_PREFIX = "lmtops_id_";
 
@@ -37,6 +42,8 @@ public class HologramManager {
         ConfigurationSection section = config.getConfigurationSection("holograms");
         if (section == null) return;
 
+        indexed = new HashMap<>();
+        try {
         for (String key : section.getKeys(false)) {
             if (key.equals("enabled") || key.equals("update-interval") ||
                     key.equals("background-alpha") || key.equals("default-billboard")) continue;
@@ -58,6 +65,37 @@ public class HologramManager {
 
             spawnOrUpdateHologram(key, loc, holoSec);
         }
+        } finally { indexed = null; }
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onChunkLoad(ChunkLoadEvent event) {
+        if (!plugin.getConfig().getBoolean("holograms.enabled", true)) return;
+        ConfigurationSection all = plugin.getConfig().getConfigurationSection("holograms");
+        if (all == null) return;
+        for (String id : all.getKeys(false)) {
+            ConfigurationSection section = all.getConfigurationSection(id);
+            if (section == null || !section.getBoolean("enabled", true)
+                || !event.getWorld().getName().equals(section.getString("world", "world"))) continue;
+            int x = (int) Math.floor(section.getDouble("x")) >> 4;
+            int z = (int) Math.floor(section.getDouble("z")) >> 4;
+            if (event.getChunk().getX() != x || event.getChunk().getZ() != z) continue;
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                if (!event.getWorld().isChunkLoaded(x, z)) return;
+                ConfigurationSection current = plugin.getConfig().getConfigurationSection("holograms." + id);
+                if (current != null && current.getBoolean("enabled", true))
+                    spawnOrUpdateHologram(id, new Location(event.getWorld(), current.getDouble("x"), current.getDouble("y"), current.getDouble("z")), current);
+            });
+        }
+    }
+
+    private Map<String, List<TextDisplay>> indexWorld(World world) {
+        Map<String, List<TextDisplay>> result = new HashMap<>();
+        for (TextDisplay display : world.getEntitiesByClass(TextDisplay.class)) {
+            for (String tag : display.getScoreboardTags()) if (tag.startsWith(TAG_PREFIX))
+                result.computeIfAbsent(tag.substring(TAG_PREFIX.length()), ignored -> new ArrayList<>()).add(display);
+        }
+        return result;
     }
 
     public void spawnOrUpdateHologram(String id, Location location, ConfigurationSection holoSec) {
@@ -65,18 +103,11 @@ public class HologramManager {
 
         World world = location.getWorld();
 
-        // 1. Принудительно загружаем чанк, чтобы Bukkit видел сущности
-        if (!location.getChunk().isLoaded()) {
-            location.getChunk().load();
-        }
-
-        // 2. Ищем ВСЕ существующие сущности с ID этой голограммы во всем мире
-        List<TextDisplay> existingDisplays = new ArrayList<>();
-        for (Entity entity : world.getEntitiesByClass(TextDisplay.class)) {
-            if (entity.getScoreboardTags().contains(TAG_PREFIX + id)) {
-                existingDisplays.add((TextDisplay) entity);
-            }
-        }
+        // Do not synchronously load chunks for a hologram; ChunkLoadEvent restores it.
+        int cx = location.getBlockX() >> 4, cz = location.getBlockZ() >> 4;
+        if (!world.isChunkLoaded(cx, cz)) return;
+        Map<String, List<TextDisplay>> worldIndex = indexed == null ? indexWorld(world) : indexed.computeIfAbsent(world, this::indexWorld);
+        List<TextDisplay> existingDisplays = worldIndex.getOrDefault(id, List.of());
 
         TextDisplay textDisplay;
 
@@ -112,24 +143,28 @@ public class HologramManager {
         boolean transparentBg = config.getBoolean("bedrock-optimization.force-transparent-background", true);
         int maxLineWidth = config.getInt("bedrock-optimization.max-line-width", 300);
 
-        textDisplay.setViewRange(bedrockOpt ? viewRange : 1.0f);
-        textDisplay.setShadowed(!disableShadow);
-        textDisplay.setLineWidth(maxLineWidth);
+        float targetRange = bedrockOpt ? viewRange : 1.0f;
+        if (Float.compare(textDisplay.getViewRange(), targetRange) != 0) textDisplay.setViewRange(targetRange);
+        if (textDisplay.isShadowed() != !disableShadow) textDisplay.setShadowed(!disableShadow);
+        if (textDisplay.getLineWidth() != maxLineWidth) textDisplay.setLineWidth(maxLineWidth);
 
         if (transparentBg) {
-            textDisplay.setBackgroundColor(Color.fromARGB(0, 0, 0, 0));
+            Color bg = Color.fromARGB(0, 0, 0, 0);
+            if (!bg.equals(textDisplay.getBackgroundColor())) textDisplay.setBackgroundColor(bg);
         } else {
             int alpha = config.getInt("holograms.background-alpha", 0);
-            textDisplay.setBackgroundColor(Color.fromARGB(alpha, 0, 0, 0));
+            Color bg = Color.fromARGB(Math.max(0, Math.min(255, alpha)), 0, 0, 0);
+            if (!bg.equals(textDisplay.getBackgroundColor())) textDisplay.setBackgroundColor(bg);
         }
 
         String billboardStr = holoSec != null ? holoSec.getString("billboard") : null;
         if (billboardStr == null) billboardStr = config.getString("holograms.default-billboard", "FIXED");
 
         try {
-            textDisplay.setBillboard(Display.Billboard.valueOf(billboardStr.toUpperCase()));
+            Display.Billboard target = Display.Billboard.valueOf(billboardStr.toUpperCase(Locale.ROOT));
+            if (textDisplay.getBillboard() != target) textDisplay.setBillboard(target);
         } catch (IllegalArgumentException e) {
-            textDisplay.setBillboard(Display.Billboard.FIXED);
+            if (textDisplay.getBillboard() != Display.Billboard.FIXED) textDisplay.setBillboard(Display.Billboard.FIXED);
         }
 
         // 5. Кэширование текста (не отправляет пакеты рендера, если текст не менялся)
