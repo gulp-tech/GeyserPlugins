@@ -44,6 +44,33 @@ class LMtopsTest {
         assertThrows(IllegalStateException.class, () -> new DataManager(plugin));
         assertEquals("broken: [unterminated", Files.readString(file));
     }
+    @Test void actualPlayerPointsLeaderboardPreservesNamesAndValues() {
+        var api = mock(org.black_ixx.playerpoints.PlayerPointsAPI.class);
+        var player = mock(org.black_ixx.playerpoints.models.SortedPlayer.class);
+        UUID id = UUID.randomUUID();
+        when(player.getUniqueId()).thenReturn(id);
+        when(player.getUsername()).thenReturn("BedrockPlayer");
+        when(player.getPoints()).thenReturn(1234);
+        when(api.getTopSortedPoints(10)).thenReturn(java.util.List.of(player));
+        assertEquals(java.util.List.of(new TopEntry(id, "BedrockPlayer", 1234)), TopManager.readPoints(api, 10));
+        verify(api).getTopSortedPoints(10);
+    }
+    @Test void cancelledBlockBreakDoesNotIncreaseStatistics() {
+        ServerMock server = MockBukkit.mock();
+        try {
+            MockBukkit.createMockPlugin("Vault");
+            LMtops plugin = MockBukkit.load(LMtops.class);
+            var world = server.addSimpleWorld("world");
+            var player = server.addPlayer();
+            var event = new org.bukkit.event.block.BlockBreakEvent(world.getBlockAt(1, 64, 1), player);
+            event.setCancelled(true);
+            server.getPluginManager().callEvent(event);
+            assertEquals(0, plugin.getDataManager().getStat(player.getUniqueId(), "blocks"));
+            event = new org.bukkit.event.block.BlockBreakEvent(world.getBlockAt(1, 64, 1), player);
+            server.getPluginManager().callEvent(event);
+            assertEquals(1, plugin.getDataManager().getStat(player.getUniqueId(), "blocks"));
+        } finally { MockBukkit.unmock(); }
+    }
     @Test void menuItemsCannotBeTakenAndClickNavigates() {
         ServerMock server = MockBukkit.mock();
         try {

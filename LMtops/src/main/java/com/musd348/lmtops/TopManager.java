@@ -76,11 +76,7 @@ public final class TopManager {
             List<TopEntry> result = null;
             String failure = null;
             try {
-                result = new ArrayList<>();
-                for (SortedPlayer p : api.getTopSortedPoints(limit)) {
-                    String name = p.getUsername();
-                    result.add(new TopEntry(p.getUniqueId(), name == null ? p.getUniqueId().toString() : name, p.getPoints()));
-                }
+                result = readPoints(api, limit);
             } catch (RuntimeException ex) { failure = ex.getMessage(); }
             List<TopEntry> finalResult = result == null ? null : List.copyOf(result);
             String finalFailure = failure;
@@ -95,6 +91,14 @@ public final class TopManager {
                 }
             });
         });
+    }
+    static List<TopEntry> readPoints(PlayerPointsAPI api, int limit) {
+        List<TopEntry> result = new ArrayList<>();
+        for (SortedPlayer p : api.getTopSortedPoints(limit)) {
+            String name = p.getUsername();
+            result.add(new TopEntry(p.getUniqueId(), name == null ? p.getUniqueId().toString() : name, p.getPoints()));
+        }
+        return result;
     }
     public List<TopEntry> getTop(String type) { return type == null ? List.of() : caches.getOrDefault(type.toLowerCase(Locale.ROOT), List.of()); }
     public List<TopEntry> getTopBalance() { return getTop("balance"); }
