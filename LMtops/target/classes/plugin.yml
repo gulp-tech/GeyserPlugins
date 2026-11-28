@@ -1,0 +1,32 @@
+name: LMtops
+version: 2.0.0
+main: com.musd348.lmtops.LMtops
+api-version: '1.21'
+author: musd348
+description: "Топы сервера: баланс, убийства, смерти, осколки, блоки, время"
+
+depend:
+  - Vault
+
+softdepend:
+  - PlayerPoints
+
+commands:
+  top:
+    description: "Открыть меню топов сервера"
+    usage: "/top"
+    aliases: [tops, лидеры]
+  topholo:
+    description: "Управление голограммами топов"
+    usage: "/topholo <create|delete|list|reload|update|tp>"
+
+permissions:
+  lmtops.use:
+    description: "Доступ к просмотру топов"
+    default: true
+  lmtops.admin:
+    description: "Управление плагином"
+    default: op
+  lmtops.hologram:
+    description: "Управление голограммами"
+    default: op

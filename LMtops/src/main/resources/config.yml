@@ -1,0 +1,199 @@
+# LMtops - Configuration
+# Author: musd348
+
+font:
+  enabled: false
+  apply-to-titles: false
+  apply-to-lore: false
+
+auto-save-interval: 5
+cache-update-interval: 300
+top-limit: 10
+kill-farm-interval-seconds: 60
+
+currency:
+  balance-symbol: $
+  kills-name: убийств
+  deaths-name: смертей
+  shards-name: осколков
+  blocks-name: блоков
+
+gui:
+  main-title: '&#FFD700✦ Топы Сервера ✦'
+  balance-title: '&#FFD700⭐ Топ по Балансу'
+  kills-title: '&#FF4444⚔ Топ по Убийствам'
+  deaths-title: '&#777777☠ Топ по Смертям'
+  shards-title: '&#AA55FF💎 Топ по Осколкам'
+  blocks-title: '&#55CCFF⛏ Топ по Блокам'
+  playtime-title: '&#FFAA00⏰ Топ по Времени'
+
+sounds:
+  open-menu: true
+messages:
+  prefix: '&#FFD700&lLMtops &8» '
+  no-permission: '&#FF5555У вас нет прав!'
+  player-only: '&#FF5555Только для игроков!'
+  config-reloaded: '&#55FF55Конфигурация перезагружена!'
+  holograms-updated: '&#55FF55Голограммы обновлены!'
+  hologram-created: '&#55FF55Голограмма &#FFFFFF{id} &#55FF55создана!'
+  hologram-deleted: '&#55FF55Голограмма &#FFFFFF{id} &#55FF55удалена!'
+  hologram-not-found: '&#FF5555Голограмма &#FFFFFF{id} &#FF5555не найдена!'
+  empty-placeholder: Пусто
+  empty-value: '0'
+
+holograms:
+  enabled: true
+  update-interval: 300
+  # Прозрачность фона (0 = полностью прозрачный, 255 = полностью непрозрачный)
+  background-alpha: 30
+  # Режим по умолчанию для голограмм:
+  # FIXED       - стоит на месте, не поворачивается вообще
+  # CENTER      - крутится за игроком по всем осям
+  # VERTICAL    - крутится только по горизонтали (не наклоняется)
+  # HORIZONTAL  - крутится только по вертикали
+  default-billboard: FIXED
+
+  top_balance:
+    enabled: true
+    world: world
+    x: 56.5
+    y: 65.5
+    z: -8.5
+    type: balance
+    # Можно задать индивидуально для каждой голограммы (FIXED / CENTER / VERTICAL / HORIZONTAL)
+    billboard: FIXED
+    lines:
+      - '&#FFD700&l✦ ТОП ПО БАЛАНСУ ✦'
+      - '&#AAAAAA▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬'
+      - '&#FFD700❶ &#FFFFFF{top_name_1} &8- &#FFD700{top_value_1}$'
+      - '&#C0C0C0❷ &#FFFFFF{top_name_2} &8- &#C0C0C0{top_value_2}$'
+      - '&#CD7F32❸ &#FFFFFF{top_name_3} &8- &#CD7F32{top_value_3}$'
+      - '&#55FF55④ &#CCCCCC{top_name_4} &8- &#55FF55{top_value_4}$'
+      - '&#55FF55⑤ &#CCCCCC{top_name_5} &8- &#55FF55{top_value_5}$'
+      - '&#55CCFF⑥ &#CCCCCC{top_name_6} &8- &#55CCFF{top_value_6}$'
+      - '&#55CCFF⑦ &#CCCCCC{top_name_7} &8- &#55CCFF{top_value_7}$'
+      - '&#999999⑧ &#BBBBBB{top_name_8} &8- &#999999{top_value_8}$'
+      - '&#999999⑨ &#BBBBBB{top_name_9} &8- &#999999{top_value_9}$'
+      - '&#999999⑩ &#BBBBBB{top_name_10} &8- &#999999{top_value_10}$'
+      - '&#AAAAAA▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬'
+      - '&#777777Обновлено: {update_time}'
+
+  top_kills:
+    enabled: true
+    world: world
+    x: 50.5
+    y: 65.5
+    z: -23.5
+    type: kills
+    billboard: FIXED
+    lines:
+      - '&#FF5555&l✦ ТОП ПО УБИЙСТВАМ ✦'
+      - '&#AAAAAA▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬'
+      - '&#FFD700❶ &#FFFFFF{top_name_1} &8- &#FF5555{top_value_1} уб.'
+      - '&#C0C0C0❷ &#FFFFFF{top_name_2} &8- &#FF6666{top_value_2} уб.'
+      - '&#CD7F32❸ &#FFFFFF{top_name_3} &8- &#FF7777{top_value_3} уб.'
+      - '&#55FF55④ &#CCCCCC{top_name_4} &8- &#55FF55{top_value_4} уб.'
+      - '&#55FF55⑤ &#CCCCCC{top_name_5} &8- &#55FF55{top_value_5} уб.'
+      - '&#55CCFF⑥ &#CCCCCC{top_name_6} &8- &#55CCFF{top_value_6} уб.'
+      - '&#55CCFF⑦ &#CCCCCC{top_name_7} &8- &#55CCFF{top_value_7} уб.'
+      - '&#999999⑧ &#BBBBBB{top_name_8} &8- &#999999{top_value_8} уб.'
+      - '&#999999⑨ &#BBBBBB{top_name_9} &8- &#999999{top_value_9} уб.'
+      - '&#999999⑩ &#BBBBBB{top_name_10} &8- &#999999{top_value_10} уб.'
+      - '&#AAAAAA▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬'
+      - '&#777777Обновлено: {update_time}'
+
+  top_deaths:
+    enabled: true
+    world: world
+    x: 51.5
+    y: 65.5
+    z: 24.5
+    type: deaths
+    billboard: FIXED
+    lines:
+      - '&#777777&l✦ ТОП ПО СМЕРТЯМ ✦'
+      - '&#AAAAAA▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬'
+      - '&#FFD700❶ &#FFFFFF{top_name_1} &8- &#AAAAAA{top_value_1} см.'
+      - '&#C0C0C0❷ &#FFFFFF{top_name_2} &8- &#BBBBBB{top_value_2} см.'
+      - '&#CD7F32❸ &#FFFFFF{top_name_3} &8- &#CCCCCC{top_value_3} см.'
+      - '&#55FF55④ &#CCCCCC{top_name_4} &8- &#55FF55{top_value_4} см.'
+      - '&#55FF55⑤ &#CCCCCC{top_name_5} &8- &#55FF55{top_value_5} см.'
+      - '&#55CCFF⑥ &#CCCCCC{top_name_6} &8- &#55CCFF{top_value_6} см.'
+      - '&#55CCFF⑦ &#CCCCCC{top_name_7} &8- &#55CCFF{top_value_7} см.'
+      - '&#999999⑧ &#BBBBBB{top_name_8} &8- &#999999{top_value_8} см.'
+      - '&#999999⑨ &#BBBBBB{top_name_9} &8- &#999999{top_value_9} см.'
+      - '&#999999⑩ &#BBBBBB{top_name_10} &8- &#999999{top_value_10} см.'
+      - '&#AAAAAA▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬'
+      - '&#777777Обновлено: {update_time}'
+
+  top_shards:
+    enabled: true
+    world: world
+    x: 56.5
+    y: 65.5
+    z: 10.5
+    type: shards
+    billboard: FIXED
+    lines:
+      - '&#AA55FF&l✦ ТОП ПО ОСКОЛКАМ ✦'
+      - '&#AAAAAA▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬'
+      - '&#FFD700❶ &#FFFFFF{top_name_1} &8- &#AA55FF{top_value_1} оск.'
+      - '&#C0C0C0❷ &#FFFFFF{top_name_2} &8- &#BB66FF{top_value_2} оск.'
+      - '&#CD7F32❸ &#FFFFFF{top_name_3} &8- &#CC77FF{top_value_3} оск.'
+      - '&#55FF55④ &#CCCCCC{top_name_4} &8- &#55FF55{top_value_4} оск.'
+      - '&#55FF55⑤ &#CCCCCC{top_name_5} &8- &#55FF55{top_value_5} оск.'
+      - '&#55CCFF⑥ &#CCCCCC{top_name_6} &8- &#55CCFF{top_value_6} оск.'
+      - '&#55CCFF⑦ &#CCCCCC{top_name_7} &8- &#55CCFF{top_value_7} оск.'
+      - '&#999999⑧ &#BBBBBB{top_name_8} &8- &#999999{top_value_8} оск.'
+      - '&#999999⑨ &#BBBBBB{top_name_9} &8- &#999999{top_value_9} оск.'
+      - '&#999999⑩ &#BBBBBB{top_name_10} &8- &#999999{top_value_10} оск.'
+      - '&#AAAAAA▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬'
+      - '&#777777Обновлено: {update_time}'
+
+  top_blocks:
+    enabled: true
+    world: world
+    x: 56.5
+    y: 65.5
+    z: 18.5
+    type: blocks
+    billboard: FIXED
+    lines:
+      - '&#55CCFF&l✦ ТОП ПО БЛОКАМ ✦'
+      - '&#AAAAAA▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬'
+      - '&#FFD700❶ &#FFFFFF{top_name_1} &8- &#55CCFF{top_value_1} бл.'
+      - '&#C0C0C0❷ &#FFFFFF{top_name_2} &8- &#66DDFF{top_value_2} бл.'
+      - '&#CD7F32❸ &#FFFFFF{top_name_3} &8- &#77EEFF{top_value_3} бл.'
+      - '&#55FF55④ &#CCCCCC{top_name_4} &8- &#55FF55{top_value_4} бл.'
+      - '&#55FF55⑤ &#CCCCCC{top_name_5} &8- &#55FF55{top_value_5} бл.'
+      - '&#55CCFF⑥ &#CCCCCC{top_name_6} &8- &#55CCFF{top_value_6} бл.'
+      - '&#55CCFF⑦ &#CCCCCC{top_name_7} &8- &#55CCFF{top_value_7} бл.'
+      - '&#999999⑧ &#BBBBBB{top_name_8} &8- &#999999{top_value_8} бл.'
+      - '&#999999⑨ &#BBBBBB{top_name_9} &8- &#999999{top_value_9} бл.'
+      - '&#999999⑩ &#BBBBBB{top_name_10} &8- &#999999{top_value_10} бл.'
+      - '&#AAAAAA▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬'
+      - '&#777777Обновлено: {update_time}'
+
+  top_playtime:
+    enabled: true
+    world: world
+    x: 56.5
+    y: 65.5
+    z: -18.5
+    type: playtime
+    billboard: FIXED
+    lines:
+      - '&#FFAA00&l✦ ТОП ПО ВРЕМЕНИ ✦'
+      - '&#AAAAAA▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬'
+      - '&#FFD700❶ &#FFFFFF{top_name_1} &8- &#FFAA00{top_value_1}'
+      - '&#C0C0C0❷ &#FFFFFF{top_name_2} &8- &#FFBB22{top_value_2}'
+      - '&#CD7F32❸ &#FFFFFF{top_name_3} &8- &#FFCC44{top_value_3}'
+      - '&#55FF55④ &#CCCCCC{top_name_4} &8- &#55FF55{top_value_4}'
+      - '&#55FF55⑤ &#CCCCCC{top_name_5} &8- &#55FF55{top_value_5}'
+      - '&#55CCFF⑥ &#CCCCCC{top_name_6} &8- &#55CCFF{top_value_6}'
+      - '&#55CCFF⑦ &#CCCCCC{top_name_7} &8- &#55CCFF{top_value_7}'
+      - '&#999999⑧ &#BBBBBB{top_name_8} &8- &#999999{top_value_8}'
+      - '&#999999⑨ &#BBBBBB{top_name_9} &8- &#999999{top_value_9}'
+      - '&#999999⑩ &#BBBBBB{top_name_10} &8- &#999999{top_value_10}'
+      - '&#AAAAAA▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬'
+      - '&#777777Обновлено: {update_time}'
