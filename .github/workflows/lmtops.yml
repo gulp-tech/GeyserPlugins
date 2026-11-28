@@ -34,20 +34,6 @@ jobs:
           name: LMtops-2.0.1
           path: LMtops/target/LMtops-2.0.1.jar
           if-no-files-found: error
-      - name: Save published JAR to dist
-        if: github.ref == 'refs/heads/arena/41da8305-geyserplugins'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          mkdir -p dist
-          gh release download lmtops-v2.0.1 --pattern LMtops-2.0.1.jar --dir dist --clobber
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -f dist/LMtops-2.0.1.jar
-          if ! git diff --cached --quiet; then
-            git commit -m 'Add tested LMtops 2.0.1 release to dist [skip ci]'
-            git push origin HEAD:refs/heads/arena/41da8305-geyserplugins
-          fi
       - name: Publish release
         if: startsWith(github.ref, 'refs/tags/lmtops-v')
         env:
