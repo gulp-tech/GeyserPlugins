@@ -37,6 +37,8 @@ jobs:
           cp -r "$src/src/main/resources/." "$RUNNER_TEMP/pnx-plugin/classes/"
           jar --create --file "$RUNNER_TEMP/pnx-plugin/VoidNV-1.0.0-pnx.1.jar" -C "$RUNNER_TEMP/pnx-plugin/classes" .
           jar --list --file "$RUNNER_TEMP/pnx-plugin/VoidNV-1.0.0-pnx.1.jar" | grep -Fx plugin.yml
+      - name: Smoke test on isolated PNX server
+        run: python3 PNX-port/VoidNV/tools/smoke.py
       - name: Save test build (not yet approved for live use)
         uses: actions/upload-artifact@v4
         with:
