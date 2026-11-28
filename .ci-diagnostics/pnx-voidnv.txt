@@ -1,0 +1,55 @@
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by org.jline.nativ.JLineNativeLoader in an unnamed module (file:/home/runner/work/_temp/pnx/PowerNukkitX-beta/build/powernukkitx.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+2026-11-28T19:08:09.009074803Z main WARN Advanced terminal features are not available in this environment
+[36m19:08:09[m [[33mmain[m] [[m[34mINFO[m[m] Using language from setup wizard: eng
+[36m19:08:09[m [[33mmain[m] [[m[34mINFO[m[m] Loading pnx.yml...
+[36m19:08:09[m [[33mmain[m] [[m[34mINFO[m[m] Selected English (eng) as the base language
+[36m19:08:10[m [[33mmain[m] [[m[34mINFO[m[m] Starting Minecraft: BE server version 1.26.60
+[36m19:08:10[m [[33mmain[m] [[m[34mINFO[m[m] This server is running PowerNukkitX version 3.0.0-DEV-SNAPSHOT (git-null) (API 3.0.6)
+[36m19:08:10[m [[33mmain[m] [[m[34mINFO[m[m] PowerNukkitX is distributed under the LGPL License
+[36m19:08:10[m [[33mmain[m] [[m[34mINFO[m[m] [Structure Migration] Structure storage migration from legacy to 3.1.0 completed: 0 changed, 0 skipped, 0 files inspected
+[36m19:08:13[m [[33mComputeThreadPool-thread-0[m] [[m[34mINFO[m[m] Loading recipes...
+[36m19:08:14[m [[33mComputeThreadPool-thread-0[m] [[m[34mINFO[m[m] Loaded 4986 recipes.
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::invokeCleaner has been called by org.iq80.leveldb.fileenv.ByteBufferSupport (file:/home/runner/work/_temp/pnx/PowerNukkitX-beta/build/powernukkitx.jar)
+WARNING: Please consider reporting this to the maintainers of class org.iq80.leveldb.fileenv.ByteBufferSupport
+WARNING: sun.misc.Unsafe::invokeCleaner will be removed in a future release
+[36m19:08:14[m [[33mmain[m] [[m[34mINFO[m[m] Successfully loaded 0 resource packs
+[36m19:08:14[m [[33mmain[m] [[m[34mINFO[m[m] Enabling PowerNukkitX v3.0.0-DEV-SNAPSHOT
+[36m19:08:14[m [[33mmain[m] [[m[34mINFO[m[m] Loading VoidNV v1.0.0-pnx.1
+[36m19:08:14[m [[33mmain[m] [[m[31mWARN[m[m] Level "world" not found
+[36m19:08:14[m [[33mmain[m] [[m[34mINFO[m[m] Preparing level "world"
+[36m19:08:14[m [[33mmain[m] [[m[34mINFO[m[m] Loading is complete for level "world"
+[36m19:08:14[m [[33mmain[m] [[m[34mINFO[m[m] Preparing level "world"
+[36m19:08:14[m [[33mmain[m] [[m[34mINFO[m[m] Loading is complete for level "world"
+[36m19:08:14[m [[33mmain[m] [[m[34mINFO[m[m] Preparing level "world"
+[36m19:08:14[m [[33mmain[m] [[m[34mINFO[m[m] Loading is complete for level "world"
+[36m19:08:14[m [[33mmain[m] [[m[34mINFO[m[m] Enabling VoidNV v1.0.0-pnx.1
+[36m19:08:14[m [[33mmain[m] [[m[1;31mERROR[m[m] An error occurred while enabling the plugin VoidNV, 1.0.0-pnx.1, ru.voidpe.pnx.nv.VoidNV
+java.lang.reflect.InaccessibleObjectException: Unable to make protected final java.lang.Class java.lang.ClassLoader.defineClass(java.lang.String,byte[],int,int) throws java.lang.ClassFormatError accessible: module java.base does not "opens java.lang" to unnamed module @64485a47
+	at java.base/java.lang.reflect.AccessibleObject.throwInaccessibleObjectException(AccessibleObject.java:353)
+	at java.base/java.lang.reflect.AccessibleObject.checkCanSetAccessible(AccessibleObject.java:329)
+	at java.base/java.lang.reflect.AccessibleObject.checkCanSetAccessible(AccessibleObject.java:277)
+	at java.base/java.lang.reflect.Method.checkCanSetAccessible(Method.java:182)
+	at java.base/java.lang.reflect.Method.setAccessible(Method.java:176)
+	at org.powernukkitx.plugin.MethodEventExecutor.loadClass(MethodEventExecutor.java:169)
+	at org.powernukkitx.plugin.MethodEventExecutor.compile(MethodEventExecutor.java:150)
+	at org.powernukkitx.plugin.MethodEventExecutor.compile(MethodEventExecutor.java:59)
+	at org.powernukkitx.plugin.PluginManager.registerEvents(PluginManager.java:657)
+	at ru.voidpe.pnx.nv.VoidNV.onEnable(VoidNV.java:29)
+	at org.powernukkitx.plugin.PluginBase.setEnabled(PluginBase.java:99)
+	at org.powernukkitx.plugin.JavaPluginLoader.enablePlugin(JavaPluginLoader.java:177)
+	at org.powernukkitx.plugin.PluginManager.enablePlugin(PluginManager.java:472)
+	at org.powernukkitx.Server.enablePlugin(Server.java:1957)
+	at org.powernukkitx.Server.enablePlugins(Server.java:1942)
+	at org.powernukkitx.Server.<init>(Server.java:794)
+	at org.powernukkitx.PowerNukkitX.main(PowerNukkitX.java:238)
+	at org.powernukkitx.JarStart.main(JarStart.java:20)
+[36m19:08:14[m [[33mmain[m] [[m[34mINFO[m[m] Disabling VoidNV v1.0.0-pnx.1
+[36m19:08:15[m [[33mmain[m] [[m[34mINFO[m[m] Generated a NetherNet identity at /home/runner/work/_temp/pnx-voidnv-server/keys/identity.pem. Share this file across a fleet to be trusted as one operator, and keep it: replacing it re-prompts every player
+[36m19:08:15[m [[33mmain[m] [[m[34mINFO[m[m] Default game type: Survival Mode
+[36m19:08:15[m [[33mmain[m] [[m[34mINFO[m[m] Opening server on 0.0.0.0:19199
+[36m19:08:15[m [[33mmain[m] [[m[34mINFO[m[m] Done (6.04s)! For help, type "help" or "?"
