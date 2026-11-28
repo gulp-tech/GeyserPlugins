@@ -1,0 +1,20 @@
+name: VoidNV
+version: '1.0.0-pnx.1'
+main: ru.voidpe.pnx.nv.VoidNV
+api: ['3.0.0']
+author: VoidPE
+description: 'Ночное зрение для PowerNukkitX'
+commands:
+  nv:
+    description: 'Включить ночное зрение до смерти'
+    usage: '/nv'
+    permission: voidnv.use
+  voidnv:
+    description: 'Настройки VoidNV'
+    usage: '/voidnv reload'
+    permission: voidnv.admin
+permissions:
+  voidnv.use:
+    default: true
+  voidnv.admin:
+    default: op

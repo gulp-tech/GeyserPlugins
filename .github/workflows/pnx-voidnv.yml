@@ -1,0 +1,45 @@
+name: PNX VoidNV validation
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'PNX-port/VoidNV/**'
+      - '.github/workflows/pnx-voidnv.yml'
+      - 'PowerNukkitX-beta.zip'
+permissions:
+  contents: read
+jobs:
+  compile-and-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+      - name: Compile API from the user's PNX source archive
+        run: |
+          set -euo pipefail
+          unzip -q PowerNukkitX-beta.zip -d "$RUNNER_TEMP/pnx"
+          cd "$RUNNER_TEMP/pnx/PowerNukkitX-beta"
+          chmod +x gradlew
+          ./gradlew --no-daemon shadowJar -x test -x generateGitProperties
+          test -f build/powernukkitx.jar
+      - name: Compile VoidNV and run pure logic tests
+        run: |
+          set -euo pipefail
+          src=PNX-port/VoidNV
+          mkdir -p "$RUNNER_TEMP/pnx-plugin/classes" "$RUNNER_TEMP/pnx-plugin/test"
+          javac --release 25 -encoding UTF-8 -cp "$RUNNER_TEMP/pnx/PowerNukkitX-beta/build/powernukkitx.jar" -d "$RUNNER_TEMP/pnx-plugin/classes" $(find "$src/src/main/java" -name '*.java' -print)
+          javac --release 25 -encoding UTF-8 -cp "$RUNNER_TEMP/pnx-plugin/classes" -d "$RUNNER_TEMP/pnx-plugin/test" $(find "$src/src/test/java" -name '*.java' -print)
+          java -cp "$RUNNER_TEMP/pnx-plugin/classes:$RUNNER_TEMP/pnx-plugin/test" ru.voidpe.pnx.nv.HelpersTest
+          cp -r "$src/src/main/resources/." "$RUNNER_TEMP/pnx-plugin/classes/"
+          jar --create --file "$RUNNER_TEMP/pnx-plugin/VoidNV-1.0.0-pnx.1.jar" -C "$RUNNER_TEMP/pnx-plugin/classes" .
+          jar --list --file "$RUNNER_TEMP/pnx-plugin/VoidNV-1.0.0-pnx.1.jar" | grep -Fx plugin.yml
+      - name: Save test build (not yet approved for live use)
+        uses: actions/upload-artifact@v4
+        with:
+          name: VoidNV-PNX-test-build
+          path: ${{ runner.temp }}/pnx-plugin/VoidNV-1.0.0-pnx.1.jar
+          if-no-files-found: error
