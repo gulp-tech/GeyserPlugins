@@ -20,3 +20,14 @@ jobs:
           curl --retry 3 -fL https://repo.maven.apache.org/maven2/org/benf/cfr/0.152/cfr-0.152.jar -o /tmp/cfr.jar
           java -jar /tmp/cfr.jar LMtops/original/LMtops-2.0.0.jar --outputdir /tmp/lmtops-source --silent true
           for f in /tmp/lmtops-source/com/musd348/lmtops/*.java; do echo "=====FILE:$f====="; cat "$f"; done
+      - name: Store decompiled reference source on session branch
+        run: |
+          mkdir -p LMtops/decompiled
+          cp /tmp/lmtops-source/com/musd348/lmtops/*.java LMtops/decompiled/
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add LMtops/decompiled/*.java
+          if ! git diff --cached --quiet; then
+            git commit -m 'Save LMtops decompiled reference source [skip ci]'
+            git push origin HEAD:refs/heads/arena/41da8305-geyserplugins
+          fi
