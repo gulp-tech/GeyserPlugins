@@ -23,6 +23,8 @@ with log.open('wb') as stream:
         raise RuntimeError(f'timed out waiting for {what}')
     try:
         wait_for(lambda s: 'For help, type' in s and 'Enabling VoidNV v1.0.0-pnx.1' in s, 180, 'server and plugin startup')
+        if 'An error occurred while enabling the plugin VoidNV' in output() or 'Disabling VoidNV' in output():
+            raise RuntimeError('VoidNV did not enable successfully')
         proc.stdin.write('nv\nvoidnv reload\n'.encode()); proc.stdin.flush()
         wait_for(lambda s: 'Команда только для игроков.' in s and 'VoidNV перезагружен.' in s, 30, 'command responses')
         assert (work / 'plugins' / 'VoidNV' / 'config.yml').is_file(), 'config missing'

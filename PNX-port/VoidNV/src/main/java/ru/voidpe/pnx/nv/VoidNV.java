@@ -5,7 +5,6 @@ import org.powernukkitx.command.Command;
 import org.powernukkitx.command.CommandSender;
 import org.powernukkitx.entity.effect.Effect;
 import org.powernukkitx.entity.effect.EffectType;
-import org.powernukkitx.event.EventHandler;
 import org.powernukkitx.event.EventPriority;
 import org.powernukkitx.event.Listener;
 import org.powernukkitx.event.player.PlayerDeathEvent;
@@ -26,7 +25,12 @@ public final class VoidNV extends PluginBase implements Listener {
     @Override
     public void onEnable() {
         saveDefaultConfig();
-        getServer().getPluginManager().registerEvents(this, this);
+        // PNX's annotation-based event compiler reflectively opens java.lang.ClassLoader
+        // and can fail without JVM --add-opens. Register the same events directly.
+        getServer().getPluginManager().registerEvent(PlayerDeathEvent.class, this,
+                EventPriority.MONITOR, (listener, event) -> ((VoidNV) listener).onDeath((PlayerDeathEvent) event), this, true);
+        getServer().getPluginManager().registerEvent(PlayerQuitEvent.class, this,
+                EventPriority.NORMAL, (listener, event) -> ((VoidNV) listener).onQuit((PlayerQuitEvent) event), this);
     }
 
     @Override
@@ -73,12 +77,10 @@ public final class VoidNV extends PluginBase implements Listener {
         return true;
     }
 
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onDeath(PlayerDeathEvent event) {
         active.remove(event.getEntity().getUniqueId());
     }
 
-    @EventHandler
     public void onQuit(PlayerQuitEvent event) {
         active.remove(event.getPlayer().getUniqueId());
         // Cooldown remains until it expires, even if the player reconnects.
