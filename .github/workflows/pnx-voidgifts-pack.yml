@@ -40,6 +40,7 @@ jobs:
           java -cp "$pnx:$RUNNER_TEMP/pnx-giftpack/classes:$RUNNER_TEMP/pnx-giftpack/tests" ru.voidpe.pnx.gifts.GiftPolicyTest 2>&1 | tee -a "$RUNNER_TEMP/gift-test.log"
           cp "$src/src/test/resources/plugin.yml" "$RUNNER_TEMP/pnx-giftpack/classes/"
           cp "$RUNNER_TEMP/pnx-giftpack/tests/ru/voidpe/pnx/gifts/GiftPackProbe.class" "$RUNNER_TEMP/pnx-giftpack/classes/ru/voidpe/pnx/gifts/"
+          cp "$RUNNER_TEMP/pnx-giftpack/tests/ru/voidpe/pnx/gifts/GiftLootStoreTest.class" "$RUNNER_TEMP/pnx-giftpack/classes/ru/voidpe/pnx/gifts/"
           jar --create --file "$RUNNER_TEMP/pnx-giftpack/GiftPackProbe.jar" -C "$RUNNER_TEMP/pnx-giftpack/classes" .
       - name: Test pack lifecycle on isolated PNX
         run: python3 PNX-port/VoidGifts/tools/smoke_pack.py

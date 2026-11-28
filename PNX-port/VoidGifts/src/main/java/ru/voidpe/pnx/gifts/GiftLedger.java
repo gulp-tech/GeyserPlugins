@@ -145,7 +145,7 @@ public final class GiftLedger {
         } catch (IOException e) { throw e; }
         catch (RuntimeException e) { throw new IOException("Invalid gift ledger; file left untouched", e); }
     }
-    private static void validateJson(String json) throws IOException {
+    static void validateJson(String json) throws IOException {
         try (var reader = new com.google.gson.stream.JsonReader(new java.io.StringReader(json))) {
             reader.setStrictness(com.google.gson.Strictness.STRICT);
             validateValue(reader, 0);

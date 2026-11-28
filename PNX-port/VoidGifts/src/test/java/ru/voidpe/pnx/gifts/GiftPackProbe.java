@@ -15,6 +15,8 @@ public final class GiftPackProbe extends PluginBase {
         active = root.resolve("resource_packs/VoidGiftsPack.mcpack");
         staging = getDataFolder().toPath().resolve("staging");
         try {
+            GiftLootStoreTest.run();
+            getLogger().info("GIFT_LOOT_STORAGE_TEST_OK");
             var result = GiftMusicPack.prepare(music, active, staging);
             GiftPackActivation.activateBeforeNetwork(getServer(), result, active);
             var loaded = getServer().getResourcePackManager().getPackById(result.uuid());

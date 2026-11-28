@@ -34,6 +34,7 @@ def run(number, ready, modify=False):
         try:
             wait(lambda s: 'For help, type' in s and ready in s,180,'startup and pack activation')
             if 'Disabling GiftPackProbe' in text(): raise RuntimeError('probe disabled')
+            if 'GIFT_LOOT_STORAGE_TEST_OK' not in text(): raise RuntimeError('PNX item storage test did not run')
             if modify:
                 previous=digest(); (music/'second.OGG').write_bytes(source.read_bytes())
                 proc.stdin.write(b'giftpackprobe\n'); proc.stdin.flush()
