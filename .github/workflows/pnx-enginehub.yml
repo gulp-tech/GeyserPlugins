@@ -35,24 +35,23 @@ jobs:
           unzip -q WorldGuard-version-7.0.x.zip -d "$RUNNER_TEMP/enginehub"
           wg="$RUNNER_TEMP/enginehub/WorldGuard-version-7.0.x"
           we="$RUNNER_TEMP/enginehub/WorldEdit-version-7.4.x"
-          # Both upstream composite builds call their plugin build "build-logic".
-          # Give WorldEdit's included build a distinct identity in this temporary CI copy.
-          python3 - "$we/settings.gradle.kts" <<'PY'
+          # Build the uploaded WorldEdit separately to avoid collisions between the
+          # two projects' Gradle plugin builds. Use the runner's private Maven cache.
+          cd "$we"
+          chmod +x gradlew
+          ./gradlew --no-daemon --max-workers=2 :worldedit-libs:core:publishToMavenLocal :worldedit-libs:core:ap:publishToMavenLocal :worldedit-core:publishToMavenLocal -x test 2>&1 | tee "$RUNNER_TEMP/worldedit-build.log"
+          python3 - "$wg/settings.gradle.kts" "$wg/gradle/libs.versions.toml" <<'PY'
           import pathlib, sys
-          path = pathlib.Path(sys.argv[1])
-          data = path.read_text()
-          old = 'includeBuild("build-logic")'
-          assert data.count(old) == 1
-          path.write_text(data.replace(old, 'includeBuild("build-logic") { name = "worldedit-build-logic" }'))
+          settings = pathlib.Path(sys.argv[1])
+          data = settings.read_text()
+          marker = 'dependencyResolutionManagement {\n    repositories {'
+          assert data.count(marker) == 1
+          settings.write_text(data.replace(marker, marker + '\n        mavenLocal()'))
+          catalog = pathlib.Path(sys.argv[2])
+          data = catalog.read_text()
+          assert 'worldedit = "7.4.6"' in data
+          catalog.write_text(data.replace('worldedit = "7.4.6"', 'worldedit = "7.4.7-SNAPSHOT"'))
           PY
-          cat >> "$wg/settings.gradle.kts" <<'GRADLE'
-          includeBuild(System.getenv("RUNNER_TEMP") + "/enginehub/WorldEdit-version-7.4.x") {
-              dependencySubstitution {
-                  substitute(module("com.sk89q.worldedit:worldedit-core")).using(project(":worldedit-core"))
-                  substitute(module("com.sk89q.worldedit.worldedit-libs:ap")).using(project(":worldedit-libs:core:ap"))
-              }
-          }
-          GRADLE
           cat >> "$wg/worldguard-core/build.gradle.kts" <<'GRADLE'
           tasks.register("pnxBridgeClasspath") {
               dependsOn(tasks.named("jar"), configurations.getByName("runtimeClasspath"))
@@ -77,4 +76,4 @@ jobs:
           java -cp "$cp:$RUNNER_TEMP/enginehub-bridge/classes:$RUNNER_TEMP/enginehub-bridge/test" ru.voidpe.pnx.enginehub.EngineHubBridgeTest 2>&1 | tee "$RUNNER_TEMP/bridge-test.log"
       - name: Expose failure summary
         if: failure()
-        run: python3 PNX-port/EngineHubBridge/tools/error_annotation.py "$RUNNER_TEMP/pnx-enginehub-build.log" "$RUNNER_TEMP/worldguard-build.log" "$RUNNER_TEMP/bridge-compile.log" "$RUNNER_TEMP/bridge-test.log"
+        run: python3 PNX-port/EngineHubBridge/tools/error_annotation.py "$RUNNER_TEMP/worldedit-build.log" "$RUNNER_TEMP/worldguard-build.log" "$RUNNER_TEMP/bridge-compile.log" "$RUNNER_TEMP/bridge-test.log"
