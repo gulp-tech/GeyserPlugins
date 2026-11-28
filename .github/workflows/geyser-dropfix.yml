@@ -1,0 +1,40 @@
+name: GeyserDropFix tests
+on:
+  push:
+    branches: ['arena/41da8305-geyserplugins']
+    paths: ['GeyserDropFix/**', '.github/workflows/geyser-dropfix.yml']
+    tags: ['geyserdropfix-v*']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Compile and test
+        working-directory: GeyserDropFix
+        run: |
+          set +e
+          bash gradlew --no-daemon clean test jar > gradle.log 2>&1
+          code=$?
+          if [ "$code" -ne 0 ]; then
+            tail -100 gradle.log
+            for f in build/test-results/test/TEST-*.xml; do [ -f "$f" ] && grep -E -A10 '<failure|<error' "$f"; done
+            exit "$code"
+          fi
+          tail -20 gradle.log
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GeyserDropFix-1.0.0
+          path: GeyserDropFix/build/libs/GeyserDropFix-1.0.0.jar
+          if-no-files-found: error
+      - name: Publish tagged test release
+        if: startsWith(github.ref, 'refs/tags/geyserdropfix-v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" GeyserDropFix/build/libs/GeyserDropFix-1.0.0.jar --target "$GITHUB_SHA" --title "GeyserDropFix 1.0.0 (experimental)" --notes "Experimental Geyser hotbar-drop compatibility hook. No real Bedrock test yet. This does not fix PvP kicks. Back up and test on a staging server before use; remove extension and fully restart to revert."

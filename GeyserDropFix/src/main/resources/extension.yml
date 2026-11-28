@@ -1,0 +1,6 @@
+id: geyserdropfix
+name: GeyserDropFix
+main: ru.voidpe.geyser.dropfix.GeyserDropFix
+api: 2.11.0
+version: ${version}
+authors: [VoidPE]

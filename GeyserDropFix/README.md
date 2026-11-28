@@ -1,0 +1,5 @@
+# GeyserDropFix (experimental)
+
+Geyser extension for diagnosis of Bedrock hotbar-drop desynchronization. Geyser's normal inventory transaction has no serialized `hotbarSlot`, yet the examined Geyser translator unconditionally uses the field to switch held slot. This hook supplies the existing session slot only while delegating recognized two-action hotbar-drop transactions to the original translator. It does not bypass permission checks, modify inventory directly or synthesize drops; it restores the packet field after the call. Other transactions pass through unchanged.
+
+This uses internal APIs, has not been verified on a Bedrock client and only installs over the known original translator; it logs if another implementation is installed. It does not address PvP kicks. Test on a staging server with inexpensive items, checking all hotbar slots, dropping one and a full stack, rapid slot switches, both touch and keyboard, inventory drop, protections and other protocol versions. Roll back immediately on any disappearance, duplication, wrong slot or desync. Back up the server before testing. Remove this extension and fully restart to revert.
