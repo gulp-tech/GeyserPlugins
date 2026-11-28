@@ -1,0 +1,22 @@
+name: Analyze LMtops supplied binary
+on:
+  push:
+    branches: ['arena/41da8305-geyserplugins']
+    paths: ['LMtops/**', '.github/workflows/lmtops-analysis.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Decompile user-supplied plugin for review
+        run: |
+          curl --retry 3 -fL https://repo.maven.apache.org/maven2/org/benf/cfr/0.152/cfr-0.152.jar -o /tmp/cfr.jar
+          java -jar /tmp/cfr.jar LMtops/original/LMtops-2.0.0.jar --outputdir /tmp/lmtops-source --silent true
+          for f in /tmp/lmtops-source/com/musd348/lmtops/*.java; do echo "=====FILE:$f====="; cat "$f"; done
