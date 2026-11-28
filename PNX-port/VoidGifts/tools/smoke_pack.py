@@ -38,7 +38,14 @@ def run(number, ready, modify=False):
                 previous=digest(); (music/'second.OGG').write_bytes(source.read_bytes())
                 proc.stdin.write(b'giftpackprobe\n'); proc.stdin.flush()
                 wait(lambda s: 'GIFT_PROBE_RESTART_REQUIRED' in s or 'GIFT_PROBE_UNSAFE_ACTIVATION' in s or 'GIFT_PROBE_ERROR' in s,30,'runtime activation check')
-                if 'GIFT_PROBE_RESTART_REQUIRED' not in text() or digest()!=previous: raise RuntimeError('active pack changed during runtime')
+                if 'GIFT_PROBE_RESTART_REQUIRED active=1 pending=2' not in text() or digest()!=previous: raise RuntimeError('active pack or sound list changed during runtime')
+                # Deliberately simulate an external overwrite only in this playerless CI server.
+                original = active.read_bytes()
+                active.write_bytes(original + b'changed')
+                proc.stdin.write(b'giftpackprobe verify\n'); proc.stdin.flush()
+                wait(lambda s: 'GIFT_PROBE_CHANGED_FILE_REFUSED' in s or 'GIFT_PROBE_VERIFY_OK' in s,30,'external overwrite detection')
+                if 'GIFT_PROBE_CHANGED_FILE_REFUSED' not in text(): raise RuntimeError('modified loaded pack not detected')
+                active.write_bytes(original)
             proc.stdin.write(b'stop\n'); proc.stdin.flush(); proc.wait(timeout=45)
             if proc.returncode != 0: raise RuntimeError(f'PNX exit {proc.returncode}')
         except BaseException as exc:
