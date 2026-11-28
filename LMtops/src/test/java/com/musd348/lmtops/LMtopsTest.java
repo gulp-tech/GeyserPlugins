@@ -71,6 +71,39 @@ class LMtopsTest {
             assertEquals(1, plugin.getDataManager().getStat(player.getUniqueId(), "blocks"));
         } finally { MockBukkit.unmock(); }
     }
+    @Test void cachedLeaderboardIncludesTrackedPlayers() {
+        ServerMock server = MockBukkit.mock();
+        try {
+            MockBukkit.createMockPlugin("Vault");
+            LMtops plugin = MockBukkit.load(LMtops.class);
+            var player = server.addPlayer();
+            plugin.getDataManager().addStat(player.getUniqueId(), "kills", 8);
+            plugin.getTopManager().stop();
+            plugin.getTopManager().updateCache();
+            server.getScheduler().performTicks(5);
+            assertTrue(plugin.getTopManager().getTopKills().stream()
+                    .anyMatch(e -> e.uuid().equals(player.getUniqueId()) && e.value() == 8));
+        } finally { MockBukkit.unmock(); }
+    }
+    @SuppressWarnings("unchecked")
+    @Test void onlinePlaytimeFlushDoesNotDoubleCount() throws Exception {
+        ServerMock server = MockBukkit.mock();
+        try {
+            MockBukkit.createMockPlugin("Vault");
+            LMtops plugin = MockBukkit.load(LMtops.class);
+            var player = server.addPlayer();
+            PlayerListener listener = new PlayerListener(plugin);
+            var field = PlayerListener.class.getDeclaredField("joinTimes"); field.setAccessible(true);
+            var times = (java.util.Map<UUID, Long>) field.get(listener);
+            times.put(player.getUniqueId(), System.currentTimeMillis() - 65000L);
+            listener.flushOnlineTime();
+            long first = plugin.getDataManager().getStat(player.getUniqueId(), "playtime");
+            assertTrue(first >= 65 && first <= 66);
+            listener.flushOnlineTime();
+            long second = plugin.getDataManager().getStat(player.getUniqueId(), "playtime");
+            assertTrue(second >= first && second <= first + 1);
+        } finally { MockBukkit.unmock(); }
+    }
     @Test void menuItemsCannotBeTakenAndClickNavigates() {
         ServerMock server = MockBukkit.mock();
         try {
