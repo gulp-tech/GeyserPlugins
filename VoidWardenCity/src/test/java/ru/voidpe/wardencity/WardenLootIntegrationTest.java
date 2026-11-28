@@ -150,4 +150,30 @@ class WardenLootIntegrationTest {
         assertEquals(100, call("currentEntryChance", new Class<?>[]{String.class}, "vanilla:SCULK"));
         assertTrue(java.nio.file.Files.isDirectory(path));
     }
+
+    @SuppressWarnings("unchecked")
+    @Test void potionLimitPreservesPotionDataAndOtherRewards() throws Exception {
+        var potion = new org.bukkit.inventory.ItemStack(org.bukkit.Material.POTION, 3);
+        var meta = (org.bukkit.inventory.meta.PotionMeta) potion.getItemMeta();
+        meta.setBasePotionType(org.bukkit.potion.PotionType.STRONG_REGENERATION);
+        potion.setItemMeta(meta);
+        var diamond = new org.bukkit.inventory.ItemStack(org.bukkit.Material.DIAMOND, 4);
+        var second = potion.clone();
+        var selected = new java.util.ArrayList<>(java.util.List.of(potion, diamond, second));
+        var result = (java.util.List<org.bukkit.inventory.ItemStack>) call("limitDrinkablePotions", new Class<?>[]{java.util.List.class}, selected);
+        assertEquals(2, result.size());
+        assertEquals(1, result.get(0).getAmount());
+        assertTrue(result.get(0).isSimilar(potion));
+        assertEquals(org.bukkit.potion.PotionType.STRONG_REGENERATION,
+                ((org.bukkit.inventory.meta.PotionMeta) result.get(0).getItemMeta()).getBasePotionType());
+        assertEquals(3, potion.getAmount());
+        assertEquals(diamond, result.get(1));
+        plugin.getConfig().set("chests.max-drinkable-potions", 0);
+        result = (java.util.List<org.bukkit.inventory.ItemStack>) call("limitDrinkablePotions", new Class<?>[]{java.util.List.class}, selected);
+        assertEquals(java.util.List.of(diamond), result);
+        plugin.getConfig().set("chests.max-drinkable-potions", 4);
+        result = (java.util.List<org.bukkit.inventory.ItemStack>) call("limitDrinkablePotions", new Class<?>[]{java.util.List.class}, selected);
+        assertEquals(3, result.get(0).getAmount());
+        assertEquals(1, result.get(2).getAmount());
+    }
 }

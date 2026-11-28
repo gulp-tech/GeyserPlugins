@@ -505,6 +505,7 @@ public class VoidWardenCity extends JavaPlugin implements Listener, CommandExecu
         }
         List<ItemStack> selected = filterVanilla(vanilla);
         addExtraLoot(selected, opener, inv.getSize());
+        selected = limitDrinkablePotions(selected);
         inv.clear();
         for (ItemStack item : selected) {
             int slot = freeSlot(inv);
@@ -512,6 +513,26 @@ public class VoidWardenCity extends JavaPlugin implements Listener, CommandExecu
             inv.setItem(slot, item);
         }
         return true;
+    }
+
+    /** Cap potion quantity without changing their potion data, names or models. */
+    private List<ItemStack> limitDrinkablePotions(List<ItemStack> selected) {
+        int remaining = Math.max(0, getConfig().getInt("chests.max-drinkable-potions", 1));
+        List<ItemStack> limited = new ArrayList<>(selected.size());
+        for (ItemStack item : selected) {
+            if (item == null || item.getType() != Material.POTION) {
+                limited.add(item);
+                continue;
+            }
+            int count = Math.min(remaining, Math.max(0, item.getAmount()));
+            if (count > 0) {
+                ItemStack kept = item.clone();
+                kept.setAmount(count);
+                limited.add(kept);
+                remaining -= count;
+            }
+        }
+        return limited;
     }
 
     private List<ItemStack> filterVanilla(java.util.Collection<ItemStack> source) {
@@ -570,7 +591,7 @@ public class VoidWardenCity extends JavaPlugin implements Listener, CommandExecu
         List<ItemStack> selected = filterVanilla(event.getLoot());
         Player opener = event.getEntity() instanceof Player p ? p : null;
         addExtraLoot(selected, opener, 27);
-        event.setLoot(selected);
+        event.setLoot(limitDrinkablePotions(selected));
         Location loc = chest.getLocation().clone();
         Bukkit.getScheduler().runTask(this, () -> {
             if (event.isCancelled() || !(loc.getBlock().getState() instanceof Chest current)

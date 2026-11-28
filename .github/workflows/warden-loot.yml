@@ -40,12 +40,12 @@ jobs:
           tail -25 build.log
       - uses: actions/upload-artifact@v4
         with:
-          name: VoidWardenCity-1.5.0
-          path: VoidWardenCity/target/VoidWardenCity-1.5.0.jar
+          name: VoidWardenCity-1.5.1
+          path: VoidWardenCity/target/VoidWardenCity-1.5.1.jar
           if-no-files-found: error
       - name: Publish tagged release
         if: startsWith(github.ref, 'refs/tags/wardencity-v')
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" VoidWardenCity/target/VoidWardenCity-1.5.0.jar --target "$GITHUB_SHA" --title "VoidWardenCity 1.5.0" --notes "Uses server Ancient City loot tables and retains extra rewards. Only marked event chests and unopened natural city chests are refilled; old unmarked event chests require /wcity chestadd. Requires live Bedrock/Purpur testing."
+          gh release create "$GITHUB_REF_NAME" VoidWardenCity/target/VoidWardenCity-1.5.1.jar --target "$GITHUB_SHA" --title "VoidWardenCity 1.5.1" --notes "Caps drinkable potions per refill (default 1), retaining potion metadata. Vanilla appearance and Bedrock stacking depend on other plugins and mapping; requires live testing. Uses server Ancient City loot tables and retains extra rewards. Only marked event chests and unopened natural city chests are refilled; old unmarked event chests require /wcity chestadd. Requires live Bedrock/Purpur testing."
