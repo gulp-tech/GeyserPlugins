@@ -5,7 +5,7 @@ on:
     paths: ['LMtops/**', '.github/workflows/lmtops-analysis.yml']
   workflow_dispatch:
 permissions:
-  contents: read
+  contents: write
 jobs:
   analyze:
     runs-on: ubuntu-latest
