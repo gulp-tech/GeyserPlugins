@@ -1,0 +1,156 @@
+2026-10-23 14:56:38 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLDataException: Value too long for column "ACTION CHARACTER VARYING(300)": "U&'parent add strannik server=parent server=worldguard.region.max-region-count.1... (1193)"; SQL statement:
+INSERT INTO `luckperms_actions` (time, actor_uuid, actor_name, type, acted_uuid, acted_name, action) VALUES(?, ?, ?, ?, ?, ?, ?) [22001-214]
+2026-10-23 14:56:38 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLDataException: Value too long for column "CONTEXTS CHARACTER VARYING(200)": "U&'{""server"":[""&#55ffff\\043b\\043e\\0440\\0434 &r"",""&#cfcfcf\\0441\\0442\\0440\\0430\\04... (895)"; SQL statement:
+INSERT INTO `luckperms_group_permissions` (name, permission, `value`, server, world, expiry, contexts) VALUES(?, ?, ?, ?, ?, ?, ?) [22001-214]
+2026-10-23 14:56:38 jdbc[3]: exception
+org.h2.jdbc.JdbcBatchUpdateException: Value too long for column "CONTEXTS CHARACTER VARYING(200)": "U&'{""server"":[""&#55ffff\\043b\\043e\\0440\\0434 &r"",""&#cfcfcf\\0441\\0442\\0440\\0430\\04... (895)"; SQL statement:
+INSERT INTO `luckperms_group_permissions` (name, permission, `value`, server, world, expiry, contexts) VALUES(?, ?, ?, ?, ?, ?, ?) [22001-214]
+	at org.h2.jdbc.JdbcPreparedStatement.executeBatch(JdbcPreparedStatement.java:1269)
+	at me.lucko.luckperms.common.storage.implementation.sql.SqlStorage.updatePermissions(SqlStorage.java:903)
+	at me.lucko.luckperms.common.storage.implementation.sql.SqlStorage.updateGroupPermissions(SqlStorage.java:859)
+	at me.lucko.luckperms.common.storage.implementation.sql.SqlStorage.saveGroup(SqlStorage.java:553)
+	at me.lucko.luckperms.common.storage.Storage.lambda$saveGroup$0(Storage.java:184)
+	at me.lucko.luckperms.common.util.AsyncInterface.lambda$future$1(AsyncInterface.java:61)
+	at java.base/java.util.concurrent.CompletableFuture$AsyncRun.run(CompletableFuture.java:1825)
+	at java.base/java.util.concurrent.CompletableFuture$AsyncRun.exec(CompletableFuture.java:1817)
+	at java.base/java.util.concurrent.ForkJoinTask.doExec(ForkJoinTask.java:511)
+	at java.base/java.util.concurrent.ForkJoinPool$WorkQueue.topLevelExec(ForkJoinPool.java:1450)
+	at java.base/java.util.concurrent.ForkJoinPool.runWorker(ForkJoinPool.java:2019)
+	at java.base/java.util.concurrent.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:187)
+org.h2.jdbc.JdbcSQLDataException: Value too long for column "CONTEXTS CHARACTER VARYING(200)": "U&'{""server"":[""&#55ffff\\043b\\043e\\0440\\0434 &r"",""&#cfcfcf\\0441\\0442\\0440\\0430\\04... (895)"; SQL statement:
+INSERT INTO `luckperms_group_permissions` (name, permission, `value`, server, world, expiry, contexts) VALUES(?, ?, ?, ?, ?, ?, ?) [22001-214]
+	at org.h2.message.DbException.getJdbcSQLException(DbException.java:506)
+	at org.h2.message.DbException.getJdbcSQLException(DbException.java:477)
+	at org.h2.message.DbException.get(DbException.java:223)
+	at org.h2.message.DbException.getValueTooLongException(DbException.java:322)
+	at org.h2.value.Value.getValueTooLongException(Value.java:2573)
+	at org.h2.value.Value.convertToVarchar(Value.java:1261)
+	at org.h2.value.Value.convertTo(Value.java:1117)
+	at org.h2.value.Value.convertForAssignTo(Value.java:1092)
+	at org.h2.table.Column.validateConvertUpdateSequence(Column.java:369)
+	at org.h2.table.Table.convertInsertRow(Table.java:926)
+	at org.h2.command.dml.Insert.insertRows(Insert.java:167)
+	at org.h2.command.dml.Insert.update(Insert.java:135)
+	at org.h2.command.dml.DataChangeStatement.update(DataChangeStatement.java:74)
+	at org.h2.command.CommandContainer.update(CommandContainer.java:169)
+	at org.h2.command.Command.executeUpdate(Command.java:252)
+	at org.h2.jdbc.JdbcPreparedStatement.executeUpdateInternal(JdbcPreparedStatement.java:209)
+	at org.h2.jdbc.JdbcPreparedStatement.executeBatchElement(JdbcPreparedStatement.java:1317)
+	at org.h2.jdbc.JdbcPreparedStatement.executeBatch(JdbcPreparedStatement.java:1263)
+	at me.lucko.luckperms.common.storage.implementation.sql.SqlStorage.updatePermissions(SqlStorage.java:903)
+	at me.lucko.luckperms.common.storage.implementation.sql.SqlStorage.updateGroupPermissions(SqlStorage.java:859)
+	at me.lucko.luckperms.common.storage.implementation.sql.SqlStorage.saveGroup(SqlStorage.java:553)
+	at me.lucko.luckperms.common.storage.Storage.lambda$saveGroup$0(Storage.java:184)
+	at me.lucko.luckperms.common.util.AsyncInterface.lambda$future$1(AsyncInterface.java:61)
+	at java.base/java.util.concurrent.CompletableFuture$AsyncRun.run(CompletableFuture.java:1825)
+	at java.base/java.util.concurrent.CompletableFuture$AsyncRun.exec(CompletableFuture.java:1817)
+	at java.base/java.util.concurrent.ForkJoinTask.doExec(ForkJoinTask.java:511)
+	at java.base/java.util.concurrent.ForkJoinPool$WorkQueue.topLevelExec(ForkJoinPool.java:1450)
+	at java.base/java.util.concurrent.ForkJoinPool.runWorker(ForkJoinPool.java:2019)
+	at java.base/java.util.concurrent.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:187)
+2026-10-23 15:00:24 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLDataException: Value too long for column "ACTION CHARACTER VARYING(300)": "U&'parent add strannik server=parent server=worldguard.region.max-region-count.1... (1193)"; SQL statement:
+INSERT INTO `luckperms_actions` (time, actor_uuid, actor_name, type, acted_uuid, acted_name, action) VALUES(?, ?, ?, ?, ?, ?, ?) [22001-214]
+2026-10-23 15:00:24 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLDataException: Value too long for column "CONTEXTS CHARACTER VARYING(200)": "U&'{""server"":[""&#55ffff\\043b\\043e\\0440\\0434 &r"",""&#cfcfcf\\0441\\0442\\0440\\0430\\04... (895)"; SQL statement:
+INSERT INTO `luckperms_group_permissions` (name, permission, `value`, server, world, expiry, contexts) VALUES(?, ?, ?, ?, ?, ?, ?) [22001-214]
+2026-10-23 15:00:24 jdbc[3]: exception
+org.h2.jdbc.JdbcBatchUpdateException: Value too long for column "CONTEXTS CHARACTER VARYING(200)": "U&'{""server"":[""&#55ffff\\043b\\043e\\0440\\0434 &r"",""&#cfcfcf\\0441\\0442\\0440\\0430\\04... (895)"; SQL statement:
+INSERT INTO `luckperms_group_permissions` (name, permission, `value`, server, world, expiry, contexts) VALUES(?, ?, ?, ?, ?, ?, ?) [22001-214]
+	at org.h2.jdbc.JdbcPreparedStatement.executeBatch(JdbcPreparedStatement.java:1269)
+	at me.lucko.luckperms.common.storage.implementation.sql.SqlStorage.updatePermissions(SqlStorage.java:903)
+	at me.lucko.luckperms.common.storage.implementation.sql.SqlStorage.updateGroupPermissions(SqlStorage.java:859)
+	at me.lucko.luckperms.common.storage.implementation.sql.SqlStorage.saveGroup(SqlStorage.java:553)
+	at me.lucko.luckperms.common.storage.Storage.lambda$saveGroup$0(Storage.java:184)
+	at me.lucko.luckperms.common.util.AsyncInterface.lambda$future$1(AsyncInterface.java:61)
+	at java.base/java.util.concurrent.CompletableFuture$AsyncRun.run(CompletableFuture.java:1825)
+	at java.base/java.util.concurrent.CompletableFuture$AsyncRun.exec(CompletableFuture.java:1817)
+	at java.base/java.util.concurrent.ForkJoinTask.doExec(ForkJoinTask.java:511)
+	at java.base/java.util.concurrent.ForkJoinPool$WorkQueue.topLevelExec(ForkJoinPool.java:1450)
+	at java.base/java.util.concurrent.ForkJoinPool.runWorker(ForkJoinPool.java:2019)
+	at java.base/java.util.concurrent.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:187)
+org.h2.jdbc.JdbcSQLDataException: Value too long for column "CONTEXTS CHARACTER VARYING(200)": "U&'{""server"":[""&#55ffff\\043b\\043e\\0440\\0434 &r"",""&#cfcfcf\\0441\\0442\\0440\\0430\\04... (895)"; SQL statement:
+INSERT INTO `luckperms_group_permissions` (name, permission, `value`, server, world, expiry, contexts) VALUES(?, ?, ?, ?, ?, ?, ?) [22001-214]
+	at org.h2.message.DbException.getJdbcSQLException(DbException.java:506)
+	at org.h2.message.DbException.getJdbcSQLException(DbException.java:477)
+	at org.h2.message.DbException.get(DbException.java:223)
+	at org.h2.message.DbException.getValueTooLongException(DbException.java:322)
+	at org.h2.value.Value.getValueTooLongException(Value.java:2573)
+	at org.h2.value.Value.convertToVarchar(Value.java:1261)
+	at org.h2.value.Value.convertTo(Value.java:1117)
+	at org.h2.value.Value.convertForAssignTo(Value.java:1092)
+	at org.h2.table.Column.validateConvertUpdateSequence(Column.java:369)
+	at org.h2.table.Table.convertInsertRow(Table.java:926)
+	at org.h2.command.dml.Insert.insertRows(Insert.java:167)
+	at org.h2.command.dml.Insert.update(Insert.java:135)
+	at org.h2.command.dml.DataChangeStatement.update(DataChangeStatement.java:74)
+	at org.h2.command.CommandContainer.update(CommandContainer.java:169)
+	at org.h2.command.Command.executeUpdate(Command.java:252)
+	at org.h2.jdbc.JdbcPreparedStatement.executeUpdateInternal(JdbcPreparedStatement.java:209)
+	at org.h2.jdbc.JdbcPreparedStatement.executeBatchElement(JdbcPreparedStatement.java:1317)
+	at org.h2.jdbc.JdbcPreparedStatement.executeBatch(JdbcPreparedStatement.java:1263)
+	at me.lucko.luckperms.common.storage.implementation.sql.SqlStorage.updatePermissions(SqlStorage.java:903)
+	at me.lucko.luckperms.common.storage.implementation.sql.SqlStorage.updateGroupPermissions(SqlStorage.java:859)
+	at me.lucko.luckperms.common.storage.implementation.sql.SqlStorage.saveGroup(SqlStorage.java:553)
+	at me.lucko.luckperms.common.storage.Storage.lambda$saveGroup$0(Storage.java:184)
+	at me.lucko.luckperms.common.util.AsyncInterface.lambda$future$1(AsyncInterface.java:61)
+	at java.base/java.util.concurrent.CompletableFuture$AsyncRun.run(CompletableFuture.java:1825)
+	at java.base/java.util.concurrent.CompletableFuture$AsyncRun.exec(CompletableFuture.java:1817)
+	at java.base/java.util.concurrent.ForkJoinTask.doExec(ForkJoinTask.java:511)
+	at java.base/java.util.concurrent.ForkJoinPool$WorkQueue.topLevelExec(ForkJoinPool.java:1450)
+	at java.base/java.util.concurrent.ForkJoinPool.runWorker(ForkJoinPool.java:2019)
+	at java.base/java.util.concurrent.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:187)
+2026-10-23 15:04:49 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLDataException: Value too long for column "ACTION CHARACTER VARYING(300)": "'permission set shieldyblocks.limit.4 true server=shieldyblocks.limit.5 server=b... (469)"; SQL statement:
+INSERT INTO `luckperms_actions` (time, actor_uuid, actor_name, type, acted_uuid, acted_name, action) VALUES(?, ?, ?, ?, ?, ?, ?) [22001-214]
+2026-10-23 15:04:49 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLDataException: Value too long for column "CONTEXTS CHARACTER VARYING(200)": "'{""server"":[""baron"",""geroy"",""group"",""helper"",""imperator"",""knyaz"",""lord"",""moderat... (307)"; SQL statement:
+INSERT INTO `luckperms_group_permissions` (name, permission, `value`, server, world, expiry, contexts) VALUES(?, ?, ?, ?, ?, ?, ?) [22001-214]
+2026-10-23 15:04:49 jdbc[3]: exception
+org.h2.jdbc.JdbcBatchUpdateException: Value too long for column "CONTEXTS CHARACTER VARYING(200)": "'{""server"":[""baron"",""geroy"",""group"",""helper"",""imperator"",""knyaz"",""lord"",""moderat... (307)"; SQL statement:
+INSERT INTO `luckperms_group_permissions` (name, permission, `value`, server, world, expiry, contexts) VALUES(?, ?, ?, ?, ?, ?, ?) [22001-214]
+	at org.h2.jdbc.JdbcPreparedStatement.executeBatch(JdbcPreparedStatement.java:1269)
+	at me.lucko.luckperms.common.storage.implementation.sql.SqlStorage.updatePermissions(SqlStorage.java:903)
+	at me.lucko.luckperms.common.storage.implementation.sql.SqlStorage.updateGroupPermissions(SqlStorage.java:859)
+	at me.lucko.luckperms.common.storage.implementation.sql.SqlStorage.saveGroup(SqlStorage.java:553)
+	at me.lucko.luckperms.common.storage.Storage.lambda$saveGroup$0(Storage.java:184)
+	at me.lucko.luckperms.common.util.AsyncInterface.lambda$future$1(AsyncInterface.java:61)
+	at java.base/java.util.concurrent.CompletableFuture$AsyncRun.run(CompletableFuture.java:1825)
+	at java.base/java.util.concurrent.CompletableFuture$AsyncRun.exec(CompletableFuture.java:1817)
+	at java.base/java.util.concurrent.ForkJoinTask.doExec(ForkJoinTask.java:511)
+	at java.base/java.util.concurrent.ForkJoinPool$WorkQueue.topLevelExec(ForkJoinPool.java:1450)
+	at java.base/java.util.concurrent.ForkJoinPool.runWorker(ForkJoinPool.java:2019)
+	at java.base/java.util.concurrent.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:187)
+org.h2.jdbc.JdbcSQLDataException: Value too long for column "CONTEXTS CHARACTER VARYING(200)": "'{""server"":[""baron"",""geroy"",""group"",""helper"",""imperator"",""knyaz"",""lord"",""moderat... (307)"; SQL statement:
+INSERT INTO `luckperms_group_permissions` (name, permission, `value`, server, world, expiry, contexts) VALUES(?, ?, ?, ?, ?, ?, ?) [22001-214]
+	at org.h2.message.DbException.getJdbcSQLException(DbException.java:506)
+	at org.h2.message.DbException.getJdbcSQLException(DbException.java:477)
+	at org.h2.message.DbException.get(DbException.java:223)
+	at org.h2.message.DbException.getValueTooLongException(DbException.java:322)
+	at org.h2.value.Value.getValueTooLongException(Value.java:2573)
+	at org.h2.value.Value.convertToVarchar(Value.java:1261)
+	at org.h2.value.Value.convertTo(Value.java:1117)
+	at org.h2.value.Value.convertForAssignTo(Value.java:1092)
+	at org.h2.table.Column.validateConvertUpdateSequence(Column.java:369)
+	at org.h2.table.Table.convertInsertRow(Table.java:926)
+	at org.h2.command.dml.Insert.insertRows(Insert.java:167)
+	at org.h2.command.dml.Insert.update(Insert.java:135)
+	at org.h2.command.dml.DataChangeStatement.update(DataChangeStatement.java:74)
+	at org.h2.command.CommandContainer.update(CommandContainer.java:169)
+	at org.h2.command.Command.executeUpdate(Command.java:252)
+	at org.h2.jdbc.JdbcPreparedStatement.executeUpdateInternal(JdbcPreparedStatement.java:209)
+	at org.h2.jdbc.JdbcPreparedStatement.executeBatchElement(JdbcPreparedStatement.java:1317)
+	at org.h2.jdbc.JdbcPreparedStatement.executeBatch(JdbcPreparedStatement.java:1263)
+	at me.lucko.luckperms.common.storage.implementation.sql.SqlStorage.updatePermissions(SqlStorage.java:903)
+	at me.lucko.luckperms.common.storage.implementation.sql.SqlStorage.updateGroupPermissions(SqlStorage.java:859)
+	at me.lucko.luckperms.common.storage.implementation.sql.SqlStorage.saveGroup(SqlStorage.java:553)
+	at me.lucko.luckperms.common.storage.Storage.lambda$saveGroup$0(Storage.java:184)
+	at me.lucko.luckperms.common.util.AsyncInterface.lambda$future$1(AsyncInterface.java:61)
+	at java.base/java.util.concurrent.CompletableFuture$AsyncRun.run(CompletableFuture.java:1825)
+	at java.base/java.util.concurrent.CompletableFuture$AsyncRun.exec(CompletableFuture.java:1817)
+	at java.base/java.util.concurrent.ForkJoinTask.doExec(ForkJoinTask.java:511)
+	at java.base/java.util.concurrent.ForkJoinPool$WorkQueue.topLevelExec(ForkJoinPool.java:1450)
+	at java.base/java.util.concurrent.ForkJoinPool.runWorker(ForkJoinPool.java:2019)
+	at java.base/java.util.concurrent.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:187)
