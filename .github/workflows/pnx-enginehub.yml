@@ -1,0 +1,69 @@
+name: PNX WorldEdit WorldGuard bridge tests
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'PNX-port/EngineHubBridge/**'
+      - '.github/workflows/pnx-enginehub.yml'
+      - 'PowerNukkitX-beta.zip'
+      - 'WorldEdit-version-7.4.x.zip'
+      - 'WorldGuard-version-7.0.x.zip'
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+      - name: Compile PNX API from uploaded source
+        run: |
+          set -euo pipefail
+          unzip -q PowerNukkitX-beta.zip -d "$RUNNER_TEMP/enginehub"
+          cd "$RUNNER_TEMP/enginehub/PowerNukkitX-beta"
+          chmod +x gradlew
+          ./gradlew --no-daemon --max-workers=2 shadowJar -x test -x generateGitProperties 2>&1 | tee "$RUNNER_TEMP/pnx-enginehub-build.log"
+          test -f build/powernukkitx.jar
+      - name: Compile uploaded WorldGuard core using uploaded WorldEdit core
+        run: |
+          set -euo pipefail
+          unzip -q WorldEdit-version-7.4.x.zip -d "$RUNNER_TEMP/enginehub"
+          unzip -q WorldGuard-version-7.0.x.zip -d "$RUNNER_TEMP/enginehub"
+          wg="$RUNNER_TEMP/enginehub/WorldGuard-version-7.0.x"
+          cat >> "$wg/settings.gradle.kts" <<'GRADLE'
+          includeBuild(System.getenv("RUNNER_TEMP") + "/enginehub/WorldEdit-version-7.4.x") {
+              dependencySubstitution {
+                  substitute(module("com.sk89q.worldedit:worldedit-core")).using(project(":worldedit-core"))
+                  substitute(module("com.sk89q.worldedit.worldedit-libs:ap")).using(project(":worldedit-libs:core:ap"))
+              }
+          }
+          GRADLE
+          cat >> "$wg/worldguard-core/build.gradle.kts" <<'GRADLE'
+          tasks.register("pnxBridgeClasspath") {
+              dependsOn(tasks.named("jar"), configurations.getByName("runtimeClasspath"))
+              doLast {
+                  val cp = files(tasks.named("jar").get().outputs.files, configurations.getByName("runtimeClasspath"))
+                  file(System.getenv("RUNNER_TEMP") + "/wg-classpath.txt").writeText(cp.asPath)
+              }
+          }
+          GRADLE
+          cd "$wg"
+          chmod +x gradlew
+          ./gradlew --no-daemon --max-workers=2 :worldguard-core:pnxBridgeClasspath -x test 2>&1 | tee "$RUNNER_TEMP/worldguard-build.log"
+          test -s "$RUNNER_TEMP/wg-classpath.txt"
+      - name: Compile adapters and run real WorldEdit and WorldGuard tests
+        run: |
+          set -euo pipefail
+          src=PNX-port/EngineHubBridge
+          mkdir -p "$RUNNER_TEMP/enginehub-bridge/classes" "$RUNNER_TEMP/enginehub-bridge/test"
+          cp="$(cat "$RUNNER_TEMP/wg-classpath.txt"):$RUNNER_TEMP/enginehub/PowerNukkitX-beta/build/powernukkitx.jar"
+          javac --release 25 -encoding UTF-8 -cp "$cp" -d "$RUNNER_TEMP/enginehub-bridge/classes" $(find "$src/src/main/java" -name '*.java' -print) 2>&1 | tee "$RUNNER_TEMP/bridge-compile.log"
+          javac --release 25 -encoding UTF-8 -cp "$cp:$RUNNER_TEMP/enginehub-bridge/classes" -d "$RUNNER_TEMP/enginehub-bridge/test" $(find "$src/src/test/java" -name '*.java' -print) 2>&1 | tee -a "$RUNNER_TEMP/bridge-compile.log"
+          java -cp "$cp:$RUNNER_TEMP/enginehub-bridge/classes:$RUNNER_TEMP/enginehub-bridge/test" ru.voidpe.pnx.enginehub.EngineHubBridgeTest 2>&1 | tee "$RUNNER_TEMP/bridge-test.log"
+      - name: Expose failure summary
+        if: failure()
+        run: python3 PNX-port/EngineHubBridge/tools/error_annotation.py "$RUNNER_TEMP/pnx-enginehub-build.log" "$RUNNER_TEMP/worldguard-build.log" "$RUNNER_TEMP/bridge-compile.log" "$RUNNER_TEMP/bridge-test.log"
