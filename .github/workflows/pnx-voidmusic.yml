@@ -38,6 +38,8 @@ jobs:
           cp -r "$src/src/main/resources/." "$RUNNER_TEMP/pnx-music/classes/"
           jar --create --file "$RUNNER_TEMP/pnx-music/VoidMusic-1.1.0-pnx.1.jar" -C "$RUNNER_TEMP/pnx-music/classes" .
           jar --list --file "$RUNNER_TEMP/pnx-music/VoidMusic-1.1.0-pnx.1.jar" | grep -Fx plugin.yml
+      - name: Validate bundled Bedrock sound pack
+        run: python3 PNX-port/VoidMusic/tools/check_pack.py VoidMusicPack-v1.0.1.mcpack
       - name: Smoke test on isolated PNX server with the music pack
         run: python3 PNX-port/VoidMusic/tools/smoke.py
       - name: Save test build (not yet approved for live use)
